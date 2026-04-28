@@ -1,15 +1,19 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
-import LoadingSpinner from '../components/common/LoadingSpinner'
+import MainLayout from '../components/layout/MainLayout'
 
 const ProtectedRoute = () => {
-  const { isAuthenticated, isLoading } = useAuthStore()
+  const { isAuthenticated } = useAuthStore()
 
-  if (isLoading) {
-    return <LoadingSpinner fullScreen />
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
   }
 
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />
+  return (
+    <MainLayout>
+      <Outlet />
+    </MainLayout>
+  )
 }
 
 export default ProtectedRoute
