@@ -1,41 +1,37 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
-const useAuthStore = create((set, get) => ({
-  user: null,
-  token: null,
-  isAuthenticated: false,
-  isLoading: false,
+export const useAuthStore = create(
+  persist(
+    (set, get) => ({
+      user: null,
+      token: null,
+      isAuthenticated: false,
+      isLoading: false,
 
-  setUser: (user) => set({ user }),
-  setToken: (token) => set({ token }),
+      setLoading: (isLoading) => set({ isLoading }),
 
-  login: (user, token) => {
-    localStorage.setItem('hris_token', token)
-    localStorage.setItem('hris_user', JSON.stringify(user))
-    set({ user, token, isAuthenticated: true })
-  },
+      login: (user, token) => {
+        set({ user, token, isAuthenticated: true, isLoading: false })
+      },
 
-  logout: () => {
-    localStorage.removeItem('hris_token')
-    localStorage.removeItem('hris_user')
-    set({ user: null, token: null, isAuthenticated: false })
-  },
+      logout: () => {
+        set({ user: null, token: null, isAuthenticated: false })
+      },
 
-  initAuth: () => {
-    const token = localStorage.getItem('hris_token')
-    const userStr = localStorage.getItem('hris_user')
-    if (token && userStr) {
-      try {
-        const user = JSON.parse(userStr)
-        set({ user, token, isAuthenticated: true })
-      } catch {
-        localStorage.removeItem('hris_token')
-        localStorage.removeItem('hris_user')
-      }
+      clearAuth: () => {
+        set({ user: null, token: null, isAuthenticated: false })
+      },
+
+      updateUser: (user) => set({ user }),
+    }),
+    {
+      name: 'hris-auth-storage',
+      partialize: (state) => ({
+        user: state.user,
+        token: state.token,
+        isAuthenticated: state.isAuthenticated,
+      }),
     }
-  },
-
-  setLoading: (isLoading) => set({ isLoading }),
-}))
-
-export default useAuthStore
+  )
+)
