@@ -1,18 +1,20 @@
 import axios from 'axios'
+import { useAuthStore } from '../store/authStore'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    Accept: 'application/json',
   },
   withCredentials: false,
 })
 
-// Request interceptor - attach token
+// ── Request Interceptor ──────────────────────────────────────────────────────
+// Sisipkan Bearer token ke setiap request
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('hris_token')
+    const token = useAuthStore.getState().token
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -21,14 +23,17 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Response interceptor - handle 401
+// ── Response Interceptor ─────────────────────────────────────────────────────
+// Tangani 401 Unauthorized → clear auth → redirect ke /login
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('hris_token')
-      localStorage.removeItem('hris_user')
-      window.location.href = '/login'
+      useAuthStore.getState().clearAuth()
+      // Hindari redirect loop jika sudah di halaman login
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }
