@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { authService } from '../../services/authService'
 
@@ -11,10 +12,11 @@ const loginSchema = z.object({
 })
 
 const LoginPage = () => {
+  const navigate = useNavigate()
+  const { login, isAuthenticated } = useAuthStore()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const [showPassword, setShowPassword] = useState(false)
-  const { setAuth } = useAuthStore()
 
   const {
     register,
@@ -24,216 +26,136 @@ const LoginPage = () => {
     resolver: zodResolver(loginSchema),
   })
 
+  // Redirect jika sudah login
+  if (isAuthenticated) {
+    navigate('/dashboard', { replace: true })
+    return null
+  }
+
   const onSubmit = async (data) => {
     try {
       setIsLoading(true)
       setError(null)
       const response = await authService.login(data)
-      setAuth(response.data.user, response.data.token)
+      const { user, token } = response.data
+      login(user, token)
+      navigate('/dashboard', { replace: true })
     } catch (err) {
-      setError(err.response?.data?.message || 'Email atau password salah.')
+      setError(
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        'Email atau password salah.'
+      )
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 flex-col justify-between p-12 relative overflow-hidden">
-        {/* Background decoration */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full" />
-          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-white/5 rounded-full" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full" />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl mb-4">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">HRIS MSR</h1>
+          <p className="text-gray-500 text-sm mt-1">Human Resource Information System</p>
         </div>
 
-        {/* Logo */}
-        <div className="relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg">
-              <span className="text-blue-600 font-bold text-lg">H</span>
-            </div>
-            <div>
-              <p className="text-white font-bold text-xl">HRIS MSR</p>
-              <p className="text-blue-200 text-xs">Human Resource System</p>
-            </div>
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+            <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <p className="text-red-600 text-sm">{error}</p>
           </div>
-        </div>
+        )}
 
-        {/* Center Content */}
-        <div className="relative z-10 space-y-6">
-          <h1 className="text-4xl font-bold text-white leading-tight">
-            Kelola SDM
-            <br />
-            <span className="text-blue-200">Lebih Efisien</span>
-          </h1>
-          <p className="text-blue-100 text-lg leading-relaxed">
-            Platform HRIS modern untuk absensi digital, manajemen cuti,
-            jadwal shift, dan laporan kehadiran karyawan.
-          </p>
-
-          {/* Feature Pills */}
-          <div className="flex flex-wrap gap-2">
-            {['Absensi GPS', 'Manajemen Cuti', 'Jadwal Shift', 'Laporan'].map((f) => (
-              <span
-                key={f}
-                className="px-3 py-1 bg-white/20 text-white text-sm rounded-full backdrop-blur-sm border border-white/20"
-              >
-                {f}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Bottom Stats */}
-        <div className="relative z-10 grid grid-cols-3 gap-4">
-          {[
-            { label: 'Fitur MVP', value: '5+' },
-            { label: 'PWA Ready', value: '100%' },
-            { label: 'Realtime', value: 'Pusher' },
-          ].map((stat) => (
-            <div key={stat.label} className="text-center">
-              <p className="text-2xl font-bold text-white">{stat.value}</p>
-              <p className="text-blue-200 text-xs mt-1">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Right Panel - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
-        <div className="w-full max-w-md">
-          {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-lg">H</span>
-            </div>
-            <div>
-              <p className="text-gray-900 font-bold text-xl">HRIS MSR</p>
-              <p className="text-gray-500 text-xs">Human Resource System</p>
-            </div>
+        {/* Form */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email
+            </label>
+            <input
+              type="email"
+              autoComplete="email"
+              placeholder="nama@perusahaan.com"
+              className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition ${
+                errors.email ? 'border-red-400 bg-red-50' : 'border-gray-300'
+              }`}
+              {...register('email')}
+            />
+            {errors.email && (
+              <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>
+            )}
           </div>
 
-          {/* Form Header */}
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900">Selamat Datang</h2>
-            <p className="text-gray-500 mt-2">Masuk untuk melanjutkan ke dashboard</p>
-          </div>
-
-          {/* Error Alert */}
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
-              <span className="text-red-500 text-lg mt-0.5">&#9888;</span>
-              <p className="text-red-700 text-sm">{error}</p>
-            </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {/* Email Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Alamat Email
-              </label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-                  &#9993;
-                </span>
-                <input
-                  {...register('email')}
-                  type="email"
-                  autoComplete="email"
-                  placeholder="nama@perusahaan.com"
-                  className={`w-full pl-10 pr-4 py-3 bg-white border rounded-xl text-sm transition-all outline-none ${
-                    errors.email
-                      ? 'border-red-400 focus:ring-2 focus:ring-red-200'
-                      : 'border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
-                  }`}
-                />
-              </div>
-              {errors.email && (
-                <p className="mt-1.5 text-xs text-red-500">{errors.email.message}</p>
-              )}
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Password
-              </label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-                  &#128274;
-                </span>
-                <input
-                  {...register('password')}
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  placeholder="Masukkan password"
-                  className={`w-full pl-10 pr-12 py-3 bg-white border rounded-xl text-sm transition-all outline-none ${
-                    errors.password
-                      ? 'border-red-400 focus:ring-2 focus:ring-red-200'
-                      : 'border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? '&#128065;' : '&#128064;'}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="mt-1.5 text-xs text-red-500">{errors.password.message}</p>
-              )}
-            </div>
-
-            {/* Remember + Forgot */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded"
-                />
-                <span className="text-sm text-gray-600">Ingat saya</span>
-              </label>
+          {/* Password */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Password
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                placeholder="Masukkan password"
+                className={`w-full px-4 py-2.5 pr-10 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition ${
+                  errors.password ? 'border-red-400 bg-red-50' : 'border-gray-300'
+                }`}
+                {...register('password')}
+              />
               <button
                 type="button"
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
-                Lupa password?
+                {showPassword ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                )}
               </button>
             </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-blue-200 hover:shadow-blue-300 disabled:shadow-none flex items-center justify-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Memproses...
-                </>
-              ) : (
-                'Masuk ke Dashboard'
-              )}
-            </button>
-          </form>
-
-          {/* Footer */}
-          <div className="mt-8 pt-6 border-t border-gray-200 text-center">
-            <p className="text-xs text-gray-400">
-              Hubungi administrator jika mengalami kendala login.
-            </p>
-            <p className="text-xs text-gray-300 mt-2">
-              HRIS MSR &copy; {new Date().getFullYear()}
-            </p>
+            {errors.password && (
+              <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>
+            )}
           </div>
-        </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-2.5 px-4 rounded-lg transition flex items-center justify-center gap-2"
+          >
+            {isLoading ? (
+              <>
+                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Memproses...
+              </>
+            ) : (
+              'Masuk'
+            )}
+          </button>
+        </form>
+
+        <p className="text-center text-xs text-gray-400 mt-6">
+          &copy; {new Date().getFullYear()} HRIS MSR. All rights reserved.
+        </p>
       </div>
     </div>
   )
