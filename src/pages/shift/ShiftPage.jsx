@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import shiftService from '../../services/shiftService'
-import useAuthStore from '../../store/authStore'
+import { useAuthStore } from '../../store/authStore'
 
 const DAYS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
 const MONTHS = [

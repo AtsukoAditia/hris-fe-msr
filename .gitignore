@@ -98,6 +98,20 @@ dist
 # Sveltekit cache directory
 .svelte-kit/
 
+# macOS
+.DS_Store
+
+# Editor temp files and settings
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Development build artifacts
+dev-dist/
+package-lock.json
+
 # vitepress build output
 **/.vitepress/dist
 

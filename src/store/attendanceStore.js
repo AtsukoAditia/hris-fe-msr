@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-const useAttendanceStore = create((set) => ({
+export const useAttendanceStore = create((set) => ({
   todayAttendance: null,
   attendanceList: [],
   isLoading: false,
@@ -13,4 +13,3 @@ const useAttendanceStore = create((set) => ({
   reset: () => set({ todayAttendance: null, checkinStatus: null }),
 }))
 
-export default useAttendanceStore
