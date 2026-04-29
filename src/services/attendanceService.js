@@ -1,21 +1,17 @@
 import api from '../lib/axios'
 
 export const attendanceService = {
-  /** Get my attendance list */
+  /** Riwayat absensi milik user yang sedang login */
   getMyAttendances: (params) => api.get('/attendance/my', { params }),
 
-  /** Get today's attendance */
+  /** Absensi hari ini milik user yang sedang login */
   getToday: () => api.get('/attendance/today'),
 
-  /** Check-in with selfie + location */
-  checkIn: (data) => api.post('/attendance/check-in', data, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
+  /** Check-in (JSON, bukan multipart) */
+  checkIn: (data) => api.post('/attendance/check-in', data),
 
-  /** Check-out with selfie + location */
-  checkOut: (data) => api.post('/attendance/check-out', data, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
+  /** Check-out (JSON, bukan multipart) */
+  checkOut: (data) => api.post('/attendance/check-out', data),
 
   /** Check-in via QR code */
   checkInQr: (data) => api.post('/attendance/check-in/qr', data),
@@ -23,16 +19,17 @@ export const attendanceService = {
   /** Check-out via QR code */
   checkOutQr: (data) => api.post('/attendance/check-out/qr', data),
 
-  /** Get attendance by employee (admin) */
+  /** Data absensi satu karyawan tertentu (admin/hr) */
   getByEmployee: (employeeId, params) =>
     api.get(`/attendance/employee/${employeeId}`, { params }),
 
-  /** Admin: get all attendances */
+  /** Semua absensi - monitoring admin/hr */
   getAll: (params) => api.get('/attendance', { params }),
 
-  /** Export attendance to Excel */
-  exportExcel: (params) => api.get('/attendance/export', {
-    params,
-    responseType: 'blob',
-  }),
+  /** Export absensi ke Excel */
+  exportExcel: (params) =>
+    api.get('/attendance/export', {
+      params,
+      responseType: 'blob',
+    }),
 }
