@@ -39,8 +39,9 @@ const AttendancePage = () => {
   }, [])
 
   const normalizeAttendanceList = (payload) => {
-    if (Array.isArray(payload)) return payload
+    if (payload?.data?.data) return payload.data.data
     if (Array.isArray(payload?.data)) return payload.data
+    if (Array.isArray(payload)) return payload
     return []
   }
 
@@ -58,7 +59,7 @@ const AttendancePage = () => {
   const fetchAttendances = async () => {
     try {
       const res = await attendanceService.getMyAttendances()
-      const list = normalizeAttendanceList(res.data?.data)
+      const list = normalizeAttendanceList(res.data)
       setAttendanceList(list)
     } catch (err) {
       console.error(err)
@@ -96,7 +97,7 @@ const AttendancePage = () => {
       if (filters.status) params.status = filters.status
 
       const res = await attendanceService.getAll(params)
-      const list = normalizeAttendanceList(res.data?.data)
+      const list = normalizeAttendanceList(res.data)
       setAttendanceList(list)
     } catch (err) {
       console.error(err)
@@ -175,8 +176,15 @@ const AttendancePage = () => {
     setTimeout(() => fetchAdminAttendances(), 0)
   }
 
-  const canCheckIn = useMemo(() => !todayAttendance?.check_in, [todayAttendance])
-  const canCheckOut = useMemo(() => !!todayAttendance?.check_in && !todayAttendance?.check_out, [todayAttendance])
+  const canCheckIn = useMemo(
+    () => !todayAttendance?.check_in_time,  // Ubah dari check_in
+    [todayAttendance]
+  )
+
+  const canCheckOut = useMemo(
+    () => !!todayAttendance?.check_in_time && !todayAttendance?.check_out_time,  // Ubah dari check_in/check_out
+    [todayAttendance]
+  )
 
   const filteredAdminAttendanceList = useMemo(() => {
     if (!isAdminLike) return attendanceList
