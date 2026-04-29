@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './ProtectedRoute'
+import MainLayout from '../components/layout/MainLayout'
 
 import LoginPage from '../pages/auth/LoginPage'
 import DashboardPage from '../pages/dashboard/DashboardPage'
@@ -13,22 +14,26 @@ import LeavePage from '../pages/leave/LeavePage'
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
 
-      {/* Protected routes */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/attendance" element={<AttendancePage />} />
-        <Route path="/approval" element={<ApprovalPage />} />
-        <Route path="/shift" element={<ShiftPage />} />
-        <Route path="/report" element={<ReportPage />} />
-        <Route path="/employee" element={<EmployeePage />} />
-        <Route path="/leave" element={<LeavePage />} />
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/attendance" element={<AttendancePage />} />
+          <Route path="/approval" element={<ApprovalPage />} />
+          <Route path="/shift" element={<ShiftPage />} />
+          <Route path="/report" element={<ReportPage />} />
+          <Route path="/leave" element={<LeavePage />} />
+        </Route>
       </Route>
 
-      {/* Fallback */}
+      <Route element={<ProtectedRoute allowedRoles={['admin', 'hr']} />}>
+        <Route element={<MainLayout />}>
+          <Route path="/employee" element={<EmployeePage />} />
+        </Route>
+      </Route>
+
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   )
