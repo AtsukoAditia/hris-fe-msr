@@ -1,6 +1,19 @@
 import { useState, useEffect, useCallback } from 'react'
 import employeeService from '../../services/employeeService'
-import { Plus, Search, MoreVertical, Edit2, Trash2, Eye, UserPlus, Shield, User, MapPin, Phone, Calendar, Briefcase, Mail, BadgeCheck, X } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, Eye, Shield, User, MapPin, Phone, Calendar, Briefcase, Mail, BadgeCheck, X, Hash } from 'lucide-react'
+
+const initialFormData = {
+  name: '',
+  email: '',
+  nik: '',
+  phone: '',
+  address: '',
+  position: '',
+  department: '',
+  join_date: '',
+  status: 'active',
+  role: 'employee',
+}
 
 const EmployeePage = () => {
   const [employees, setEmployees] = useState([])
@@ -11,19 +24,7 @@ const EmployeePage = () => {
   const [isEditing, setIsEditing] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [toast, setToast] = useState(null)
-
-  // Form states
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    address: '',
-    position: '',
-    department: '',
-    join_date: '',
-    status: 'active',
-    role: 'employee'
-  })
+  const [formData, setFormData] = useState(initialFormData)
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type })
@@ -34,7 +35,12 @@ const EmployeePage = () => {
     setIsLoading(true)
     try {
       const res = await employeeService.getAll()
-      setEmployees(res.data?.data || [])
+      const employeesData = Array.isArray(res.data?.data)
+        ? res.data.data
+        : Array.isArray(res.data?.data?.data)
+          ? res.data.data.data
+          : []
+      setEmployees(employeesData)
     } catch (err) {
       console.error(err)
       showToast('Gagal memuat data karyawan', 'error')
@@ -54,16 +60,10 @@ const EmployeePage = () => {
 
   const handleAddClick = () => {
     setIsEditing(false)
+    setSelectedEmployee(null)
     setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      address: '',
-      position: '',
-      department: '',
+      ...initialFormData,
       join_date: new Date().toISOString().split('T')[0],
-      status: 'active',
-      role: 'employee'
     })
     setShowFormModal(true)
   }
@@ -72,311 +72,337 @@ const EmployeePage = () => {
     setIsEditing(true)
     setSelectedEmployee(employee)
     setFormData({
-      name: employee.name || '',
-      email: employee.email || '',
+      name: employee.user?.name || employee.full_name || '',
+      email: employee.user?.email || '',
+      nik: employee.nik || '',
       phone: employee.phone || '',
       address: employee.address || '',
       position: employee.position || '',
       department: employee.department || '',
-      join_date: employee.join_date || '',
-      status: employee.status || 'active',
-      role: employee.role || 'employee'
+      join_date: employee.join_date ? String(employee.join_date).split('T')[0] : '',
+      status: employee.is_active ? 'active' : 'inactive',
+      role: employee.user?.role || 'employee',
     })
     setShowFormModal(true)
   }
 
-  const handleDeleteClick = async (id) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus karyawan ini?')) {
-      try {
-        await employeeService.delete(id)
-        showToast('Karyawan berhasil dihapus')
-        fetchEmployees()
-      } catch (err) {
-        showToast('Gagal menghapus karyawan', 'error')
-      }
+  const handleDeleteClick = async (employee) => {
+    const confirmed = window.confirm(`Hapus data karyawan ${employee.user?.name || employee.full_name || 'ini'}?`)
+    if (!confirmed) return
+
+    try {
+      await employeeService.delete(employee.id)
+      showToast('Data karyawan berhasil dihapus')
+      fetchEmployees()
+    } catch (err) {
+      console.error(err)
+      showToast('Gagal menghapus data karyawan', 'error')
     }
+  }
+
+  const handleDetailClick = (employee) => {
+    setSelectedEmployee(employee)
+    setShowDetailModal(true)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
+
+    const payload = {
+      name: formData.name,
+      email: formData.email,
+      nik: formData.nik,
+      phone: formData.phone,
+      address: formData.address,
+      position: formData.position,
+      department: formData.department,
+      join_date: formData.join_date,
+      status: formData.status,
+      role: formData.role,
+    }
+
     try {
-      if (isEditing) {
-        await employeeService.update(selectedEmployee.id, formData)
+      if (isEditing && selectedEmployee) {
+        await employeeService.update(selectedEmployee.id, payload)
         showToast('Data karyawan berhasil diperbarui')
       } else {
-        await employeeService.create(formData)
-        showToast('Karyawan baru berhasil ditambahkan')
+        await employeeService.create(payload)
+        showToast('Data karyawan berhasil ditambahkan')
       }
+
       setShowFormModal(false)
+      setFormData(initialFormData)
       fetchEmployees()
     } catch (err) {
-      showToast(err.response?.data?.message || 'Gagal menyimpan data', 'error')
+      console.error(err)
+      showToast(err.response?.data?.message || 'Gagal menyimpan data karyawan', 'error')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const filteredEmployees = employees.filter(emp => 
-    emp.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.department?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.position?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredEmployees = (Array.isArray(employees) ? employees : []).filter((employee) => {
+    const keyword = searchQuery.toLowerCase()
+    const name = employee.user?.name || employee.full_name || ''
+    const email = employee.user?.email || ''
+    const nik = employee.nik || ''
+    const employeeNumber = employee.formatted_employee_number || employee.employee_number || ''
+    const department = employee.department || ''
+    const position = employee.position || ''
+
+    return [name, email, nik, employeeNumber, department, position]
+      .some(value => String(value).toLowerCase().includes(keyword))
+  })
 
   return (
-    <div className=\"p-4 md:p-6 pb-24\">
-      <div className=\"flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6\">
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className=\"text-2xl font-bold text-gray-800\">Manajemen Karyawan</h1>
-          <p className=\"text-gray-500\">Kelola data dan hak akses karyawan MSR</p>
+          <h1 className="text-2xl font-bold text-gray-900">Manajemen Karyawan</h1>
+          <p className="text-gray-600 mt-1">Kelola data user dan karyawan HRIS.</p>
         </div>
-        <button 
+
+        <button
           onClick={handleAddClick}
-          className=\"flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors\"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
         >
-          <Plus size={20} />
-          <span>Tambah Karyawan</span>
+          <Plus className="w-4 h-4" />
+          Tambah Karyawan
         </button>
       </div>
 
-      {/* Search & Stats */}
-      <div className=\"grid grid-cols-1 md:grid-cols-4 gap-4 mb-6\">
-        <div className=\"md:col-span-2 relative\">
-          <Search className=\"absolute left-3 top-1/2 -translate-y-1/2 text-gray-400\" size={20} />
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
-            type=\"text\"
-            placeholder=\"Cari nama, email, atau departemen...\"
-            className=\"w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none\"
+            type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            placeholder="Cari nama, email, NIK, nomor karyawan, departemen, atau jabatan"
           />
         </div>
-        <div className=\"bg-white p-3 rounded-lg border flex items-center gap-3\">
-          <div className=\"p-2 bg-indigo-50 text-indigo-600 rounded-lg\">
-            <User size={20} />
-          </div>
-          <div>
-            <p className=\"text-xs text-gray-500\">Total</p>
-            <p className=\"font-bold\">{employees.length}</p>
-          </div>
-        </div>
-        <div className=\"bg-white p-3 rounded-lg border flex items-center gap-3\">
-          <div className=\"p-2 bg-green-50 text-green-600 rounded-lg\">
-            <BadgeCheck size={20} />
-          </div>
-          <div>
-            <p className=\"text-xs text-gray-500\">Aktif</p>
-            <p className=\"font-bold\">{employees.filter(e => e.is_active !== false).length}</p>
-          </div>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Karyawan</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">No. Karyawan</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">NIK</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Jabatan</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Departemen</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {isLoading ? (
+                <tr>
+                  <td colSpan="7" className="px-6 py-8 text-center text-gray-500">Memuat data...</td>
+                </tr>
+              ) : filteredEmployees.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="px-6 py-8 text-center text-gray-500">Belum ada data karyawan.</td>
+                </tr>
+              ) : (
+                filteredEmployees.map((employee) => (
+                  <tr key={employee.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                          <User className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">{employee.user?.name || employee.full_name || '-'}</div>
+                          <div className="text-sm text-gray-500">{employee.user?.email || '-'}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm font-medium text-gray-700">{employee.formatted_employee_number || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{employee.nik || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{employee.position || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{employee.department || '-'}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${employee.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {employee.is_active ? 'Aktif' : 'Nonaktif'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <button onClick={() => handleDetailClick(employee)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-600" title="Detail">
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleEditClick(employee)} className="p-2 rounded-lg hover:bg-blue-100 text-blue-600" title="Edit">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDeleteClick(employee)} className="p-2 rounded-lg hover:bg-red-100 text-red-600" title="Hapus">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Employee List */}
-      <div className=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4\">
-        {isLoading ? (
-          Array(6).fill(0).map((_, i) => (
-            <div key={i} className=\"bg-white p-4 rounded-xl border animate-pulse\">
-              <div className=\"flex items-center gap-4 mb-4\">
-                <div className=\"w-12 h-12 bg-gray-200 rounded-full\"></div>
-                <div className=\"flex-1\">
-                  <div className=\"h-4 bg-gray-200 rounded w-3/4 mb-2\"></div>
-                  <div className=\"h-3 bg-gray-100 rounded w-1/2\"></div>
-                </div>
-              </div>
-              <div className=\"space-y-2\">
-                <div className=\"h-3 bg-gray-100 rounded w-full\"></div>
-                <div className=\"h-3 bg-gray-100 rounded w-5/6\"></div>
-              </div>
-            </div>
-          ))
-        ) : filteredEmployees.length > 0 ? (
-          filteredEmployees.map((employee) => (
-            <div key={employee.id} className=\"bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow group\">
-              <div className=\"p-4\">
-                <div className=\"flex items-start justify-between mb-4\">
-                  <div className=\"flex items-center gap-3\">
-                    <div className=\"w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg\">
-                      {employee.name?.charAt(0)}
-                    </div>
-                    <div>
-                      <h3 className=\"font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors\">{employee.name}</h3>
-                      <p className=\"text-xs text-gray-500\">{employee.position} • {employee.department}</p>
-                    </div>
-                  </div>
-                  <div className=\"flex gap-1\">
-                    <button 
-                      onClick={() => { setSelectedEmployee(employee); setShowDetailModal(true); }}
-                      className=\"p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors\"
-                    >
-                      <Eye size={18} />
-                    </button>
-                    <button 
-                      onClick={() => handleEditClick(employee)}
-                      className=\"p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors\"
-                    >
-                      <Edit2 size={18} />
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteClick(employee.id)}
-                      className=\"p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors\"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className=\"space-y-2 text-sm text-gray-600 border-t pt-4\">
-                  <div className=\"flex items-center gap-2\">
-                    <Mail size={14} className=\"text-gray-400\" />
-                    <span>{employee.email}</span>
-                  </div>
-                  <div className=\"flex items-center gap-2\">
-                    <Phone size={14} className=\"text-gray-400\" />
-                    <span>{employee.phone || '-'}</span>
-                  </div>
-                  <div className=\"flex items-center justify-between mt-4\">
-                    <span className={`px-2 py-1 rounded-full text-[10px] font-medium ${
-                      employee.is_active !== false ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                    }`}>
-                      {employee.is_active !== false ? 'Aktif' : 'Nonaktif'}
-                    </span>
-                    <span className=\"text-[10px] text-gray-400 uppercase tracking-wider font-bold\">
-                      {employee.role || 'employee'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className=\"col-span-full py-12 text-center bg-gray-50 rounded-xl border-2 border-dashed\">
-            <UserPlus size={48} className=\"mx-auto text-gray-300 mb-4\" />
-            <p className=\"text-gray-500\">Tidak ada data karyawan ditemukan</p>
-          </div>
-        )}
-      </div>
-
-      {/* Form Modal (Add/Edit) */}
       {showFormModal && (
-        <div className=\"fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm\">
-          <div className=\"bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl\">
-            <div className=\"p-6 border-b flex items-center justify-between\">
-              <h2 className=\"text-xl font-bold\">{isEditing ? 'Edit Data Karyawan' : 'Tambah Karyawan Baru'}</h2>
-              <button onClick={() => setShowFormModal(false)} className=\"p-2 hover:bg-gray-100 rounded-full\">
-                <X size={24} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">{isEditing ? 'Edit Karyawan' : 'Tambah Karyawan'}</h2>
+                <p className="text-sm text-gray-500 mt-1">Data user dan employee akan disimpan bersamaan.</p>
+              </div>
+              <button onClick={() => setShowFormModal(false)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500">
+                <X className="w-5 h-5" />
               </button>
             </div>
-            
-            <form onSubmit={handleSubmit} className=\"flex-1 overflow-y-auto p-6\">
-              <div className=\"grid grid-cols-1 md:grid-cols-2 gap-4\">
-                <div className=\"md:col-span-2\">
-                  <label className=\"block text-sm font-medium text-gray-700 mb-1\">Nama Lengkap</label>
+
+            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Nama Lengkap</label>
                   <input
-                    name=\"name\"
-                    required
-                    className=\"w-full p-2 border rounded-lg\"
+                    type="text"
+                    name="name"
                     value={formData.name}
                     onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Masukkan nama lengkap"
                   />
                 </div>
+
                 <div>
-                  <label className=\"block text-sm font-medium text-gray-700 mb-1\">Email</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
                   <input
-                    type=\"email\"
-                    name=\"email\"
-                    required
-                    className=\"w-full p-2 border rounded-lg\"
+                    type="email"
+                    name="email"
                     value={formData.email}
                     onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Masukkan email"
                   />
                 </div>
+
                 <div>
-                  <label className=\"block text-sm font-medium text-gray-700 mb-1\">No. Telepon</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">NIK</label>
                   <input
-                    name=\"phone\"
-                    className=\"w-full p-2 border rounded-lg\"
+                    type="text"
+                    name="nik"
+                    value={formData.nik}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Masukkan NIK"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">No. Telepon</label>
+                  <input
+                    type="text"
+                    name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Masukkan nomor telepon"
                   />
                 </div>
+
                 <div>
-                  <label className=\"block text-sm font-medium text-gray-700 mb-1\">Departemen</label>
-                  <select
-                    name=\"department\"
-                    required
-                    className=\"w-full p-2 border rounded-lg\"
-                    value={formData.department}
-                    onChange={handleInputChange}
-                  >
-                    <option value=\"\">Pilih Departemen</option>
-                    <option value=\"IT\">IT</option>
-                    <option value=\"HR\">HR</option>
-                    <option value=\"Finance\">Finance</option>
-                    <option value=\"Marketing\">Marketing</option>
-                    <option value=\"Operational\">Operational</option>
-                  </select>
-                </div>
-                <div>
-                  <label className=\"block text-sm font-medium text-gray-700 mb-1\">Jabatan</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Jabatan</label>
                   <input
-                    name=\"position\"
-                    required
-                    className=\"w-full p-2 border rounded-lg\"
+                    type="text"
+                    name="position"
                     value={formData.position}
                     onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Masukkan jabatan"
                   />
                 </div>
+
                 <div>
-                  <label className=\"block text-sm font-medium text-gray-700 mb-1\">Tanggal Bergabung</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Departemen</label>
                   <input
-                    type=\"date\"
-                    name=\"join_date\"
-                    className=\"w-full p-2 border rounded-lg\"
+                    type="text"
+                    name="department"
+                    value={formData.department}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Masukkan departemen"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal Bergabung</label>
+                  <input
+                    type="date"
+                    name="join_date"
                     value={formData.join_date}
                     onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   />
                 </div>
+
                 <div>
-                  <label className=\"block text-sm font-medium text-gray-700 mb-1\">Role Sistem</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
                   <select
-                    name=\"role\"
-                    className=\"w-full p-2 border rounded-lg\"
+                    name="role"
                     value={formData.role}
                     onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   >
-                    <option value=\"employee\">Employee</option>
-                    <option value=\"manager\">Manager</option>
-                    <option value=\"hr\">HR Admin</option>
-                    <option value=\"admin\">System Admin</option>
+                    <option value="employee">Employee</option>
+                    <option value="manager">Manager</option>
+                    <option value="hr">HR</option>
+                    <option value="admin">Admin</option>
                   </select>
                 </div>
-                <div className=\"md:col-span-2\">
-                  <label className=\"block text-sm font-medium text-gray-700 mb-1\">Alamat</label>
-                  <textarea
-                    name=\"address\"
-                    rows=\"3\"
-                    className=\"w-full p-2 border rounded-lg\"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                  ></textarea>
-                </div>
               </div>
-              
-              <div className=\"mt-8 flex gap-3\">
-                <button
-                  type=\"button\"
-                  onClick={() => setShowFormModal(false)}
-                  className=\"flex-1 py-2 border rounded-lg hover:bg-gray-50\"
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Alamat</label>
+                <textarea
+                  name="address"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  rows="3"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="Masukkan alamat"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 >
+                  <option value="active">Aktif</option>
+                  <option value="inactive">Nonaktif</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                <button type="button" onClick={() => setShowFormModal(false)} className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
                   Batal
                 </button>
-                <button
-                  type=\"submit\"
-                  disabled={isLoading}
-                  className=\"flex-1 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50\"
-                >
-                  {isLoading ? 'Menyimpan...' : (isEditing ? 'Update Data' : 'Simpan Karyawan')}
+                <button type="submit" disabled={isLoading} className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50">
+                  {isLoading ? 'Menyimpan...' : isEditing ? 'Update Karyawan' : 'Simpan Karyawan'}
                 </button>
               </div>
             </form>
@@ -384,84 +410,103 @@ const EmployeePage = () => {
         </div>
       )}
 
-      {/* Detail Modal */}
       {showDetailModal && selectedEmployee && (
-        <div className=\"fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm\">
-          <div className=\"bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl\">
-            <div className=\"bg-indigo-600 p-8 flex flex-col items-center text-white relative\">
-              <button 
-                onClick={() => setShowDetailModal(false)}
-                className=\"absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors\"
-              >
-                <X size={24} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Detail Karyawan</h2>
+                <p className="text-sm text-gray-500 mt-1">Informasi lengkap data employee dan user.</p>
+              </div>
+              <button onClick={() => setShowDetailModal(false)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500">
+                <X className="w-5 h-5" />
               </button>
-              <div className=\"w-24 h-24 rounded-full bg-white/20 border-4 border-white/30 flex items-center justify-center text-3xl font-bold mb-4 shadow-lg\">
-                {selectedEmployee.name?.charAt(0)}
-              </div>
-              <h2 className=\"text-2xl font-bold\">{selectedEmployee.name}</h2>
-              <p className=\"text-indigo-100\">{selectedEmployee.position} • {selectedEmployee.department}</p>
             </div>
-            
-            <div className=\"p-6 space-y-4\">
-              <div className=\"grid grid-cols-2 gap-4\">
-                <div className=\"flex items-center gap-3\">
-                  <div className=\"p-2 bg-gray-50 rounded-lg text-gray-400\"><Mail size={18} /></div>
-                  <div>
-                    <p className=\"text-[10px] uppercase text-gray-400 font-bold\">Email</p>
-                    <p className=\"text-sm font-medium\">{selectedEmployee.email}</p>
-                  </div>
-                </div>
-                <div className=\"flex items-center gap-3\">
-                  <div className=\"p-2 bg-gray-50 rounded-lg text-gray-400\"><Phone size={18} /></div>
-                  <div>
-                    <p className=\"text-[10px] uppercase text-gray-400 font-bold\">Telepon</p>
-                    <p className=\"text-sm font-medium\">{selectedEmployee.phone || '-'}</p>
-                  </div>
-                </div>
-                <div className=\"flex items-center gap-3\">
-                  <div className=\"p-2 bg-gray-50 rounded-lg text-gray-400\"><Calendar size={18} /></div>
-                  <div>
-                    <p className=\"text-[10px] uppercase text-gray-400 font-bold\">Join Date</p>
-                    <p className=\"text-sm font-medium\">{selectedEmployee.join_date || '-'}</p>
-                  </div>
-                </div>
-                <div className=\"flex items-center gap-3\">
-                  <div className=\"p-2 bg-gray-50 rounded-lg text-gray-400\"><Shield size={18} /></div>
-                  <div>
-                    <p className=\"text-[10px] uppercase text-gray-400 font-bold\">Sistem Role</p>
-                    <p className=\"text-sm font-medium capitalize\">{selectedEmployee.role || 'employee'}</p>
-                  </div>
-                </div>
-              </div>
 
-              <div className=\"flex items-start gap-3 border-t pt-4\">
-                <div className=\"p-2 bg-gray-50 rounded-lg text-gray-400\"><MapPin size={18} /></div>
+            <div className="p-6 space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                  <User className="w-8 h-8" />
+                </div>
                 <div>
-                  <p className=\"text-[10px] uppercase text-gray-400 font-bold\">Alamat</p>
-                  <p className=\"text-sm\">{selectedEmployee.address || '-'}</p>
+                  <h3 className="text-xl font-semibold text-gray-900">{selectedEmployee.user?.name || selectedEmployee.full_name || '-'}</h3>
+                  <p className="text-gray-500">{selectedEmployee.user?.email || '-'}</p>
                 </div>
               </div>
 
-              <div className=\"mt-6\">
-                <button 
-                  onClick={() => setShowDetailModal(false)}
-                  className=\"w-full py-3 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors\"
-                >
-                  Tutup Detail
-                </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
+                  <Hash className="w-5 h-5 text-indigo-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-500">Nomor Karyawan</p>
+                    <p className="font-medium text-gray-900">{selectedEmployee.formatted_employee_number || '-'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
+                  <BadgeCheck className="w-5 h-5 text-indigo-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-500">NIK</p>
+                    <p className="font-medium text-gray-900">{selectedEmployee.nik || '-'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
+                  <Mail className="w-5 h-5 text-indigo-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-500">Email</p>
+                    <p className="font-medium text-gray-900">{selectedEmployee.user?.email || '-'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
+                  <Phone className="w-5 h-5 text-indigo-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-500">Telepon</p>
+                    <p className="font-medium text-gray-900">{selectedEmployee.phone || '-'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
+                  <Briefcase className="w-5 h-5 text-indigo-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-500">Jabatan</p>
+                    <p className="font-medium text-gray-900">{selectedEmployee.position || '-'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
+                  <Shield className="w-5 h-5 text-indigo-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-500">Role</p>
+                    <p className="font-medium text-gray-900">{selectedEmployee.user?.role || '-'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
+                  <Calendar className="w-5 h-5 text-indigo-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-500">Tanggal Bergabung</p>
+                    <p className="font-medium text-gray-900">{selectedEmployee.join_date || '-'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl md:col-span-2">
+                  <MapPin className="w-5 h-5 text-indigo-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-500">Alamat</p>
+                    <p className="font-medium text-gray-900">{selectedEmployee.address || '-'}</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Toast Notification */}
       {toast && (
-        <div className={`fixed bottom-24 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-lg z-[100] flex items-center gap-2 text-white animate-bounce-in ${
-          toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'
-        }`}>
-          {toast.type === 'error' ? <X size={18} /> : <BadgeCheck size={18} />}
-          <span className=\"text-sm font-medium\">{toast.message}</span>
+        <div className={`fixed bottom-6 right-6 z-[60] px-4 py-3 rounded-xl shadow-lg text-white ${toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'}`}>
+          {toast.message}
         </div>
       )}
     </div>
