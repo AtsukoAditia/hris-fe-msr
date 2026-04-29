@@ -10,31 +10,34 @@ const api = axios.create({
   withCredentials: false,
 })
 
-// ── Request Interceptor ──────────────────────────────────────────────────────
-// Sisipkan Bearer token ke setiap request
 api.interceptors.request.use(
   (config) => {
     const token = useAuthStore.getState().token
+
     if (token) {
+      config.headers = config.headers || {}
       config.headers.Authorization = `Bearer ${token}`
     }
+
     return config
   },
   (error) => Promise.reject(error)
 )
 
-// ── Response Interceptor ─────────────────────────────────────────────────────
-// Tangani 401 Unauthorized → clear auth → redirect ke /login
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
+  async (error) => {
+    const status = error.response?.status
+    const pathname = window.location.pathname
+
+    if (status === 401) {
       useAuthStore.getState().clearAuth()
-      // Hindari redirect loop jika sudah di halaman login
-      if (window.location.pathname !== '/login') {
+
+      if (pathname !== '/login') {
         window.location.href = '/login'
       }
     }
+
     return Promise.reject(error)
   }
 )
