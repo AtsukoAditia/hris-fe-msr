@@ -1,7 +1,10 @@
 import api from '../lib/axios';
 
 const leaveService = {
-  // Get all leave requests
+  // Get my own leave requests (employee)
+  getMyLeaves: (params = {}) => api.get('/leaves/my', { params }),
+
+  // Get all leave requests (admin/hr/manager)
   getAll: (params = {}) => api.get('/leaves', { params }),
 
   // Get leave by ID
@@ -10,26 +13,14 @@ const leaveService = {
   // Create leave request
   create: (data) => api.post('/leaves', data),
 
-  // Update leave request
-  update: (id, data) => api.put(`/leaves/${id}`, data),
+  // Approve leave request (manager/admin) - POST
+  approve: (id, data) => api.post(`/leaves/${id}/approve`, data),
 
-  // Cancel leave request
-  cancel: (id) => api.put(`/leaves/${id}/cancel`),
+  // Reject leave request (manager/admin) - POST
+  reject: (id, data) => api.post(`/leaves/${id}/reject`, data),
 
-  // Approve leave request (manager/admin)
-  approve: (id, data) => api.put(`/leaves/${id}/approve`, data),
-
-  // Reject leave request (manager/admin)
-  reject: (id, data) => api.put(`/leaves/${id}/reject`, data),
-
-  // Get leave types
-  getTypes: () => api.get('/leave-types'),
-
-  // Get leave balance
-  getBalance: (employeeId) => api.get(`/leaves/balance/${employeeId}`),
-
-  // Get leave history
-  getHistory: (params = {}) => api.get('/leaves/history', { params }),
+  // Get leave balance (employee's own balance)
+  getBalance: () => api.get('/leaves/balance'),
 };
 
 export default leaveService;
