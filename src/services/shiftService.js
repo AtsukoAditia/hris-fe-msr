@@ -1,30 +1,18 @@
 import api from '../lib/axios';
 
 const shiftService = {
-  // Get all shifts
+  // ==================== SHIFT TYPES ====================
   getAll: (params = {}) => api.get('/shifts', { params }),
-
-  // Get shift by ID
-  getById: (id) => api.get(`/shifts/${id}`),
-
-  // Create shift (admin only)
+  getOne: (id) => api.get(`/shifts/${id}`),
   create: (data) => api.post('/shifts', data),
-
-  // Update shift (admin only)
   update: (id, data) => api.put(`/shifts/${id}`, data),
+  remove: (id) => api.delete(`/shifts/${id}`),
 
-  // Delete shift (admin only)
-  delete: (id) => api.delete(`/shifts/${id}`),
-
-  // Assign shift to employee
-  assignToEmployee: (data) => api.post('/shift-assignments', data),
-
-  // Get shift assignments
-  getAssignments: (params = {}) => api.get('/shift-assignments', { params }),
-
-  // Get employee shift schedule
-  getEmployeeSchedule: (employeeId, params = {}) =>
-    api.get(`/shift-assignments/employee/${employeeId}`, { params }),
+  // ==================== SHIFT SCHEDULES ====================
+  getSchedules: (params = {}) => api.get('/shift-schedules', { params }),
+  getMySchedule: (params = {}) => api.get('/shift-schedules/my', { params }),
+  assignShift: (data) => api.post('/shift-schedules', data),
+  removeSchedule: (id) => api.delete(`/shift-schedules/${id}`),
 };
 
 export default shiftService;
