@@ -7,6 +7,7 @@ import DashboardPage from '../pages/dashboard/DashboardPage'
 import AttendancePage from '../pages/attendance/AttendancePage'
 import ApprovalPage from '../pages/approval/ApprovalPage'
 import ShiftPage from '../pages/shift/ShiftPage'
+import ShiftSchedulePage from '../pages/shift-schedule/ShiftSchedulePage'
 import ReportPage from '../pages/report/ReportPage'
 import EmployeePage from '../pages/employee/EmployeePage'
 import LeavePage from '../pages/leave/LeavePage'
@@ -23,6 +24,7 @@ const AppRoutes = () => {
           <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/approval" element={<ApprovalPage />} />
           <Route path="/shift" element={<ShiftPage />} />
+                  <Route path="/shift-schedule" element={<ShiftSchedulePage />} />
           <Route path="/report" element={<ReportPage />} />
           <Route path="/leave" element={<LeavePage />} />
         </Route>
