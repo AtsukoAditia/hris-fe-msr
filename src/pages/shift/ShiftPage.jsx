@@ -45,7 +45,7 @@ const ShiftPage = () => {
     }
     
     try {
-      await shiftService.delete(id);
+      await shiftService.remove(id);
       fetchShifts(); // Refresh list
     } catch (err) {
       console.error('Error deleting shift:', err);
