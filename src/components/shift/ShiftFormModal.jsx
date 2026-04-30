@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import shiftService from '../../services/shiftService'
 
-export default function ShiftFormModal({ isOpen, onClose, onSuccess, editData = null }) {
-  const [loading, setLoading] = useState(false)
+export default function ShiftFormModal({ shift, onClose, onSaveSuccess }) {  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     start_time: '',
@@ -13,14 +12,14 @@ export default function ShiftFormModal({ isOpen, onClose, onSuccess, editData = 
   })
 
   useEffect(() => {
-    if (editData) {
+    if (shift) {
       setFormData({
-        name: editData.name || '',
-        start_time: editData.start_time || '',
-        end_time: editData.end_time || '',
-        break_duration: editData.break_duration || 60,
-        description: editData.description || '',
-        is_active: editData.is_active !== false,
+        name: shift.name || '',
+        start_time: shift.start_time || '',
+        end_time: shift.end_time || '',
+        break_duration: shift.break_duration || 60,
+        description: shift.description || '',
+        is_active: shift.is_active !== false,
       })
     } else {
       setFormData({
@@ -32,7 +31,7 @@ export default function ShiftFormModal({ isOpen, onClose, onSuccess, editData = 
         is_active: true,
       })
     }
-  }, [editData])
+  }, [shift])
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -46,12 +45,12 @@ export default function ShiftFormModal({ isOpen, onClose, onSuccess, editData = 
     e.preventDefault()
     setLoading(true)
     try {
-      if (editData) {
-        await shiftService.update(editData.id, formData)
+      if (shift) {
+        await shiftService.update(shift.id, formData)
       } else {
         await shiftService.create(formData)
       }
-      onSuccess?.()
+      onSaveSuccess?.()
       onClose()
     } catch (error) {
       alert(error.response?.data?.message || 'Gagal menyimpan shift')
@@ -66,7 +65,7 @@ export default function ShiftFormModal({ isOpen, onClose, onSuccess, editData = 
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold">{editData ? 'Edit Shift' : 'Tambah Shift'}</h2>
+          <h2 className="text-xl font-semibold">{shift ? 'Edit Shift' : 'Tambah Shift'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             ✕
           </button>
