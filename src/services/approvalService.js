@@ -1,32 +1,23 @@
 import api from '../lib/axios';
 
 const approvalService = {
-  // Get all pending approvals
-  getPending: (params = {}) => api.get('/approvals/pending', { params }),
+  // Get all pending leave requests (admin/hr/manager)
+  getPending: (params = {}) => api.get('/leaves', { params: { ...params, status: 'pending' } }),
 
-  // Get all approvals (with filters)
-  getAll: (params = {}) => api.get('/approvals', { params }),
+  // Get all leave requests with filters (admin/hr/manager)
+  getAll: (params = {}) => api.get('/leaves', { params }),
 
-  // Get approval by ID
-  getById: (id) => api.get(`/approvals/${id}`),
+  // Get leave by ID
+  getById: (id) => api.get(`/leaves/${id}`),
 
-  // Approve a request
-  approve: (id, data = {}) => api.put(`/approvals/${id}/approve`, data),
+  // Approve a leave request - POST
+  approve: (id, data = {}) => api.post(`/leaves/${id}/approve`, data),
 
-  // Reject a request
-  reject: (id, data) => api.put(`/approvals/${id}/reject`, data),
+  // Reject a leave request - POST
+  reject: (id, data) => api.post(`/leaves/${id}/reject`, data),
 
-  // Get approval history
-  getHistory: (params = {}) => api.get('/approvals/history', { params }),
-
-  // Get overtime requests pending approval
-  getOvertimePending: (params = {}) => api.get('/approvals/overtime', { params }),
-
-  // Approve overtime
-  approveOvertime: (id, data = {}) => api.put(`/approvals/overtime/${id}/approve`, data),
-
-  // Reject overtime
-  rejectOvertime: (id, data) => api.put(`/approvals/overtime/${id}/reject`, data),
+  // Get approval history (non-pending)
+  getHistory: (params = {}) => api.get('/leaves', { params: { ...params, status: 'approved,rejected' } }),
 };
 
 export default approvalService;
