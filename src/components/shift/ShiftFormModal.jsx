@@ -4,7 +4,7 @@ import shiftService from '../../services/shiftService'
 export default function ShiftFormModal({ shift, onClose, onSaveSuccess }) {  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
-        code: '',
+    code: '',
     start_time: '',
     end_time: '',
     break_duration: 60,
@@ -16,7 +16,7 @@ export default function ShiftFormModal({ shift, onClose, onSaveSuccess }) {  con
     if (shift) {
       setFormData({
         name: shift.name || '',
-                code: shift.code || '',
+        code: shift.code || '',
         start_time: shift.start_time || '',
         end_time: shift.end_time || '',
         break_duration: shift.break_duration || 60,
