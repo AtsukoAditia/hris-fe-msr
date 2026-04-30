@@ -4,6 +4,7 @@ import shiftService from '../../services/shiftService'
 export default function ShiftFormModal({ shift, onClose, onSaveSuccess }) {  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
+        code: '',
     start_time: '',
     end_time: '',
     break_duration: 60,
@@ -15,6 +16,7 @@ export default function ShiftFormModal({ shift, onClose, onSaveSuccess }) {  con
     if (shift) {
       setFormData({
         name: shift.name || '',
+                code: shift.code || '',
         start_time: shift.start_time || '',
         end_time: shift.end_time || '',
         break_duration: shift.break_duration || 60,
@@ -24,6 +26,7 @@ export default function ShiftFormModal({ shift, onClose, onSaveSuccess }) {  con
     } else {
       setFormData({
         name: '',
+                code: '',
         start_time: '',
         end_time: '',
         break_duration: 60,
@@ -81,6 +84,19 @@ export default function ShiftFormModal({ shift, onClose, onSaveSuccess }) {  con
               onChange={handleChange}
               className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
               required
+            />
+          </div>
+
+                    <div>
+            <label className="block text-sm font-medium text-gray-700">Kode Shift *</label>
+            <input
+              type="text"
+              name="code"
+              value={formData.code}
+              onChange={handleChange}
+              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+              required
+              maxLength="10"
             />
           </div>
 
