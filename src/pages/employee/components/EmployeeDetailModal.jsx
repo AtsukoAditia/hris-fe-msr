@@ -1,11 +1,38 @@
-import { BadgeCheck, Briefcase, Calendar, Hash, Mail, MapPin, Phone, Shield, User, Users, X } from 'lucide-react'
+import { BadgeCheck, Briefcase, Calendar, Camera, Hash, Mail, MapPin, Phone, Shield, User, Users, X } from 'lucide-react'
+import { useRef, useState } from 'react'
+import employeeService from '../../../services/employeeService'
 
-const EmployeeDetailModal = ({ employee, onClose }) => {
+const EmployeeDetailModal = ({ employee, onClose, onFaceUpdated }) => {
+  const [isUploadingFace, setIsUploadingFace] = useState(false)
+  const [facePreview, setFacePreview] = useState(employee?.face_image_url || null)
+  const [faceError, setFaceError] = useState(null)
+  const fileInputRef = useRef(null)
+
   if (!employee) return null
+
+  const handleFaceFileChange = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setFaceError(null)
+    setFacePreview(URL.createObjectURL(file))
+    setIsUploadingFace(true)
+
+    try {
+      const res = await employeeService.enrollFace(employee.id, file)
+      onFaceUpdated?.(res.data?.data)
+    } catch (err) {
+      console.error(err)
+      setFaceError(err.response?.data?.message || 'Gagal menyimpan foto wajah.')
+    } finally {
+      setIsUploadingFace(false)
+      event.target.value = ''
+    }
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">Detail Pegawai</h2>
           <button type="button" onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
@@ -15,8 +42,12 @@ const EmployeeDetailModal = ({ employee, onClose }) => {
 
         <div className="p-6">
           <div className="flex items-center mb-6">
-            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mr-4">
-              <User className="w-10 h-10 text-blue-600" />
+            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mr-4 overflow-hidden">
+              {facePreview ? (
+                <img src={facePreview} alt="Face enrollment" className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-10 h-10 text-blue-600" />
+              )}
             </div>
             <div>
               <h3 className="text-2xl font-bold text-gray-900">{employee.name || '-'}</h3>
@@ -28,6 +59,43 @@ const EmployeeDetailModal = ({ employee, onClose }) => {
                 <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 capitalize">
                   {employee.role || '-'}
                 </span>
+                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${employee.is_face_registered ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                  {employee.is_face_registered ? 'Face registered' : 'Face belum terdaftar'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-6 rounded-xl border border-gray-200 p-4 bg-gray-50">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">Foto Wajah Absensi</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Siapkan foto wajah referensi untuk validasi absensi kamera nanti. Format JPG, PNG, atau WEBP maksimal 2MB.
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Terdaftar: {employee.face_registered_at ? formatDate(employee.face_registered_at) : '-'}
+                </p>
+                {faceError && <p className="text-xs text-red-600 mt-2">{faceError}</p>}
+              </div>
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="user"
+                  className="hidden"
+                  onChange={handleFaceFileChange}
+                />
+                <button
+                  type="button"
+                  disabled={isUploadingFace}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  {isUploadingFace ? 'Menyimpan...' : 'Capture / Upload Wajah'}
+                </button>
               </div>
             </div>
           </div>
@@ -71,6 +139,11 @@ const InfoItem = ({ icon, label, value, capitalize = false }) => (
     </div>
   </div>
 )
+
+const formatDate = (value) => {
+  if (!value) return '-'
+  return new Date(value).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+}
 
 const formatGender = (value) => {
   const map = {
