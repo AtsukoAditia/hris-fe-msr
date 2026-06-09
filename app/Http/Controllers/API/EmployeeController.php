@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
 class EmployeeController extends Controller
-{\n    public function index(Request $request): JsonResponse
+{
+    public function index(Request $request): JsonResponse
     {
         $query = Employee::with(['user']);
 
