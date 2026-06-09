@@ -22,17 +22,22 @@ const AppRoutes = () => {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/attendance" element={<AttendancePage />} />
-          <Route path="/approval" element={<ApprovalPage />} />
-          <Route path="/shift" element={<ShiftPage />} />
-                  <Route path="/shift-schedule" element={<ShiftSchedulePage />} />
-          <Route path="/report" element={<ReportPage />} />
           <Route path="/leave" element={<LeavePage />} />
+        </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute allowedRoles={['admin', 'hr', 'manager']} />}>
+        <Route element={<MainLayout />}>
+          <Route path="/approval" element={<ApprovalPage />} />
+          <Route path="/report" element={<ReportPage />} />
         </Route>
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['admin', 'hr']} />}>
         <Route element={<MainLayout />}>
           <Route path="/employee" element={<EmployeePage />} />
+          <Route path="/shift" element={<ShiftPage />} />
+          <Route path="/shift-schedule" element={<ShiftSchedulePage />} />
         </Route>
       </Route>
 
