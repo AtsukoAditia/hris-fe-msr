@@ -27,6 +27,11 @@ export const normalizeEmployee = (employee) => {
     ? employee.is_active
     : employee.status !== 'inactive'
 
+  const faceImageUrl = employee.face_image_url || employee.faceImageUrl || null
+  const isFaceRegistered = typeof employee.is_face_registered === 'boolean'
+    ? employee.is_face_registered
+    : Boolean(employee.face_image || faceImageUrl)
+
   return {
     id: employee.id,
     user_id: employee.user_id,
@@ -46,7 +51,11 @@ export const normalizeEmployee = (employee) => {
     is_active: isActive,
     employee_number: employee.formatted_employee_number || employee.employee_number || '',
     formatted_employee_number: employee.formatted_employee_number || employee.employee_number || '',
-    photo: employee.photo || employee.user?.photo || null,
+    photo: faceImageUrl || employee.photo || employee.user?.photo || null,
+    face_image: employee.face_image || null,
+    face_image_url: faceImageUrl,
+    face_registered_at: employee.face_registered_at || null,
+    is_face_registered: isFaceRegistered,
     user: employee.user || null,
     shift: employee.shift || null,
     raw: employee,
