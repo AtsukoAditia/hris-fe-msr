@@ -17,11 +17,18 @@ const ReportPage = () => {
     setTimeout(() => setToast(null), 3000)
   }
 
+  const normalizeReportRows = (payload) => {
+    if (Array.isArray(payload)) return payload
+    if (Array.isArray(payload?.data?.data)) return payload.data.data
+    if (Array.isArray(payload?.data)) return payload.data
+    return []
+  }
+
   const fetchAttendanceReport = useCallback(async () => {
     setIsLoading(true)
     try {
       const res = await reportService.getAttendanceReport(filters)
-      setAttendanceReport(res.data?.data || [])
+      setAttendanceReport(normalizeReportRows(res.data))
     } catch (err) {
       console.error(err)
     } finally {
@@ -33,7 +40,7 @@ const ReportPage = () => {
     setIsLoading(true)
     try {
       const res = await reportService.getLeaveReport(filters)
-      setLeaveReport(res.data?.data || [])
+      setLeaveReport(normalizeReportRows(res.data))
     } catch (err) {
       console.error(err)
     } finally {
@@ -239,10 +246,21 @@ const ReportPage = () => {
                   <tbody className="divide-y divide-gray-50">
                     {leaveReport.map((row, i) => (
                       <tr key={i} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-gray-900 font-medium">{row.employee_name || row.user?.name || '-'}</td>
-                        <td className="px-4 py-3 text-gray-700">{row.leave_type || row.type || '-'}</td>
-                        <td className="px-4 py-3 text-gray-600">{formatDate(row.start_date)}</td>
-                        <td className="px-4 py-3 text-gray-600">{formatDate(row.end_date)}</td>
+                        <td className="px-4 py-3 text-gray-700">
+                          {formatDate(row.attendance_date || row.date || row.work_date)}
+                        </td>
+
+                        <td className="px-4 py-3 text-gray-900 font-medium">
+                          {row.employee?.name || row.employee_name || row.user?.name || '-'}
+                        </td>
+
+                        <td className="px-4 py-3 text-gray-600">
+                          {formatTime(row.check_in_time || row.check_in || row.checkin_time)}
+                        </td>
+
+                        <td className="px-4 py-3 text-gray-600">
+                          {formatTime(row.check_out_time || row.check_out || row.checkout_time)}
+                        </td>
                         <td className="px-4 py-3">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusColor(row.status)}`}>
                             {row.status || '-'}
