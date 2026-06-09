@@ -20,6 +20,10 @@ export const normalizeDateInput = (value) => {
 export const normalizeEmployee = (employee) => {
   if (!employee) return null
 
+  const isActive = typeof employee.is_active === 'boolean'
+    ? employee.is_active
+    : employee.status !== 'inactive'
+
   return {
     id: employee.id,
     user_id: employee.user_id,
@@ -32,9 +36,9 @@ export const normalizeEmployee = (employee) => {
     department: employee.department || '',
     join_date: normalizeDateInput(employee.join_date),
     role: employee.user?.role || employee.role || 'employee',
-    status: employee.is_active ? 'active' : 'inactive',
-    is_active: Boolean(employee.is_active),
-    employee_number: employee.employee_number || employee.formatted_employee_number || '',
+    status: isActive ? 'active' : 'inactive',
+    is_active: isActive,
+    employee_number: employee.formatted_employee_number || employee.employee_number || '',
     formatted_employee_number: employee.formatted_employee_number || employee.employee_number || '',
     photo: employee.photo || employee.user?.photo || null,
     user: employee.user || null,
@@ -44,15 +48,33 @@ export const normalizeEmployee = (employee) => {
 }
 
 export const mapFormDataToPayload = (formData) => ({
-  name: formData.name,
-  email: formData.email,
-  nik: formData.nik,
-  phone: formData.phone,
-  address: formData.address,
-  position: formData.position,
+  name: formData.name?.trim(),
+  email: formData.email?.trim(),
+  nik: formData.nik?.trim(),
+  phone: formData.phone?.trim(),
+  address: formData.address?.trim(),
+  position: formData.position?.trim(),
   department: formData.department,
   join_date: formData.join_date,
   role: formData.role,
   status: formData.status,
   is_active: formData.status === 'active',
 })
+
+export const normalizeRows = (payload) => {
+  if (Array.isArray(payload)) return payload
+  if (Array.isArray(payload?.data?.data)) return payload.data.data
+  if (Array.isArray(payload?.data)) return payload.data
+  return []
+}
+
+export const normalizePagination = (payload) => {
+  const page = payload?.data || payload
+
+  return {
+    current_page: page?.current_page || 1,
+    last_page: page?.last_page || 1,
+    per_page: page?.per_page || 15,
+    total: page?.total || 0,
+  }
+}
