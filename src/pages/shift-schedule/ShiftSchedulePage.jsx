@@ -1,79 +1,94 @@
-import { useState, useEffect } from 'react';
-import shiftScheduleService from '../../services/shiftScheduleService';
-import employeeService from '../../services/employeeService';
-import shiftService from '../../services/shiftService';
+import { useState, useEffect } from 'react'
+import shiftScheduleService from '../../services/shiftScheduleService'
+import employeeService from '../../services/employeeService'
+import shiftService from '../../services/shiftService'
 
 export default function ShiftSchedulePage() {
-  const [schedules, setSchedules] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [shifts, setShifts] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [schedules, setSchedules] = useState([])
+  const [employees, setEmployees] = useState([])
+  const [shifts, setShifts] = useState([])
+  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     employee_id: '',
     shift_id: '',
     schedule_date: '',
     notes: ''
-  });
+  })
 
   useEffect(() => {
-    loadData();
-  }, []);
+    loadData()
+  }, [])
+
+  const normalizeRows = (payload) => {
+    if (Array.isArray(payload)) return payload
+    if (Array.isArray(payload?.data?.data)) return payload.data.data
+    if (Array.isArray(payload?.data)) return payload.data
+    return []
+  }
+
+  const getEmployeeName = (employee) => {
+    return employee.user?.name || employee.full_name || employee.name || employee.employee_number || '-'
+  }
+
+  const getEmployeeNumber = (employee) => {
+    return employee.employee_number || employee.formatted_employee_number || employee.employee_id || employee.id
+  }
 
   const loadData = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
       const [schedulesRes, employeesRes, shiftsRes] = await Promise.all([
         shiftScheduleService.getAll(),
         employeeService.getAll(),
         shiftService.getAll()
-      ]);
-      setSchedules(schedulesRes.data || []);
-      setEmployees(employeesRes.data || []);
-      setShifts(shiftsRes.data || []);
+      ])
+
+      setSchedules(normalizeRows(schedulesRes))
+      setEmployees(normalizeRows(employeesRes.data))
+      setShifts(normalizeRows(shiftsRes.data))
     } catch (error) {
-      console.error('Error loading data:', error);
-      alert('Gagal memuat data');
+      console.error('Error loading data:', error)
+      alert(error.response?.data?.message || 'Gagal memuat data')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+    e.preventDefault()
+    setLoading(true)
     try {
-      await shiftScheduleService.create(formData);
-      alert('Shift berhasil di-assign');
-      setFormData({ employee_id: '', shift_id: '', schedule_date: '', notes: '' });
-      loadData();
+      await shiftScheduleService.create(formData)
+      alert('Shift berhasil di-assign')
+      setFormData({ employee_id: '', shift_id: '', schedule_date: '', notes: '' })
+      loadData()
     } catch (error) {
-      console.error('Error:', error);
-      alert(error.response?.data?.message || 'Gagal assign shift');
+      console.error('Error:', error)
+      alert(error.response?.data?.message || 'Gagal assign shift')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleDelete = async (id) => {
-    if (!confirm('Hapus assignment ini?')) return;
-    setLoading(true);
+    if (!confirm('Hapus assignment ini?')) return
+    setLoading(true)
     try {
-      await shiftScheduleService.remove(id);
-      alert('Assignment berhasil dihapus');
-      loadData();
+      await shiftScheduleService.remove(id)
+      alert('Assignment berhasil dihapus')
+      loadData()
     } catch (error) {
-      console.error('Error:', error);
-      alert('Gagal menghapus assignment');
+      console.error('Error:', error)
+      alert('Gagal menghapus assignment')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Assign Shift ke Pegawai</h1>
 
-      {/* Form */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <h2 className="text-lg font-semibold mb-4">Assign Shift Baru</h2>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -86,8 +101,8 @@ export default function ShiftSchedulePage() {
               required
             >
               <option value="">Pilih Pegawai</option>
-              {employees.map(emp => (
-                <option key={emp.id} value={emp.id}>{emp.full_name} - {emp.employee_id}</option>
+              {employees.map((emp) => (
+                <option key={emp.id} value={emp.id}>{getEmployeeName(emp)} - {getEmployeeNumber(emp)}</option>
               ))}
             </select>
           </div>
@@ -100,7 +115,7 @@ export default function ShiftSchedulePage() {
               required
             >
               <option value="">Pilih Shift</option>
-              {shifts.map(shift => (
+              {shifts.map((shift) => (
                 <option key={shift.id} value={shift.id}>{shift.name} ({shift.start_time} - {shift.end_time})</option>
               ))}
             </select>
@@ -137,7 +152,6 @@ export default function ShiftSchedulePage() {
         </form>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="min-w-full">
           <thead className="bg-gray-50">
@@ -150,25 +164,31 @@ export default function ShiftSchedulePage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {schedules.map((schedule) => (
-              <tr key={schedule.id}>
-                <td className="px-6 py-4">{schedule.employee?.full_name}</td>
-                <td className="px-6 py-4">{schedule.shift?.name}</td>
-                <td className="px-6 py-4">{schedule.schedule_date}</td>
-                <td className="px-6 py-4">{schedule.notes || '-'}</td>
-                <td className="px-6 py-4">
-                  <button
-                    onClick={() => handleDelete(schedule.id)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    Hapus
-                  </button>
-                </td>
+            {schedules.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="px-6 py-6 text-center text-gray-500">Belum ada jadwal shift.</td>
               </tr>
-            ))}
+            ) : (
+              schedules.map((schedule) => (
+                <tr key={schedule.id}>
+                  <td className="px-6 py-4">{getEmployeeName(schedule.employee || {})}</td>
+                  <td className="px-6 py-4">{schedule.shift?.name || '-'}</td>
+                  <td className="px-6 py-4">{schedule.schedule_date}</td>
+                  <td className="px-6 py-4">{schedule.notes || '-'}</td>
+                  <td className="px-6 py-4">
+                    <button
+                      onClick={() => handleDelete(schedule.id)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      Hapus
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
     </div>
-  );
+  )
 }
