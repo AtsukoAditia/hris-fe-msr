@@ -14,6 +14,7 @@ const navItems = [
 
 const Sidebar = ({ isOpen, onClose }) => {
   const { user, logout } = useAuthStore()
+  const userPhoto = user?.face_image_url || user?.photo || user?.employee?.face_image_url || user?.employee?.photo || null
 
   const filteredNavItems = navItems.filter((item) => {
     if (!item.allowedRoles || item.allowedRoles.length === 0) return true
@@ -67,9 +68,18 @@ const Sidebar = ({ isOpen, onClose }) => {
         </nav>
 
         <div className="p-4 border-t border-gray-200">
-          <div className="mb-3 px-3">
-            <p className="text-sm font-medium text-gray-900">{user?.name || 'User'}</p>
-            <p className="text-xs text-gray-500 capitalize">{user?.role || '-'}</p>
+          <div className="mb-3 px-3 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center overflow-hidden shrink-0">
+              {userPhoto ? (
+                <img src={userPhoto} alt={user?.name || 'User'} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-sm font-semibold text-indigo-700">{getInitial(user?.name)}</span>
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{user?.name || 'User'}</p>
+              <p className="text-xs text-gray-500 capitalize">{user?.role || '-'}</p>
+            </div>
           </div>
           <button
             onClick={logout}
@@ -82,6 +92,11 @@ const Sidebar = ({ isOpen, onClose }) => {
       </aside>
     </>
   )
+}
+
+const getInitial = (name) => {
+  if (!name) return 'U'
+  return name.trim().charAt(0).toUpperCase()
 }
 
 export default Sidebar
