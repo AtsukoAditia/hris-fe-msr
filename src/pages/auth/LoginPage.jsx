@@ -13,7 +13,7 @@ const loginSchema = z.object({
 
 const LoginPage = () => {
   const navigate = useNavigate()
-  const { login, isAuthenticated, user } = useAuthStore()
+  const { login, isAuthenticated } = useAuthStore()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const [showPassword, setShowPassword] = useState(false)
@@ -28,14 +28,8 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (!isAuthenticated) return
-
-    const role = String(user?.role || '').toLowerCase()
-    const targetPath = ['/admin', '/hr', '/manager'].includes(`/${role}`)
-      ? `/${role}`
-      : '/dashboard'
-
-    navigate(targetPath, { replace: true })
-  }, [isAuthenticated, navigate, user?.role])
+    navigate('/dashboard', { replace: true })
+  }, [isAuthenticated, navigate])
 
   const onSubmit = async (data) => {
     try {
