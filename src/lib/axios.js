@@ -6,6 +6,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
+    'ngrok-skip-browser-warning': 'true',
   },
   withCredentials: false,
 })
@@ -14,8 +15,10 @@ api.interceptors.request.use(
   (config) => {
     const token = useAuthStore.getState().token
 
+    config.headers = config.headers || {}
+    config.headers['ngrok-skip-browser-warning'] = 'true'
+
     if (token) {
-      config.headers = config.headers || {}
       config.headers.Authorization = `Bearer ${token}`
     }
 
