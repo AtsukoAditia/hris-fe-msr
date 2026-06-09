@@ -1,7 +1,26 @@
 # HRIS Frontend — hris-fe-msr
 
-> **Smart Attendance HRIS** — React JS + Vite + PWA  
-> Bagian frontend dari sistem HRIS yang mencakup absensi, approval realtime, shift mapping, dan laporan kehadiran.
+> **Smart Attendance HRIS** — React + Vite + PWA  
+> Frontend untuk sistem HRIS berbasis role yang menangani dashboard, employee management, shift management, attendance dengan GPS + mobile camera photo evidence, leave, approval, dan report.
+
+---
+
+## Status Project
+
+Project ini dibangun bertahap sebagai HRIS web app yang dapat dijalankan sebagai PWA dan diuji melalui browser desktop maupun mobile Android.
+
+| Modul | Status | Keterangan |
+|---|---:|---|
+| Modul 1 — Foundation / API Sync | ✅ Done | API base URL, route sync, protected layout |
+| Modul 2 — Auth & Role Access | ✅ Done | Login, logout, auth hydration, role-based sidebar/routes |
+| Modul 3 — Dashboard Summary | ✅ Done | Dashboard role-aware dari API `/dashboard/summary` |
+| Modul 4 — Employee Management | ✅ Done | CRUD employee, detail modal, face enrollment upload |
+| Modul 5 — Shift Management | ✅ Done | CRUD shift, search/filter, overnight, late tolerance |
+| Modul 6 — Attendance | ✅ Done | Check-in/out, GPS, mobile camera photo evidence |
+| Modul 7 — Leave Request + Approval | ⏳ Next | Form cuti/izin dan approval flow |
+| Modul 8 — Attendance Report + Export | ⏳ Planned | Report filter dan export |
+| Modul 9 — Radius + QR | ⏳ Planned | QR attendance dan radius validation |
+| Modul 10 — Docs / Deploy | ⏳ Planned | Dokumentasi final dan deployment |
 
 ---
 
@@ -9,38 +28,78 @@
 
 | Layer | Technology |
 |---|---|
-| Framework | React JS 18 + Vite |
-| PWA | vite-plugin-pwa + Workbox |
+| Framework | React 18 + Vite |
+| Styling | Tailwind CSS |
+| Routing | React Router v6 |
 | State Management | Zustand |
 | HTTP Client | Axios |
-| Realtime | Laravel Echo + Pusher JS |
-| Styling | Tailwind CSS |
-| UI Components | Shadcn/UI |
-| Routing | React Router v6 |
-| Form Handling | React Hook Form + Zod |
-| Camera/Webcam | react-webcam |
-| QR Code | html5-qrcode |
-| Maps/Geolocation | Browser Geolocation API |
-| Notification | React Hot Toast |
+| Icons | Lucide React |
+| PWA | vite-plugin-pwa + Workbox |
+| Camera Upload | Browser file input with `capture` |
+| Geolocation | Browser Geolocation API |
+| Mobile Testing | ngrok tunnel |
 
 ---
 
-## Fitur MVP
+## Completed Features
 
-- [x] PWA Installable (manifest + service worker)
-- [x] Auth (Login, Logout, Change Password)
-- [x] Protected Route
-- [x] Role-Based Sidebar Menu
-- [x] Role-Based Page Access
-- [ ] Dashboard ringkasan kehadiran
-- [ ] Absensi Selfie Webcam + Foto + Geolocation
-- [ ] Absensi QR Code
-- [ ] Shift Mapping per tanggal
-- [ ] Pengajuan Cuti & Izin
-- [ ] Approval Realtime (Pusher)
-- [ ] Laporan Absensi (filter user & range tanggal)
-- [ ] Rekap Data Kehadiran
-- [ ] Management Pegawai (Admin/HR)
+### Auth & Role Access
+
+- Login with API token.
+- Logout.
+- Auth state persistence with Zustand.
+- Sync user data via `/auth/me`.
+- Protected route hydration.
+- Role-based sidebar menu.
+- Role-based page access.
+- ngrok API request support with `ngrok-skip-browser-warning` header.
+
+### Dashboard Summary
+
+- Dashboard data from backend API.
+- Role-aware dashboard cards.
+- Employee personal summary.
+- Admin/HR/Manager operational summary.
+
+### Employee Management
+
+- Employee list with search/filter.
+- Add employee.
+- Edit employee.
+- Delete employee.
+- Detail employee modal.
+- Face enrollment upload.
+- Face registration status and photo preview.
+
+### Shift Management
+
+- Shift list.
+- Add shift.
+- Edit shift.
+- Delete/nonaktif shift.
+- Search by name/code/description.
+- Filter active/inactive.
+- Summary cards: total, active, overnight.
+- Support regular and overnight shift.
+- Late tolerance field.
+
+### Attendance
+
+- Employee check-in.
+- Employee check-out.
+- Check-in with GPS.
+- Check-out with GPS.
+- Check-in + photo evidence.
+- Check-out + photo evidence.
+- Android mobile camera support.
+- Camera photo normalization:
+  - convert to JPEG
+  - resize max 1280px
+  - compress before upload
+- Evidence links for check-in/check-out photo.
+- Admin/HR/Manager attendance monitoring.
+- Attendance status badge.
+- Late minutes display.
 
 ---
 
@@ -60,13 +119,13 @@
 | Menu / Page | Admin | HR | Manager | Employee |
 |---|---:|---:|---:|---:|
 | Dashboard | ✅ | ✅ | ✅ | ✅ |
-| Absensi | ✅ | ✅ | ✅ | ✅ |
-| Cuti | ✅ | ✅ | ✅ | ✅ |
-| Persetujuan | ✅ | ✅ | ✅ | ❌ |
-| Laporan | ✅ | ✅ | ✅ | ❌ |
-| Karyawan | ✅ | ✅ | ❌ | ❌ |
+| Attendance | ✅ | ✅ | ✅ | ✅ |
+| Leave | ✅ | ✅ | ✅ | ✅ |
+| Approval | ✅ | ✅ | ✅ | ❌ |
+| Report | ✅ | ✅ | ✅ | ❌ |
+| Employee | ✅ | ✅ | ❌ | ❌ |
 | Shift | ✅ | ✅ | ❌ | ❌ |
-| Jadwal Shift | ✅ | ✅ | ❌ | ❌ |
+| Shift Schedule | ✅ | ✅ | ❌ | ❌ |
 
 ---
 
@@ -74,49 +133,27 @@
 
 ```txt
 src/
-├── assets/              # Static assets (icons, images)
+├── assets/                    # Static assets
 ├── components/
-│   ├── common/          # Reusable components (Button, Modal, Badge, dll)
-│   ├── layout/          # Layout utama (Sidebar, Navbar, BottomNav PWA)
-│   └── ui/              # Shadcn UI components
-├── hooks/               # Custom React Hooks
+│   ├── layout/                # Sidebar, layout shell
+│   ├── shift/                 # Shift list and form modal
+│   └── ui/                    # Reusable UI components
+├── hooks/                     # Custom hooks
 ├── lib/
-│   ├── axios.js         # Axios instance + interceptor
-│   ├── echo.js          # Laravel Echo + Pusher setup
-│   └── utils.js         # Helper functions
+│   ├── axios.js               # Axios instance + interceptor
+│   └── utils.js               # Utility functions
 ├── pages/
-│   ├── auth/            # Login page
-│   ├── dashboard/       # Dashboard utama
-│   ├── attendance/      # Absensi (selfie, QR, geolocation)
-│   ├── shift/           # Shift mapping per tanggal
-│   ├── leave/           # Cuti & Izin
-│   ├── approval/        # Halaman approval
-│   ├── report/          # Laporan absensi
-│   └── employee/        # Management pegawai (admin/hr)
-├── routes/              # Route config + Protected Route
-├── services/            # API service layer per modul
-├── store/               # Zustand store (auth, attendance, notification)
-└── pwa/
-    ├── manifest.json    # PWA manifest
-    └── sw.js            # Service worker (via Workbox)
-```
-
----
-
-## Cara Menjalankan
-
-```bash
-# Install dependencies
-npm install
-
-# Jalankan development server
-npm run dev
-
-# Build production
-npm run build
-
-# Preview build
-npm run preview
+│   ├── auth/                  # Login page
+│   ├── dashboard/             # Dashboard summary
+│   ├── employee/              # Employee management
+│   ├── shift/                 # Shift management
+│   ├── attendance/            # Check-in/out, GPS, photo evidence
+│   ├── leave/                 # Leave request
+│   ├── approval/              # Approval page
+│   └── report/                # Reports
+├── routes/                    # React Router config + ProtectedRoute
+├── services/                  # API services per module
+└── store/                     # Zustand stores
 ```
 
 ---
@@ -127,9 +164,140 @@ Buat file `.env` di root project:
 
 ```env
 VITE_API_BASE_URL=http://localhost:8000/api/v1
-VITE_PUSHER_APP_KEY=your_pusher_key
-VITE_PUSHER_APP_CLUSTER=ap1
 ```
+
+Untuk test HP via ngrok:
+
+```env
+VITE_API_BASE_URL=https://your-backend-ngrok-url.ngrok-free.app/api/v1
+```
+
+Setelah mengubah `.env`, restart Vite.
+
+---
+
+## Cara Menjalankan Lokal
+
+```bash
+npm install
+npm run dev
+```
+
+Jika ingin diakses dari HP dalam jaringan lokal atau ngrok:
+
+```bash
+npm run dev -- --host 0.0.0.0
+```
+
+Default dev server:
+
+```txt
+http://localhost:3000
+```
+
+---
+
+## Mobile Testing with ngrok
+
+### 1. Jalankan backend Laravel
+
+```bash
+cd hris-be-msr
+php artisan serve --host=0.0.0.0 --port=8000
+```
+
+### 2. Jalankan frontend Vite
+
+```bash
+cd hris-fe-msr
+npm run dev -- --host 0.0.0.0
+```
+
+### 3. Expose backend dan frontend dengan ngrok
+
+```bash
+ngrok http 8000
+ngrok http 3000
+```
+
+### 4. Update `.env` frontend
+
+```env
+VITE_API_BASE_URL=https://your-backend-ngrok-url.ngrok-free.app/api/v1
+```
+
+### 5. Restart Vite
+
+```bash
+npm run dev -- --host 0.0.0.0
+```
+
+### 6. Buka frontend ngrok di HP
+
+```txt
+https://your-frontend-ngrok-url.ngrok-free.app
+```
+
+---
+
+## PWA / Cache Troubleshooting
+
+Karena project menggunakan PWA + Workbox, browser bisa menyimpan service worker lama saat development.
+
+Jika perubahan frontend tidak muncul, jalankan di browser console:
+
+```js
+navigator.serviceWorker.getRegistrations().then((regs) => {
+  regs.forEach((reg) => reg.unregister())
+})
+
+caches.keys().then((keys) => {
+  keys.forEach((key) => caches.delete(key))
+})
+
+localStorage.removeItem('hris-auth-storage')
+location.reload()
+```
+
+---
+
+## ngrok Notes
+
+Vite sudah dikonfigurasi untuk mengizinkan host ngrok:
+
+```js
+server: {
+  host: true,
+  allowedHosts: [
+    '.ngrok-free.app',
+    '.ngrok.app',
+    '.ngrok.io',
+  ],
+}
+```
+
+Axios juga mengirim header ini untuk melewati browser warning ngrok:
+
+```txt
+ngrok-skip-browser-warning: true
+```
+
+---
+
+## Attendance Photo Notes
+
+Untuk mendukung kamera Android, file foto dari input kamera akan diproses di frontend sebelum upload:
+
+```txt
+1. Validasi file kamera tidak kosong
+2. Load image dari object URL
+3. Resize max 1280px
+4. Convert ke JPEG
+5. Compress quality 0.82
+6. Upload sebagai multipart/form-data
+```
+
+Ini membuat upload camera dari HP lebih stabil dibanding mengirim file kamera mentah.
 
 ---
 
