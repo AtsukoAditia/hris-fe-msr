@@ -19,7 +19,7 @@
 | Routing | React Router v6 |
 | Form Handling | React Hook Form + Zod |
 | Camera/Webcam | react-webcam |
-| QR Code | react-qr-reader |
+| QR Code | html5-qrcode |
 | Maps/Geolocation | Browser Geolocation API |
 | Notification | React Hot Toast |
 
@@ -28,7 +28,7 @@
 ## Fitur MVP
 
 - [x] PWA Installable (manifest + service worker)
-- [ ] Auth (Login, Logout, Refresh Token)
+- [ ] Auth (Login, Logout, Change Password)
 - [ ] Dashboard ringkasan kehadiran
 - [ ] Absensi Selfie Webcam + Foto + Geolocation
 - [ ] Absensi QR Code
@@ -97,7 +97,7 @@ npm run preview
 Buat file `.env` di root project:
 
 ```env
-VITE_API_BASE_URL=http://localhost:8000/api
+VITE_API_BASE_URL=http://localhost:8000/api/v1
 VITE_PUSHER_APP_KEY=your_pusher_key
 VITE_PUSHER_APP_CLUSTER=ap1
 ```
