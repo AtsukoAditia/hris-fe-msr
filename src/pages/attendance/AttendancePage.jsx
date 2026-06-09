@@ -177,12 +177,12 @@ const AttendancePage = () => {
   }
 
   const canCheckIn = useMemo(
-    () => !todayAttendance?.check_in_time,  // Ubah dari check_in
+    () => !todayAttendance?.check_in_time,
     [todayAttendance]
   )
 
   const canCheckOut = useMemo(
-    () => !!todayAttendance?.check_in_time && !todayAttendance?.check_out_time,  // Ubah dari check_in/check_out
+    () => !!todayAttendance?.check_in_time && !todayAttendance?.check_out_time,
     [todayAttendance]
   )
 
@@ -209,7 +209,7 @@ const AttendancePage = () => {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Data Absensi Karyawan</h1>
-          <p className="text-gray-600 mt-1">Admin hanya melihat daftar absensi karyawan tanpa form check-in atau check-out. [memory:27]</p>
+          <p className="text-gray-600 mt-1">Admin hanya melihat daftar absensi karyawan tanpa form check-in atau check-out.</p>
         </div>
 
         {message && (
@@ -221,7 +221,7 @@ const AttendancePage = () => {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Filter Absensi</h2>
-            <p className="text-sm text-gray-500 mt-1">Filter yang saya rekomendasikan: employee ID, rentang tanggal, status, dan pencarian nama/departemen/jabatan. [memory:27]</p>
+            <p className="text-sm text-gray-500 mt-1">Filter berdasarkan employee ID, rentang tanggal, status, dan pencarian nama/departemen/jabatan.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
