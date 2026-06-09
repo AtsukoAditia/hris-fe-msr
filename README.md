@@ -28,7 +28,10 @@
 ## Fitur MVP
 
 - [x] PWA Installable (manifest + service worker)
-- [ ] Auth (Login, Logout, Change Password)
+- [x] Auth (Login, Logout, Change Password)
+- [x] Protected Route
+- [x] Role-Based Sidebar Menu
+- [x] Role-Based Page Access
 - [ ] Dashboard ringkasan kehadiran
 - [ ] Absensi Selfie Webcam + Foto + Geolocation
 - [ ] Absensi QR Code
@@ -37,13 +40,39 @@
 - [ ] Approval Realtime (Pusher)
 - [ ] Laporan Absensi (filter user & range tanggal)
 - [ ] Rekap Data Kehadiran
-- [ ] Management Pegawai (Admin)
+- [ ] Management Pegawai (Admin/HR)
+
+---
+
+## Demo Accounts
+
+| Role | Email | Password |
+|---|---|---|
+| Admin | `admin@hris.test` | `password123` |
+| HR | `hr@hris.test` | `password123` |
+| Manager | `manager@hris.test` | `password123` |
+| Employee | `employee@hris.test` | `password123` |
+
+---
+
+## Role Access
+
+| Menu / Page | Admin | HR | Manager | Employee |
+|---|---:|---:|---:|---:|
+| Dashboard | ✅ | ✅ | ✅ | ✅ |
+| Absensi | ✅ | ✅ | ✅ | ✅ |
+| Cuti | ✅ | ✅ | ✅ | ✅ |
+| Persetujuan | ✅ | ✅ | ✅ | ❌ |
+| Laporan | ✅ | ✅ | ✅ | ❌ |
+| Karyawan | ✅ | ✅ | ❌ | ❌ |
+| Shift | ✅ | ✅ | ❌ | ❌ |
+| Jadwal Shift | ✅ | ✅ | ❌ | ❌ |
 
 ---
 
 ## Struktur Folder
 
-```
+```txt
 src/
 ├── assets/              # Static assets (icons, images)
 ├── components/
@@ -63,7 +92,7 @@ src/
 │   ├── leave/           # Cuti & Izin
 │   ├── approval/        # Halaman approval
 │   ├── report/          # Laporan absensi
-│   └── employee/        # Management pegawai (admin)
+│   └── employee/        # Management pegawai (admin/hr)
 ├── routes/              # Route config + Protected Route
 ├── services/            # API service layer per modul
 ├── store/               # Zustand store (auth, attendance, notification)
