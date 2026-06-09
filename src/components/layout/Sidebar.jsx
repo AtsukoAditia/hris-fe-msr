@@ -4,11 +4,12 @@ import { useAuthStore } from '../../store/authStore'
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: '📊' },
   { path: '/attendance', label: 'Absensi', icon: '📋' },
-  { path: '/shift', label: 'Shift', icon: '🗓' },
   { path: '/leave', label: 'Cuti', icon: '🌴' },
-  { path: '/approval', label: 'Persetujuan', icon: '✅' },
-  { path: '/report', label: 'Laporan', icon: '📈' },
+  { path: '/approval', label: 'Persetujuan', icon: '✅', allowedRoles: ['admin', 'hr', 'manager'] },
+  { path: '/report', label: 'Laporan', icon: '📈', allowedRoles: ['admin', 'hr', 'manager'] },
   { path: '/employee', label: 'Karyawan', icon: '👥', allowedRoles: ['admin', 'hr'] },
+  { path: '/shift', label: 'Shift', icon: '🗓', allowedRoles: ['admin', 'hr'] },
+  { path: '/shift-schedule', label: 'Jadwal Shift', icon: '📅', allowedRoles: ['admin', 'hr'] },
 ]
 
 const Sidebar = ({ isOpen, onClose }) => {
