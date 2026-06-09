@@ -5,6 +5,7 @@ const STATUS_BADGE = {
   pending: 'bg-yellow-100 text-yellow-800',
   approved: 'bg-green-100 text-green-800',
   rejected: 'bg-red-100 text-red-800',
+  cancelled: 'bg-gray-100 text-gray-700',
 }
 
 const ApprovalPage = () => {
@@ -24,13 +25,22 @@ const ApprovalPage = () => {
     setTimeout(() => setToast(null), 3000)
   }
 
+  const normalizeRows = (payload) => {
+    if (Array.isArray(payload)) return payload
+    if (Array.isArray(payload?.data?.data)) return payload.data.data
+    if (Array.isArray(payload?.data)) return payload.data
+    return []
+  }
+
   const fetchPending = useCallback(async () => {
     setIsLoading(true)
     try {
       const res = await approvalService.getPending()
-      setPendingList(res.data?.data || [])
+      setPendingList(normalizeRows(res.data))
     } catch (err) {
       console.error(err)
+      setPendingList([])
+      showToast(err.response?.data?.message || 'Gagal memuat daftar persetujuan.', 'error')
     } finally {
       setIsLoading(false)
     }
@@ -40,9 +50,12 @@ const ApprovalPage = () => {
     setIsLoading(true)
     try {
       const res = await approvalService.getHistory()
-      setHistoryList(res.data?.data || [])
+      const rows = normalizeRows(res.data)
+      setHistoryList(rows.filter((item) => item.status !== 'pending'))
     } catch (err) {
       console.error(err)
+      setHistoryList([])
+      showToast(err.response?.data?.message || 'Gagal memuat riwayat persetujuan.', 'error')
     } finally {
       setIsLoading(false)
     }
@@ -68,10 +81,12 @@ const ApprovalPage = () => {
         await approvalService.approve(selectedItem.id, { note })
         showToast('Persetujuan berhasil diberikan')
       } else {
-        await approvalService.reject(selectedItem.id, { note })
+        await approvalService.reject(selectedItem.id, { rejection_reason: note || 'Ditolak oleh approver.' })
         showToast('Pengajuan berhasil ditolak', 'error')
       }
       setShowModal(false)
+      setSelectedItem(null)
+      setNote('')
       fetchPending()
     } catch (err) {
       showToast(err.response?.data?.message || 'Terjadi kesalahan', 'error')
@@ -87,15 +102,23 @@ const ApprovalPage = () => {
     })
   }
 
+  const getEmployeeName = (item) => (
+    item.employee?.user?.name || item.employee_name || item.user?.name || 'Karyawan'
+  )
+
+  const getLeaveType = (item) => (
+    item.leave_type || item.type || item.request_type || 'Leave Request'
+  )
+
   const ApprovalCard = ({ item, showActions = false }) => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-3">
       <div className="flex items-start justify-between">
         <div>
-          <p className="font-semibold text-gray-900">{item.employee_name || item.user?.name || 'Karyawan'}</p>
-          <p className="text-sm text-gray-500">{item.type || item.request_type || 'Leave Request'}</p>
+          <p className="font-semibold text-gray-900">{getEmployeeName(item)}</p>
+          <p className="text-sm text-gray-500">{getLeaveType(item)}</p>
         </div>
         <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_BADGE[item.status] || 'bg-gray-100 text-gray-600'}`}>
-          {item.status === 'pending' ? 'Menunggu' : item.status === 'approved' ? 'Disetujui' : 'Ditolak'}
+          {item.status === 'pending' ? 'Menunggu' : item.status === 'approved' ? 'Disetujui' : item.status === 'rejected' ? 'Ditolak' : item.status || '-'}
         </span>
       </div>
       <div className="grid grid-cols-2 gap-2 text-sm">
@@ -114,10 +137,10 @@ const ApprovalPage = () => {
           <p className="text-gray-700 text-sm">{item.reason}</p>
         </div>
       )}
-      {item.note && (
+      {(item.note || item.rejection_reason) && (
         <div>
           <p className="text-gray-400 text-xs">Catatan</p>
-          <p className="text-gray-600 text-sm italic">{item.note}</p>
+          <p className="text-gray-600 text-sm italic">{item.note || item.rejection_reason}</p>
         </div>
       )}
       {showActions && (
@@ -143,7 +166,6 @@ const ApprovalPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Toast */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-white text-sm font-medium ${
           toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'
@@ -152,13 +174,11 @@ const ApprovalPage = () => {
         </div>
       )}
 
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Persetujuan</h1>
         <p className="text-gray-500 text-sm mt-1">Kelola pengajuan cuti dan izin karyawan</p>
       </div>
 
-      {/* Tabs */}
       <div className="flex border-b border-gray-200">
         <button
           onClick={() => setActiveTab('pending')}
@@ -187,7 +207,6 @@ const ApprovalPage = () => {
         </button>
       </div>
 
-      {/* Content */}
       {isLoading ? (
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
@@ -221,7 +240,6 @@ const ApprovalPage = () => {
         </div>
       )}
 
-      {/* Modal Konfirmasi */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
@@ -229,16 +247,18 @@ const ApprovalPage = () => {
               {modalAction === 'approve' ? '✅ Setujui Pengajuan' : '❌ Tolak Pengajuan'}
             </h3>
             <p className="text-sm text-gray-500">
-              {selectedItem?.employee_name || 'Karyawan'} — {selectedItem?.type || 'Leave Request'}
+              {getEmployeeName(selectedItem || {})} — {getLeaveType(selectedItem || {})}
             </p>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Catatan (opsional)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {modalAction === 'reject' ? 'Alasan penolakan' : 'Catatan (opsional)'}
+              </label>
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 rows={3}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Tambahkan catatan..."
+                placeholder={modalAction === 'reject' ? 'Masukkan alasan penolakan...' : 'Tambahkan catatan...'}
               />
             </div>
             <div className="flex gap-3">
