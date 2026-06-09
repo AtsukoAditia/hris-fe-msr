@@ -92,9 +92,12 @@ const EmployeePage = () => {
       nik: normalizedEmployee?.nik || '',
       phone: normalizedEmployee?.phone || '',
       address: normalizedEmployee?.address || '',
+      birth_date: normalizedEmployee?.birth_date || '',
+      gender: normalizedEmployee?.gender || '',
       position: normalizedEmployee?.position || '',
       department: normalizedEmployee?.department || '',
       join_date: normalizedEmployee?.join_date || '',
+      employment_type: normalizedEmployee?.employment_type || 'permanent',
       status: normalizedEmployee?.status || 'active',
       role: normalizedEmployee?.role || 'employee',
     })
