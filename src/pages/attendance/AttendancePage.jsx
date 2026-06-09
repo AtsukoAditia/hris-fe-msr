@@ -165,7 +165,7 @@ const AttendancePage = () => {
     } catch (err) {
       console.error(err)
       if (!shouldSuppressAttendanceError(err)) {
-        setMessage({ type: 'error', text: err.response?.data?.message || 'Check-in gagal.' })
+        setMessage({ type: 'error', text: getErrorMessage(err, 'Check-in gagal.') })
       }
     } finally {
       setActionLoading(false)
@@ -184,23 +184,39 @@ const AttendancePage = () => {
     } catch (err) {
       console.error(err)
       if (!shouldSuppressAttendanceError(err)) {
-        setMessage({ type: 'error', text: err.response?.data?.message || 'Check-out gagal.' })
+        setMessage({ type: 'error', text: getErrorMessage(err, 'Check-out gagal.') })
       }
     } finally {
       setActionLoading(false)
     }
   }
 
-  const handlePhotoAction = (event, type) => {
+  const handlePhotoAction = async (event, type) => {
     const file = event.target.files?.[0] || null
     event.target.value = ''
 
-    if (type === 'check_in') {
-      handleCheckIn(file)
+    if (!file || file.size === 0) {
+      setMessage({ type: 'error', text: 'Foto dari kamera tidak terbaca. Coba ambil ulang foto atau gunakan browser Chrome.' })
       return
     }
 
-    handleCheckOut(file)
+    try {
+      setActionLoading(true)
+      setMessage(null)
+      const normalizedFile = await normalizeCameraImage(file)
+
+      if (type === 'check_in') {
+        await handleCheckIn(normalizedFile)
+        return
+      }
+
+      await handleCheckOut(normalizedFile)
+    } catch (err) {
+      console.error(err)
+      setMessage({ type: 'error', text: 'Foto gagal diproses. Coba ambil ulang dengan kamera atau pilih gambar dari galeri.' })
+    } finally {
+      setActionLoading(false)
+    }
   }
 
   const handleFilterChange = (e) => {
@@ -322,8 +338,8 @@ const AttendancePage = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 mt-6">
-            <input ref={checkInPhotoRef} type="file" accept="image/*" capture="user" className="hidden" onChange={(e) => handlePhotoAction(e, 'check_in')} />
-            <input ref={checkOutPhotoRef} type="file" accept="image/*" capture="user" className="hidden" onChange={(e) => handlePhotoAction(e, 'check_out')} />
+            <input ref={checkInPhotoRef} type="file" accept="image/jpeg,image/png,image/webp,image/*" capture="user" className="hidden" onChange={(e) => handlePhotoAction(e, 'check_in')} />
+            <input ref={checkOutPhotoRef} type="file" accept="image/jpeg,image/png,image/webp,image/*" capture="user" className="hidden" onChange={(e) => handlePhotoAction(e, 'check_out')} />
 
             <button disabled={!canCheckIn || actionLoading} onClick={() => handleCheckIn()} className="px-5 py-3 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
               {actionLoading && canCheckIn ? 'Memproses...' : 'Check In'}
@@ -434,6 +450,57 @@ const StatusBadge = ({ status }) => {
 
   return <span className={`px-2 py-1 rounded-full text-xs font-medium ${map[status] || 'bg-gray-100 text-gray-700'}`}>{status || '-'}</span>
 }
+
+const getErrorMessage = (err, fallback) => {
+  const errors = err.response?.data?.errors
+  if (errors) {
+    const firstKey = Object.keys(errors)[0]
+    const firstMessage = errors[firstKey]?.[0]
+    if (firstMessage) return firstMessage
+  }
+
+  return err.response?.data?.message || fallback
+}
+
+const normalizeCameraImage = async (file) => {
+  if (!file.type.startsWith('image/')) {
+    throw new Error('File bukan gambar')
+  }
+
+  const imageUrl = URL.createObjectURL(file)
+
+  try {
+    const image = await loadImage(imageUrl)
+    const maxSize = 1280
+    const scale = Math.min(1, maxSize / Math.max(image.width, image.height))
+    const width = Math.round(image.width * scale)
+    const height = Math.round(image.height * scale)
+
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(image, 0, 0, width, height)
+
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.82))
+
+    if (!blob) {
+      throw new Error('Gagal membuat blob gambar')
+    }
+
+    return new File([blob], `attendance-${Date.now()}.jpg`, { type: 'image/jpeg' })
+  } finally {
+    URL.revokeObjectURL(imageUrl)
+  }
+}
+
+const loadImage = (src) => new Promise((resolve, reject) => {
+  const image = new Image()
+  image.onload = () => resolve(image)
+  image.onerror = reject
+  image.src = src
+})
 
 const formatTime = (value) => {
   if (!value) return '-'
