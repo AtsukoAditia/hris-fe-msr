@@ -109,6 +109,15 @@ const EmployeePage = () => {
     setShowDetailModal(true)
   }
 
+  const handleFaceUpdated = (employee) => {
+    const normalizedEmployee = normalizeEmployee(employee)
+    if (!normalizedEmployee) return
+
+    setSelectedEmployee(normalizedEmployee)
+    setEmployees((prev) => prev.map((item) => (item.id === normalizedEmployee.id ? normalizedEmployee : item)))
+    showToast('Foto wajah absensi berhasil disimpan')
+  }
+
   const handleDeleteClick = async (employee) => {
     if (!canDeleteEmployee) return
 
@@ -260,6 +269,7 @@ const EmployeePage = () => {
         <EmployeeDetailModal
           employee={selectedEmployee}
           onClose={() => setShowDetailModal(false)}
+          onFaceUpdated={handleFaceUpdated}
         />
       )}
 
