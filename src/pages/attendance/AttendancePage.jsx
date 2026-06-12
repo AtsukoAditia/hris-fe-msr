@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Camera, MapPin, RefreshCw } from 'lucide-react'
+import { Html5QrcodeScanner } from 'html5-qrcode'
+import QRCode from 'qrcode'
+import { Camera, MapPin, RefreshCw, ScanLine, X } from 'lucide-react'
 import { useAttendanceStore } from '../../store/attendanceStore'
 import { attendanceService } from '../../services/attendanceService'
 import { useAuthStore } from '../../store/authStore'
@@ -46,11 +48,11 @@ const AttendancePage = () => {
   const [message, setMessage] = useState(null)
   const [filters, setFilters] = useState(initialFilters)
   const [note, setNote] = useState('')
-  const [qrTokenInput, setQrTokenInput] = useState('')
   const [settingForm, setSettingForm] = useState(initialSettingForm)
   const [generatedQr, setGeneratedQr] = useState(null)
   const [qrForm, setQrForm] = useState({ type: 'both', expiry_minutes: 5 })
   const [lastRadiusValidation, setLastRadiusValidation] = useState(null)
+  const [scannerMode, setScannerMode] = useState(null)
 
   useEffect(() => {
     if (isAdminLike) {
@@ -243,12 +245,12 @@ const AttendancePage = () => {
     }))
   }
 
-  const buildAttendancePayload = (file, qrToken = '') => ({
+  const buildAttendancePayload = (file, qrCode = '') => ({
     latitude: location?.lat,
     longitude: location?.lng,
     note,
     photo: file || null,
-    qr_token: qrToken || undefined,
+    qr_code: qrCode || undefined,
   })
 
   const handleAttendanceSuccess = async (res, fallbackMessage) => {
@@ -261,6 +263,11 @@ const AttendancePage = () => {
   }
 
   const handleCheckIn = async (file = null) => {
+    if (!file) {
+      setMessage({ type: 'error', text: 'Absensi utama wajib menggunakan foto.' })
+      return
+    }
+
     try {
       setActionLoading(true)
       setMessage(null)
@@ -277,6 +284,11 @@ const AttendancePage = () => {
   }
 
   const handleCheckOut = async (file = null) => {
+    if (!file) {
+      setMessage({ type: 'error', text: 'Absensi utama wajib menggunakan foto.' })
+      return
+    }
+
     try {
       setActionLoading(true)
       setMessage(null)
@@ -292,41 +304,27 @@ const AttendancePage = () => {
     }
   }
 
-  const handleQrCheckIn = async () => {
-    if (!qrTokenInput.trim()) {
-      setMessage({ type: 'error', text: 'QR token wajib diisi.' })
+  const handleQrScan = async (decodedText) => {
+    const mode = scannerMode
+    setScannerMode(null)
+
+    if (!location) {
+      setMessage({ type: 'error', text: 'Lokasi belum tersedia. Klik Refresh Lokasi dulu, lalu scan ulang QR.' })
       return
     }
 
     try {
       setActionLoading(true)
       setMessage(null)
-      const res = await attendanceService.checkInQr(buildAttendancePayload(null, qrTokenInput.trim()))
-      await handleAttendanceSuccess(res, 'Check-in QR berhasil.')
-      setQrTokenInput('')
+      const payload = buildAttendancePayload(null, decodedText)
+      const res = mode === 'check_out'
+        ? await attendanceService.checkOutQr(payload)
+        : await attendanceService.checkInQr(payload)
+
+      await handleAttendanceSuccess(res, mode === 'check_out' ? 'Check-out QR berhasil.' : 'Check-in QR berhasil.')
     } catch (err) {
       console.error(err)
-      setMessage({ type: 'error', text: getErrorMessage(err, 'Check-in QR gagal.') })
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
-  const handleQrCheckOut = async () => {
-    if (!qrTokenInput.trim()) {
-      setMessage({ type: 'error', text: 'QR token wajib diisi.' })
-      return
-    }
-
-    try {
-      setActionLoading(true)
-      setMessage(null)
-      const res = await attendanceService.checkOutQr(buildAttendancePayload(null, qrTokenInput.trim()))
-      await handleAttendanceSuccess(res, 'Check-out QR berhasil.')
-      setQrTokenInput('')
-    } catch (err) {
-      console.error(err)
-      setMessage({ type: 'error', text: getErrorMessage(err, 'Check-out QR gagal.') })
+      setMessage({ type: 'error', text: getErrorMessage(err, 'Absensi QR gagal.') })
     } finally {
       setActionLoading(false)
     }
@@ -379,15 +377,8 @@ const AttendancePage = () => {
     setTimeout(() => fetchAdminAttendances(), 0)
   }
 
-  const canCheckIn = useMemo(
-    () => !todayAttendance?.check_in_time,
-    [todayAttendance]
-  )
-
-  const canCheckOut = useMemo(
-    () => !!todayAttendance?.check_in_time && !todayAttendance?.check_out_time,
-    [todayAttendance]
-  )
+  const canCheckIn = useMemo(() => !todayAttendance?.check_in_time, [todayAttendance])
+  const canCheckOut = useMemo(() => !!todayAttendance?.check_in_time && !todayAttendance?.check_out_time, [todayAttendance])
 
   const filteredAdminAttendanceList = useMemo(() => {
     if (!isAdminLike) return attendanceList
@@ -412,7 +403,7 @@ const AttendancePage = () => {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Data Absensi Karyawan</h1>
-          <p className="text-gray-600 mt-1">Monitor absensi, lokasi, radius kantor, dan QR attendance.</p>
+          <p className="text-gray-600 mt-1">Monitor absensi, lokasi, radius kantor, dan QR scanner attendance.</p>
         </div>
 
         {message && <Alert message={message} />}
@@ -476,10 +467,18 @@ const AttendancePage = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Absensi</h1>
-        <p className="text-gray-600 mt-1">Check-in dan check-out harian dengan lokasi, radius kantor, dan QR token.</p>
+        <p className="text-gray-600 mt-1">Absensi utama pakai foto + lokasi. QR scanner digunakan sebagai opsi cadangan di radius kantor.</p>
       </div>
 
       {message && <Alert message={message} />}
+
+      {scannerMode && (
+        <QrScannerModal
+          mode={scannerMode}
+          onScan={handleQrScan}
+          onClose={() => setScannerMode(null)}
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 lg:col-span-2">
@@ -506,32 +505,29 @@ const AttendancePage = () => {
             <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" placeholder="Contoh: kerja dari kantor / izin terlambat karena..." />
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 mt-6">
-            <input ref={checkInPhotoRef} type="file" accept="image/jpeg,image/png,image/webp,image/*" capture="user" className="hidden" onChange={(e) => handlePhotoAction(e, 'check_in')} />
-            <input ref={checkOutPhotoRef} type="file" accept="image/jpeg,image/png,image/webp,image/*" capture="user" className="hidden" onChange={(e) => handlePhotoAction(e, 'check_out')} />
+          <div className="mt-6 rounded-2xl border border-green-100 bg-green-50 p-4 space-y-3">
+            <div>
+              <h3 className="font-semibold text-green-900">Absensi Utama</h3>
+              <p className="text-sm text-green-700 mt-1">Wajib foto selfie dan lokasi dalam radius kantor.</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input ref={checkInPhotoRef} type="file" accept="image/jpeg,image/png,image/webp,image/*" capture="user" className="hidden" onChange={(e) => handlePhotoAction(e, 'check_in')} />
+              <input ref={checkOutPhotoRef} type="file" accept="image/jpeg,image/png,image/webp,image/*" capture="user" className="hidden" onChange={(e) => handlePhotoAction(e, 'check_out')} />
 
-            <button disabled={!canCheckIn || actionLoading} onClick={() => handleCheckIn()} className="px-5 py-3 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
-              {actionLoading && canCheckIn ? 'Memproses...' : 'Check In'}
-            </button>
-            <button disabled={!canCheckIn || actionLoading} onClick={() => checkInPhotoRef.current?.click()} className="inline-flex items-center justify-center px-5 py-3 rounded-lg border border-green-200 text-green-700 font-medium hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed">
-              <Camera className="w-4 h-4 mr-2" /> Check In + Foto
-            </button>
-            <button disabled={!canCheckOut || actionLoading} onClick={() => handleCheckOut()} className="px-5 py-3 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed">
-              {actionLoading && canCheckOut ? 'Memproses...' : 'Check Out'}
-            </button>
-            <button disabled={!canCheckOut || actionLoading} onClick={() => checkOutPhotoRef.current?.click()} className="inline-flex items-center justify-center px-5 py-3 rounded-lg border border-red-200 text-red-700 font-medium hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed">
-              <Camera className="w-4 h-4 mr-2" /> Check Out + Foto
-            </button>
+              <button disabled={!canCheckIn || actionLoading} onClick={() => checkInPhotoRef.current?.click()} className="inline-flex items-center justify-center px-5 py-3 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                <Camera className="w-4 h-4 mr-2" /> Check In + Foto
+              </button>
+              <button disabled={!canCheckOut || actionLoading} onClick={() => checkOutPhotoRef.current?.click()} className="inline-flex items-center justify-center px-5 py-3 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                <Camera className="w-4 h-4 mr-2" /> Check Out + Foto
+              </button>
+            </div>
           </div>
 
           <QrAttendanceBox
-            qrTokenInput={qrTokenInput}
-            setQrTokenInput={setQrTokenInput}
             canCheckIn={canCheckIn}
             canCheckOut={canCheckOut}
             actionLoading={actionLoading}
-            onCheckIn={handleQrCheckIn}
-            onCheckOut={handleQrCheckOut}
+            onOpenScanner={setScannerMode}
           />
         </div>
 
@@ -602,8 +598,8 @@ const AttendanceSettingPanel = ({ settingForm, onChange, onSave, onUseCurrentLoc
 const QrGeneratorPanel = ({ qrForm, setQrForm, generatedQr, onGenerate, isLoading }) => (
   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
     <div>
-      <h2 className="text-lg font-semibold text-gray-900">Generate QR Attendance</h2>
-      <p className="text-sm text-gray-500 mt-1">Buat token QR untuk check-in/check-out. Token berlaku sampai expired.</p>
+      <h2 className="text-lg font-semibold text-gray-900">Generate QR Scanner Attendance</h2>
+      <p className="text-sm text-gray-500 mt-1">QR ini ditempel di kantor dan discan employee saat fallback attendance.</p>
     </div>
 
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -623,32 +619,111 @@ const QrGeneratorPanel = ({ qrForm, setQrForm, generatedQr, onGenerate, isLoadin
       </div>
     </div>
 
-    {generatedQr && (
-      <div className="rounded-xl bg-gray-50 border border-gray-100 p-4 space-y-2">
-        <p className="text-sm text-gray-500">Token QR</p>
-        <textarea readOnly value={generatedQr.token || ''} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono bg-white" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
-          <p>Tipe: {generatedQr.type}</p>
-          <p>Expired: {generatedQr.expires_at}</p>
-        </div>
-      </div>
-    )}
+    {generatedQr && <QrCodePreview data={generatedQr} />}
   </div>
 )
 
-const QrAttendanceBox = ({ qrTokenInput, setQrTokenInput, canCheckIn, canCheckOut, actionLoading, onCheckIn, onCheckOut }) => (
+const QrCodePreview = ({ data }) => {
+  const [imageUrl, setImageUrl] = useState('')
+  const qrValue = data?.qr_payload || data?.qr_code || ''
+
+  useEffect(() => {
+    let active = true
+
+    if (!qrValue) {
+      setImageUrl('')
+      return
+    }
+
+    QRCode.toDataURL(qrValue, { width: 280, margin: 2 })
+      .then((url) => {
+        if (active) setImageUrl(url)
+      })
+      .catch(() => setImageUrl(''))
+
+    return () => {
+      active = false
+    }
+  }, [qrValue])
+
+  return (
+    <div className="rounded-xl bg-gray-50 border border-gray-100 p-4 space-y-3">
+      <div className="flex flex-col md:flex-row gap-4 md:items-center">
+        <div className="bg-white border border-gray-200 rounded-xl p-3 w-fit">
+          {imageUrl ? <img src={imageUrl} alt="QR Attendance" className="w-64 h-64" /> : <div className="w-64 h-64 grid place-items-center text-sm text-gray-400">Membuat QR...</div>}
+        </div>
+        <div className="space-y-2 text-sm text-gray-700">
+          <p><span className="font-medium">Tipe:</span> {data.type}</p>
+          <p><span className="font-medium">Expired:</span> {data.expires_at}</p>
+          <p className="text-gray-500">Employee cukup scan QR ini dari menu Absensi. Sistem tetap mengecek radius kantor.</p>
+        </div>
+      </div>
+      <textarea readOnly value={qrValue} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono bg-white" />
+    </div>
+  )
+}
+
+const QrAttendanceBox = ({ canCheckIn, canCheckOut, actionLoading, onOpenScanner }) => (
   <div className="mt-6 rounded-2xl border border-indigo-100 bg-indigo-50 p-4 space-y-3">
     <div>
-      <h3 className="font-semibold text-indigo-900">Absensi via QR Token</h3>
-      <p className="text-sm text-indigo-700 mt-1">Paste token QR dari admin/HR lalu pilih Check In QR atau Check Out QR.</p>
+      <h3 className="font-semibold text-indigo-900">Absensi Cadangan via QR Scanner</h3>
+      <p className="text-sm text-indigo-700 mt-1">Dipakai kalau kamera selfie/foto default bermasalah. QR tetap wajib discan dalam radius kantor.</p>
     </div>
-    <textarea value={qrTokenInput} onChange={(e) => setQrTokenInput(e.target.value)} rows={2} className="w-full px-3 py-2 border border-indigo-200 rounded-lg text-xs font-mono focus:ring-2 focus:ring-indigo-500" placeholder="Paste QR token di sini..." />
     <div className="flex flex-col sm:flex-row gap-3">
-      <button disabled={!canCheckIn || actionLoading || !qrTokenInput.trim()} onClick={onCheckIn} className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50">Check In QR</button>
-      <button disabled={!canCheckOut || actionLoading || !qrTokenInput.trim()} onClick={onCheckOut} className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50">Check Out QR</button>
+      <button disabled={!canCheckIn || actionLoading} onClick={() => onOpenScanner('check_in')} className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50">
+        <ScanLine className="w-4 h-4 mr-2" /> Scan QR Check In
+      </button>
+      <button disabled={!canCheckOut || actionLoading} onClick={() => onOpenScanner('check_out')} className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50">
+        <ScanLine className="w-4 h-4 mr-2" /> Scan QR Check Out
+      </button>
     </div>
   </div>
 )
+
+const QrScannerModal = ({ mode, onScan, onClose }) => {
+  const scannerId = 'attendance-qr-scanner'
+
+  useEffect(() => {
+    let stopped = false
+    const scanner = new Html5QrcodeScanner(scannerId, {
+      fps: 10,
+      qrbox: { width: 250, height: 250 },
+      rememberLastUsedCamera: true,
+    }, false)
+
+    scanner.render(
+      (decodedText) => {
+        if (stopped) return
+        stopped = true
+        scanner.clear().catch(() => {})
+        onScan(decodedText)
+      },
+      () => {}
+    )
+
+    return () => {
+      stopped = true
+      scanner.clear().catch(() => {})
+    }
+  }, [mode])
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-5 space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Scan QR {mode === 'check_out' ? 'Check Out' : 'Check In'}</h2>
+            <p className="text-sm text-gray-500 mt-1">Arahkan kamera ke QR yang ditempel di kantor.</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div id={scannerId} className="rounded-xl overflow-hidden" />
+      </div>
+    </div>
+  )
+}
 
 const RadiusResult = ({ validation, attendance }) => {
   const distance = validation?.distance_meters ?? attendance?.check_in_distance_meters ?? attendance?.check_out_distance_meters
@@ -699,6 +774,7 @@ const AttendanceTable = ({ rows, isLoading, showEmployee = false }) => (
             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Shift</th>
             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Check In</th>
             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Check Out</th>
+            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Metode</th>
             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Radius</th>
             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Late</th>
             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Evidence</th>
@@ -707,9 +783,9 @@ const AttendanceTable = ({ rows, isLoading, showEmployee = false }) => (
         </thead>
         <tbody className="divide-y divide-gray-100">
           {isLoading ? (
-            <tr><td colSpan={showEmployee ? 9 : 8} className="px-6 py-8 text-center text-gray-500">Memuat data absensi...</td></tr>
+            <tr><td colSpan={showEmployee ? 10 : 9} className="px-6 py-8 text-center text-gray-500">Memuat data absensi...</td></tr>
           ) : rows.length === 0 ? (
-            <tr><td colSpan={showEmployee ? 9 : 8} className="px-6 py-8 text-center text-gray-500">Belum ada data absensi.</td></tr>
+            <tr><td colSpan={showEmployee ? 10 : 9} className="px-6 py-8 text-center text-gray-500">Belum ada data absensi.</td></tr>
           ) : rows.map((attendance) => (
             <tr key={attendance.id} className="hover:bg-gray-50">
               {showEmployee && <td className="px-6 py-4 text-sm text-gray-700">{attendance.employee?.name || '-'}</td>}
@@ -717,6 +793,7 @@ const AttendanceTable = ({ rows, isLoading, showEmployee = false }) => (
               <td className="px-6 py-4 text-sm text-gray-700">{attendance.shift?.name || '-'}</td>
               <td className="px-6 py-4 text-sm text-gray-700">{formatTime(attendance.check_in_time)}</td>
               <td className="px-6 py-4 text-sm text-gray-700">{formatTime(attendance.check_out_time)}</td>
+              <td className="px-6 py-4 text-sm text-gray-700">{formatMethodCell(attendance)}</td>
               <td className="px-6 py-4 text-sm text-gray-700">{formatRadiusCell(attendance)}</td>
               <td className="px-6 py-4 text-sm text-gray-700">{attendance.late_minutes ?? 0} menit</td>
               <td className="px-6 py-4 text-sm text-gray-700">
@@ -828,6 +905,19 @@ const formatRadiusCell = (attendance) => {
   if (inDistance !== null && inDistance !== undefined) parts.push(`IN ${inDistance}m`)
   if (outDistance !== null && outDistance !== undefined) parts.push(`OUT ${outDistance}m`)
   return parts.join(' / ')
+}
+
+const formatMethodCell = (attendance) => {
+  const methods = []
+  if (attendance.check_in_method) methods.push(`IN ${formatMethod(attendance.check_in_method)}`)
+  if (attendance.check_out_method) methods.push(`OUT ${formatMethod(attendance.check_out_method)}`)
+  return methods.length ? methods.join(' / ') : '-'
+}
+
+const formatMethod = (method) => {
+  if (method === 'default_photo_location') return 'Foto+GPS'
+  if (method === 'qr_radius_fallback') return 'QR+GPS'
+  return method
 }
 
 export default AttendancePage
