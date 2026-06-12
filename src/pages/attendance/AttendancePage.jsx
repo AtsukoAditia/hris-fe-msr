@@ -12,9 +12,21 @@ const initialFilters = {
   search: '',
 }
 
+const initialSettingForm = {
+  office_name: 'Main Office',
+  office_latitude: '',
+  office_longitude: '',
+  radius_meters: 100,
+  is_radius_enabled: false,
+  is_qr_enabled: true,
+  qr_expiry_minutes: 5,
+}
+
 const AttendancePage = () => {
   const { user } = useAuthStore()
-  const isAdminLike = ['admin', 'hr', 'manager'].includes(String(user?.role || '').toLowerCase())
+  const role = String(user?.role || '').toLowerCase()
+  const isAdminLike = ['admin', 'hr', 'manager'].includes(role)
+  const canManageAttendance = ['admin', 'hr'].includes(role)
   const checkInPhotoRef = useRef(null)
   const checkOutPhotoRef = useRef(null)
 
@@ -28,14 +40,22 @@ const AttendancePage = () => {
   const [todayShift, setTodayShift] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
+  const [settingLoading, setSettingLoading] = useState(false)
+  const [qrLoading, setQrLoading] = useState(false)
   const [location, setLocation] = useState(null)
   const [message, setMessage] = useState(null)
   const [filters, setFilters] = useState(initialFilters)
   const [note, setNote] = useState('')
+  const [qrTokenInput, setQrTokenInput] = useState('')
+  const [settingForm, setSettingForm] = useState(initialSettingForm)
+  const [generatedQr, setGeneratedQr] = useState(null)
+  const [qrForm, setQrForm] = useState({ type: 'both', expiry_minutes: 5 })
+  const [lastRadiusValidation, setLastRadiusValidation] = useState(null)
 
   useEffect(() => {
     if (isAdminLike) {
       fetchAdminAttendances()
+      fetchAttendanceSettings()
       return
     }
 
@@ -130,6 +150,70 @@ const AttendancePage = () => {
     }
   }
 
+  const fetchAttendanceSettings = async () => {
+    try {
+      setSettingLoading(true)
+      const res = await attendanceService.getSettings()
+      const data = res.data?.data || initialSettingForm
+      setSettingForm({
+        office_name: data.office_name || 'Main Office',
+        office_latitude: data.office_latitude || '',
+        office_longitude: data.office_longitude || '',
+        radius_meters: data.radius_meters ?? 100,
+        is_radius_enabled: Boolean(data.is_radius_enabled),
+        is_qr_enabled: Boolean(data.is_qr_enabled),
+        qr_expiry_minutes: data.qr_expiry_minutes ?? 5,
+      })
+    } catch (err) {
+      console.error(err)
+      setMessage({ type: 'error', text: err.response?.data?.message || 'Gagal memuat setting absensi.' })
+    } finally {
+      setSettingLoading(false)
+    }
+  }
+
+  const handleUpdateSettings = async () => {
+    try {
+      setSettingLoading(true)
+      setMessage(null)
+      const payload = {
+        office_name: settingForm.office_name,
+        office_latitude: Number(settingForm.office_latitude),
+        office_longitude: Number(settingForm.office_longitude),
+        radius_meters: Number(settingForm.radius_meters),
+        is_radius_enabled: Boolean(settingForm.is_radius_enabled),
+        is_qr_enabled: Boolean(settingForm.is_qr_enabled),
+        qr_expiry_minutes: Number(settingForm.qr_expiry_minutes),
+      }
+      const res = await attendanceService.updateSettings(payload)
+      setMessage({ type: 'success', text: res.data?.message || 'Setting absensi berhasil diperbarui.' })
+      await fetchAttendanceSettings()
+    } catch (err) {
+      console.error(err)
+      setMessage({ type: 'error', text: getErrorMessage(err, 'Gagal memperbarui setting absensi.') })
+    } finally {
+      setSettingLoading(false)
+    }
+  }
+
+  const handleGenerateQr = async () => {
+    try {
+      setQrLoading(true)
+      setMessage(null)
+      const res = await attendanceService.generateQr({
+        type: qrForm.type,
+        expiry_minutes: Number(qrForm.expiry_minutes),
+      })
+      setGeneratedQr(res.data?.data || null)
+      setMessage({ type: 'success', text: res.data?.message || 'QR attendance berhasil dibuat.' })
+    } catch (err) {
+      console.error(err)
+      setMessage({ type: 'error', text: getErrorMessage(err, 'Gagal membuat QR attendance.') })
+    } finally {
+      setQrLoading(false)
+    }
+  }
+
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
       setMessage({ type: 'error', text: 'Browser tidak mendukung geolocation.' })
@@ -146,22 +230,42 @@ const AttendancePage = () => {
     )
   }
 
-  const buildAttendancePayload = (file) => ({
+  const useCurrentLocationForOffice = () => {
+    if (!location) {
+      setMessage({ type: 'error', text: 'Lokasi browser belum tersedia. Klik Refresh Lokasi dulu.' })
+      return
+    }
+
+    setSettingForm((prev) => ({
+      ...prev,
+      office_latitude: location.lat,
+      office_longitude: location.lng,
+    }))
+  }
+
+  const buildAttendancePayload = (file, qrToken = '') => ({
     latitude: location?.lat,
     longitude: location?.lng,
     note,
     photo: file || null,
+    qr_token: qrToken || undefined,
   })
+
+  const handleAttendanceSuccess = async (res, fallbackMessage) => {
+    const data = res.data?.data || null
+    setTodayAttendance(data)
+    setLastRadiusValidation(data?.radius_validation || null)
+    setMessage({ type: 'success', text: res.data?.message || fallbackMessage })
+    setNote('')
+    await fetchAttendances()
+  }
 
   const handleCheckIn = async (file = null) => {
     try {
       setActionLoading(true)
       setMessage(null)
       const res = await attendanceService.checkIn(buildAttendancePayload(file))
-      setTodayAttendance(res.data?.data || null)
-      setMessage({ type: 'success', text: res.data?.message || 'Check-in berhasil.' })
-      setNote('')
-      await fetchAttendances()
+      await handleAttendanceSuccess(res, 'Check-in berhasil.')
     } catch (err) {
       console.error(err)
       if (!shouldSuppressAttendanceError(err)) {
@@ -177,15 +281,52 @@ const AttendancePage = () => {
       setActionLoading(true)
       setMessage(null)
       const res = await attendanceService.checkOut(buildAttendancePayload(file))
-      setTodayAttendance(res.data?.data || null)
-      setMessage({ type: 'success', text: res.data?.message || 'Check-out berhasil.' })
-      setNote('')
-      await fetchAttendances()
+      await handleAttendanceSuccess(res, 'Check-out berhasil.')
     } catch (err) {
       console.error(err)
       if (!shouldSuppressAttendanceError(err)) {
         setMessage({ type: 'error', text: getErrorMessage(err, 'Check-out gagal.') })
       }
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleQrCheckIn = async () => {
+    if (!qrTokenInput.trim()) {
+      setMessage({ type: 'error', text: 'QR token wajib diisi.' })
+      return
+    }
+
+    try {
+      setActionLoading(true)
+      setMessage(null)
+      const res = await attendanceService.checkInQr(buildAttendancePayload(null, qrTokenInput.trim()))
+      await handleAttendanceSuccess(res, 'Check-in QR berhasil.')
+      setQrTokenInput('')
+    } catch (err) {
+      console.error(err)
+      setMessage({ type: 'error', text: getErrorMessage(err, 'Check-in QR gagal.') })
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleQrCheckOut = async () => {
+    if (!qrTokenInput.trim()) {
+      setMessage({ type: 'error', text: 'QR token wajib diisi.' })
+      return
+    }
+
+    try {
+      setActionLoading(true)
+      setMessage(null)
+      const res = await attendanceService.checkOutQr(buildAttendancePayload(null, qrTokenInput.trim()))
+      await handleAttendanceSuccess(res, 'Check-out QR berhasil.')
+      setQrTokenInput('')
+    } catch (err) {
+      console.error(err)
+      setMessage({ type: 'error', text: getErrorMessage(err, 'Check-out QR gagal.') })
     } finally {
       setActionLoading(false)
     }
@@ -222,6 +363,11 @@ const AttendancePage = () => {
   const handleFilterChange = (e) => {
     const { name, value } = e.target
     setFilters((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSettingChange = (e) => {
+    const { name, value, type, checked } = e.target
+    setSettingForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
   }
 
   const handleApplyFilters = () => {
@@ -266,10 +412,31 @@ const AttendancePage = () => {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Data Absensi Karyawan</h1>
-          <p className="text-gray-600 mt-1">Monitor absensi, lokasi, status telat, dan evidence foto.</p>
+          <p className="text-gray-600 mt-1">Monitor absensi, lokasi, radius kantor, dan QR attendance.</p>
         </div>
 
         {message && <Alert message={message} />}
+
+        <AttendanceSettingPanel
+          settingForm={settingForm}
+          onChange={handleSettingChange}
+          onSave={handleUpdateSettings}
+          onUseCurrentLocation={useCurrentLocationForOffice}
+          isLoading={settingLoading}
+          canManage={canManageAttendance}
+          currentLocation={location}
+          onRefreshLocation={getCurrentLocation}
+        />
+
+        {canManageAttendance && (
+          <QrGeneratorPanel
+            qrForm={qrForm}
+            setQrForm={setQrForm}
+            generatedQr={generatedQr}
+            onGenerate={handleGenerateQr}
+            isLoading={qrLoading}
+          />
+        )}
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
           <div>
@@ -309,7 +476,7 @@ const AttendancePage = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Absensi</h1>
-        <p className="text-gray-600 mt-1">Check-in dan check-out harian dengan lokasi dan evidence foto.</p>
+        <p className="text-gray-600 mt-1">Check-in dan check-out harian dengan lokasi, radius kantor, dan QR token.</p>
       </div>
 
       {message && <Alert message={message} />}
@@ -331,6 +498,8 @@ const AttendancePage = () => {
             <InfoCard label="Check In" value={formatTime(todayAttendance?.check_in_time)} subValue={formatStatus(todayAttendance?.status)} />
             <InfoCard label="Check Out" value={formatTime(todayAttendance?.check_out_time)} subValue={todayAttendance?.overtime_minutes ? `Overtime ${todayAttendance.overtime_minutes} menit` : '-'} />
           </div>
+
+          <RadiusResult validation={lastRadiusValidation} attendance={todayAttendance} />
 
           <div className="mt-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">Catatan opsional</label>
@@ -354,6 +523,16 @@ const AttendancePage = () => {
               <Camera className="w-4 h-4 mr-2" /> Check Out + Foto
             </button>
           </div>
+
+          <QrAttendanceBox
+            qrTokenInput={qrTokenInput}
+            setQrTokenInput={setQrTokenInput}
+            canCheckIn={canCheckIn}
+            canCheckOut={canCheckOut}
+            actionLoading={actionLoading}
+            onCheckIn={handleQrCheckIn}
+            onCheckOut={handleQrCheckOut}
+          />
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -371,6 +550,120 @@ const AttendancePage = () => {
   )
 }
 
+const AttendanceSettingPanel = ({ settingForm, onChange, onSave, onUseCurrentLocation, isLoading, canManage, currentLocation, onRefreshLocation }) => (
+  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900">Setting Lokasi & Radius</h2>
+        <p className="text-sm text-gray-500 mt-1">Atur koordinat kantor dan radius validasi absensi.</p>
+      </div>
+      <button onClick={onRefreshLocation} className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
+        <RefreshCw className="w-4 h-4 mr-2" /> Refresh Lokasi Browser
+      </button>
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <Input label="Nama Kantor" name="office_name" value={settingForm.office_name} onChange={onChange} disabled={!canManage} />
+      <Input label="Latitude Kantor" name="office_latitude" value={settingForm.office_latitude} onChange={onChange} disabled={!canManage} />
+      <Input label="Longitude Kantor" name="office_longitude" value={settingForm.office_longitude} onChange={onChange} disabled={!canManage} />
+      <Input label="Radius Meter" type="number" name="radius_meters" value={settingForm.radius_meters} onChange={onChange} disabled={!canManage} />
+      <Input label="QR Expiry Menit" type="number" name="qr_expiry_minutes" value={settingForm.qr_expiry_minutes} onChange={onChange} disabled={!canManage} />
+      <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-600">
+        <p>Lokasi browser:</p>
+        <p>Lat: {currentLocation?.lat ?? '-'}</p>
+        <p>Lng: {currentLocation?.lng ?? '-'}</p>
+      </div>
+    </div>
+
+    <div className="flex flex-wrap gap-4 text-sm text-gray-700">
+      <label className="inline-flex items-center gap-2">
+        <input type="checkbox" name="is_radius_enabled" checked={settingForm.is_radius_enabled} onChange={onChange} disabled={!canManage} />
+        Aktifkan radius
+      </label>
+      <label className="inline-flex items-center gap-2">
+        <input type="checkbox" name="is_qr_enabled" checked={settingForm.is_qr_enabled} onChange={onChange} disabled={!canManage} />
+        Aktifkan QR
+      </label>
+    </div>
+
+    {canManage ? (
+      <div className="flex flex-wrap gap-3">
+        <button onClick={onUseCurrentLocation} className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Pakai Lokasi Browser</button>
+        <button onClick={onSave} disabled={isLoading} className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50">
+          {isLoading ? 'Menyimpan...' : 'Simpan Setting'}
+        </button>
+      </div>
+    ) : (
+      <p className="text-sm text-gray-500">Role manager hanya bisa melihat setting.</p>
+    )}
+  </div>
+)
+
+const QrGeneratorPanel = ({ qrForm, setQrForm, generatedQr, onGenerate, isLoading }) => (
+  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+    <div>
+      <h2 className="text-lg font-semibold text-gray-900">Generate QR Attendance</h2>
+      <p className="text-sm text-gray-500 mt-1">Buat token QR untuk check-in/check-out. Token berlaku sampai expired.</p>
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Tipe QR</label>
+        <select value={qrForm.type} onChange={(e) => setQrForm((prev) => ({ ...prev, type: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+          <option value="both">Check In & Check Out</option>
+          <option value="check_in">Check In</option>
+          <option value="check_out">Check Out</option>
+        </select>
+      </div>
+      <Input label="Expired Menit" type="number" value={qrForm.expiry_minutes} onChange={(e) => setQrForm((prev) => ({ ...prev, expiry_minutes: e.target.value }))} />
+      <div className="flex items-end">
+        <button onClick={onGenerate} disabled={isLoading} className="w-full px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50">
+          {isLoading ? 'Membuat...' : 'Generate QR'}
+        </button>
+      </div>
+    </div>
+
+    {generatedQr && (
+      <div className="rounded-xl bg-gray-50 border border-gray-100 p-4 space-y-2">
+        <p className="text-sm text-gray-500">Token QR</p>
+        <textarea readOnly value={generatedQr.token || ''} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono bg-white" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
+          <p>Tipe: {generatedQr.type}</p>
+          <p>Expired: {generatedQr.expires_at}</p>
+        </div>
+      </div>
+    )}
+  </div>
+)
+
+const QrAttendanceBox = ({ qrTokenInput, setQrTokenInput, canCheckIn, canCheckOut, actionLoading, onCheckIn, onCheckOut }) => (
+  <div className="mt-6 rounded-2xl border border-indigo-100 bg-indigo-50 p-4 space-y-3">
+    <div>
+      <h3 className="font-semibold text-indigo-900">Absensi via QR Token</h3>
+      <p className="text-sm text-indigo-700 mt-1">Paste token QR dari admin/HR lalu pilih Check In QR atau Check Out QR.</p>
+    </div>
+    <textarea value={qrTokenInput} onChange={(e) => setQrTokenInput(e.target.value)} rows={2} className="w-full px-3 py-2 border border-indigo-200 rounded-lg text-xs font-mono focus:ring-2 focus:ring-indigo-500" placeholder="Paste QR token di sini..." />
+    <div className="flex flex-col sm:flex-row gap-3">
+      <button disabled={!canCheckIn || actionLoading || !qrTokenInput.trim()} onClick={onCheckIn} className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50">Check In QR</button>
+      <button disabled={!canCheckOut || actionLoading || !qrTokenInput.trim()} onClick={onCheckOut} className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50">Check Out QR</button>
+    </div>
+  </div>
+)
+
+const RadiusResult = ({ validation, attendance }) => {
+  const distance = validation?.distance_meters ?? attendance?.check_in_distance_meters ?? attendance?.check_out_distance_meters
+  const radius = validation?.radius_meters
+  const within = validation?.allowed ?? attendance?.is_check_in_within_radius ?? attendance?.is_check_out_within_radius
+
+  if (distance === null || distance === undefined) return null
+
+  return (
+    <div className={`mt-4 rounded-xl p-4 text-sm ${within ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
+      Jarak dari kantor: <span className="font-semibold">{distance} meter</span>{radius ? ` / radius ${radius} meter` : ''}
+    </div>
+  )
+}
+
 const Alert = ({ message }) => (
   <div className={`rounded-xl px-4 py-3 text-sm font-medium ${message.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'}`}>
     {message.text}
@@ -380,7 +673,7 @@ const Alert = ({ message }) => (
 const Input = ({ label, ...props }) => (
   <div>
     <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
-    <input {...props} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+    <input {...props} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500" />
   </div>
 )
 
@@ -406,6 +699,7 @@ const AttendanceTable = ({ rows, isLoading, showEmployee = false }) => (
             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Shift</th>
             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Check In</th>
             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Check Out</th>
+            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Radius</th>
             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Late</th>
             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Evidence</th>
             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
@@ -413,9 +707,9 @@ const AttendanceTable = ({ rows, isLoading, showEmployee = false }) => (
         </thead>
         <tbody className="divide-y divide-gray-100">
           {isLoading ? (
-            <tr><td colSpan={showEmployee ? 8 : 7} className="px-6 py-8 text-center text-gray-500">Memuat data absensi...</td></tr>
+            <tr><td colSpan={showEmployee ? 9 : 8} className="px-6 py-8 text-center text-gray-500">Memuat data absensi...</td></tr>
           ) : rows.length === 0 ? (
-            <tr><td colSpan={showEmployee ? 8 : 7} className="px-6 py-8 text-center text-gray-500">Belum ada data absensi.</td></tr>
+            <tr><td colSpan={showEmployee ? 9 : 8} className="px-6 py-8 text-center text-gray-500">Belum ada data absensi.</td></tr>
           ) : rows.map((attendance) => (
             <tr key={attendance.id} className="hover:bg-gray-50">
               {showEmployee && <td className="px-6 py-4 text-sm text-gray-700">{attendance.employee?.name || '-'}</td>}
@@ -423,6 +717,7 @@ const AttendanceTable = ({ rows, isLoading, showEmployee = false }) => (
               <td className="px-6 py-4 text-sm text-gray-700">{attendance.shift?.name || '-'}</td>
               <td className="px-6 py-4 text-sm text-gray-700">{formatTime(attendance.check_in_time)}</td>
               <td className="px-6 py-4 text-sm text-gray-700">{formatTime(attendance.check_out_time)}</td>
+              <td className="px-6 py-4 text-sm text-gray-700">{formatRadiusCell(attendance)}</td>
               <td className="px-6 py-4 text-sm text-gray-700">{attendance.late_minutes ?? 0} menit</td>
               <td className="px-6 py-4 text-sm text-gray-700">
                 <div className="flex gap-2">
@@ -521,6 +816,18 @@ const formatStatus = (status) => {
   }
 
   return map[status] || 'Belum check-in'
+}
+
+const formatRadiusCell = (attendance) => {
+  const inDistance = attendance.check_in_distance_meters
+  const outDistance = attendance.check_out_distance_meters
+
+  if (inDistance === null && outDistance === null) return '-'
+
+  const parts = []
+  if (inDistance !== null && inDistance !== undefined) parts.push(`IN ${inDistance}m`)
+  if (outDistance !== null && outDistance !== undefined) parts.push(`OUT ${outDistance}m`)
+  return parts.join(' / ')
 }
 
 export default AttendancePage
