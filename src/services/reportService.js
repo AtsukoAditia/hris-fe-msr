@@ -1,34 +1,18 @@
-import api from '../lib/axios';
+import api from '../lib/axios'
 
 const reportService = {
-  // Get attendance report
   getAttendanceReport: (params = {}) => api.get('/reports/attendance', { params }),
-
-  // Get leave report
   getLeaveReport: (params = {}) => api.get('/reports/leave', { params }),
+  getEmployeeReport: (params = {}) => api.get('/reports/employee', { params }),
 
-  // Get employee report
-  getEmployeeReport: (params = {}) => api.get('/reports/employees', { params }),
+  exportReport: (type, params = {}) => api.get('/reports/export', {
+    params: { ...params, type, format: 'csv' },
+    responseType: 'blob',
+  }),
 
-  // Get payroll report
-  getPayrollReport: (params = {}) => api.get('/reports/payroll', { params }),
+  exportAttendance: (params = {}) => reportService.exportReport('attendance', params),
+  exportLeave: (params = {}) => reportService.exportReport('leave', params),
+  exportEmployee: (params = {}) => reportService.exportReport('employee', params),
+}
 
-  // Export report to Excel
-  exportToExcel: (type, params = {}) =>
-    api.get(`/reports/${type}/export`, {
-      params,
-      responseType: 'blob',
-    }),
-
-  // Export report to PDF
-  exportToPDF: (type, params = {}) =>
-    api.get(`/reports/${type}/export-pdf`, {
-      params,
-      responseType: 'blob',
-    }),
-
-  // Get dashboard summary stats
-  getDashboardStats: () => api.get('/reports/dashboard'),
-};
-
-export default reportService;
+export default reportService
