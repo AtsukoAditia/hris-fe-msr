@@ -9,7 +9,7 @@ import ApprovalPage from '../pages/approval/ApprovalPage'
 import ShiftPage from '../pages/shift/ShiftPage'
 import ShiftSchedulePage from '../pages/shift-schedule/ShiftSchedulePage'
 import ReportPage from '../pages/report/ReportPage'
-import EmployeePage from '../pages/employee/EmployeePage'
+import EmployeeManagementPage from '../pages/employee/EmployeeManagementPage'
 import LeavePage from '../pages/leave/LeavePage'
 import MasterDataPage from '../pages/master-data/MasterDataPage'
 
@@ -37,7 +37,7 @@ const AppRoutes = () => {
 
       <Route element={<ProtectedRoute allowedRoles={['admin', 'hr']} />}>
         <Route element={<MainLayout />}>
-          <Route path="/employee" element={<EmployeePage />} />
+          <Route path="/employee" element={<EmployeeManagementPage />} />
           <Route path="/shift" element={<ShiftPage />} />
           <Route path="/shift-schedule" element={<ShiftSchedulePage />} />
         </Route>
