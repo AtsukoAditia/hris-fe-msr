@@ -11,6 +11,7 @@ import ShiftSchedulePage from '../pages/shift-schedule/ShiftSchedulePage'
 import ReportPage from '../pages/report/ReportPage'
 import EmployeePage from '../pages/employee/EmployeePage'
 import LeavePage from '../pages/leave/LeavePage'
+import MasterDataPage from '../pages/master-data/MasterDataPage'
 
 const AppRoutes = () => {
   return (
@@ -30,6 +31,7 @@ const AppRoutes = () => {
         <Route element={<MainLayout />}>
           <Route path="/approval" element={<ApprovalPage />} />
           <Route path="/report" element={<ReportPage />} />
+          <Route path="/master-data" element={<MasterDataPage />} />
         </Route>
       </Route>
 

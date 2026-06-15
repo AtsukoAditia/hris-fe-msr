@@ -1,323 +1,244 @@
 # HRIS Frontend — hris-fe-msr
 
-> **Smart Attendance HRIS** — React + Vite + PWA  
-> Frontend HRIS berbasis role untuk employee management, shift, attendance GPS/foto/radius/QR, leave, approval, dan report.
+> React + Vite + PWA frontend untuk Smart Attendance HRIS.
 
-## Project Overview
-
-Project ini dikembangkan sebagai frontend PWA untuk backend Laravel `hris-be-msr`. Aplikasi dapat digunakan melalui browser desktop maupun mobile dan dirancang agar seluruh fitur utama HRIS tetap nyaman dipakai pada layar kecil.
-
-- **Frontend:** React + Vite
-- **State management:** Zustand
-- **API client:** Axios
-- **Roles:** Admin, HR, Manager, Employee
-- **Pair repository:** [hris-be-msr](https://github.com/AtsukoAditia/hris-be-msr)
-- **Master roadmap:** [Backend Issue #1](https://github.com/AtsukoAditia/hris-be-msr/issues/1)
-
----
-
-## Current Status
-
-| Module | Status | Description |
-|---|:---:|---|
-| Foundation & API Integration | ✅ | Axios instance, environment URL, protected layout |
-| Authentication & Role Access | ✅ | Login, logout, auth hydration, role routes dan sidebar |
-| Dashboard | ✅ | Dashboard operasional dan personal berdasarkan role |
-| Employee Management | ✅ | CRUD, detail modal, filter, face enrollment |
-| Shift Management | ✅ | CRUD, search/filter, overnight, late tolerance |
-| Basic Shift Schedule | ✅ | Assignment shift per employee dan tanggal |
-| Attendance | ✅ | Check-in/out, GPS, mobile camera, photo processing |
-| Radius Attendance | ✅ | Office setting dan radius validation result |
-| QR Attendance | ✅ | QR generator dan camera scanner |
-| Leave Request & Balance | ✅ | Form pengajuan, saldo, history, cancellation |
-| Leave Approval | ✅ | Pending list, approve, reject, history |
-| Reports & CSV Export | ✅ | Attendance, leave, employee report dan download CSV |
-| Organization Master Data UI | 🔵 In Progress | Department, position, branch, employee dropdown |
-| Employee Self-Service | ⬜ Planned | Profile, change password, document access |
-| Attendance Correction | ⬜ Planned | Request koreksi attendance |
-| Notification & Audit UI | ⬜ Planned | Notification center dan activity history |
-| Payroll & Payslip | ⬜ Planned | Payroll administration dan employee payslip |
-| Testing & Deployment | ⬜ Planned | Automated test, PWA acceptance, production deployment |
-
-### Current Focus — Organization Master Data
-
-Frontend issue: [Implement organization master data UI](https://github.com/AtsukoAditia/hris-fe-msr/issues/1)
-
-Target awal:
-
-1. Halaman Master Data untuk Admin dan HR.
-2. Tab Department, Position, dan Branch.
-3. CRUD, search, active filter, loading, empty state, dan validation feedback.
-4. Dropdown department, position, branch, dan direct manager pada form employee.
-5. Menghapus ketergantungan terhadap input department dan position berbentuk teks bebas.
-6. Responsive layout untuk desktop dan mobile.
-
----
+Frontend ini terhubung langsung dengan backend Laravel [`hris-be-msr`](https://github.com/AtsukoAditia/hris-be-msr). Setiap modul hanya dinyatakan selesai setelah fitur backend, frontend, role access, tests, CI, dan dokumentasi sudah sinkron.
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Framework | React 18 + Vite |
+| UI | React 18 + Vite |
 | Styling | Tailwind CSS |
 | Routing | React Router v6 |
-| State Management | Zustand |
+| State | Zustand |
 | HTTP Client | Axios |
 | Icons | Lucide React |
+| Testing | Vitest + React Testing Library |
 | PWA | vite-plugin-pwa + Workbox |
-| QR Scanner | html5-qrcode |
-| QR Generator | qrcode |
-| Camera Upload | Browser file input dengan `capture` |
-| Geolocation | Browser Geolocation API |
-| Mobile Testing | Local network dan ngrok |
 
----
+## Current Status
 
-## Completed Features
+| Module | Backend | Frontend | Status |
+|---|:---:|:---:|:---:|
+| Authentication & Role Access | ✅ | ✅ | Synced |
+| Dashboard | ✅ | ✅ | Synced |
+| Employee Management | ✅ | ✅ | Synced |
+| Shift Management | ✅ | ✅ | Synced |
+| Shift Schedule | ✅ | ✅ | Synced |
+| Attendance GPS, Photo, Radius & QR | ✅ | ✅ | Synced |
+| Leave Request & Approval | ✅ | ✅ | Synced |
+| Reports & CSV Export | ✅ | ✅ | Synced |
+| **Department Master Data** | ✅ | ✅ | **Completed & Synced** |
+| Position Master Data | ⬜ | ⬜ | Next Module |
+| Branch / Work Location | ⬜ | ⬜ | Planned |
 
-### Authentication & Role Access
+## Department Master Data
 
-- Login menggunakan API token.
-- Logout.
-- Auth state persistence dengan Zustand.
-- Sinkronisasi user melalui `/auth/me`.
-- Protected route hydration.
-- Role-based sidebar dan page access.
-- Axios interceptor.
-- Dukungan request API melalui ngrok.
+Route:
 
-### Dashboard
+```text
+/master-data
+```
 
-Admin, HR, dan Manager:
+Fitur yang sudah tersedia:
 
-- Employee summary.
-- Attendance summary.
-- Leave summary.
-- Shift summary.
-- Recent attendance dan leave.
+- Department list dari API tanpa mock data.
+- Search berdasarkan kode, nama, dan deskripsi.
+- Filter semua, aktif, dan nonaktif.
+- Statistik data yang sedang ditampilkan.
+- Create Department.
+- Update Department.
+- Soft delete Department.
+- Loading state.
+- Empty state.
+- Error dan success feedback.
+- Laravel field validation feedback.
+- Responsive table dan modal.
+- Role-aware action buttons.
 
-Employee:
+### Role Access Department
 
-- Attendance hari ini.
-- Shift hari ini.
-- Saldo cuti.
-- Riwayat attendance dan leave pribadi.
-
-### Employee Management
-
-- Employee list dengan search dan filter.
-- Add, edit, detail, dan delete/nonaktif employee.
-- Face enrollment upload.
-- Face registration status.
-- Photo preview.
-
-### Shift & Schedule
-
-- Shift list.
-- Add, edit, delete/nonaktif shift.
-- Search nama, kode, dan deskripsi.
-- Filter active/inactive.
-- Regular dan overnight shift.
-- Late tolerance.
-- Assignment shift per employee dan tanggal.
-
-### Attendance
-
-Employee:
-
-- Check-in dan check-out.
-- GPS location.
-- Selfie photo evidence.
-- Foto dikonversi ke JPEG, di-resize, dan dikompres sebelum upload.
-- QR scanner melalui kamera.
-- Status, late minute, overtime minute, dan radius result.
-- Riwayat attendance pribadi.
-
-Admin, HR, dan Manager:
-
-- Monitoring attendance employee.
-- Filter employee, tanggal, dan status.
-- Search cepat.
-- Office location dan radius setting.
-- QR attendance generator untuk Admin dan HR.
-
-### Leave & Approval
-
-Employee:
-
-- Leave balance.
-- Leave request form.
-- Leave history.
-- Status pending, approved, rejected, dan cancelled.
-- Cancellation untuk request pending.
-
-Admin, HR, dan Manager:
-
-- Pending approval list.
-- Approve dan reject.
-- Rejection reason.
-- Approval history.
-- Filter jenis cuti, status, dan keyword.
-
-### Reports
-
-- Attendance report.
-- Leave report.
-- Employee report.
-- Filter bulan/tahun dan rentang tanggal.
-- Filter department, employee, status, dan jenis cuti.
-- Summary cards.
-- Download CSV.
-
----
-
-## Role Access
-
-| Menu / Page | Admin | HR | Manager | Employee |
+| Action | Admin | HR | Manager | Employee |
 |---|:---:|:---:|:---:|:---:|
-| Dashboard | ✅ | ✅ | ✅ | ✅ |
-| Attendance | ✅ | ✅ | ✅ | ✅ |
-| Leave | ✅ | ✅ | ✅ | ✅ |
-| Approval | ✅ | ✅ | ✅ | ❌ |
-| Report | ✅ | ✅ | ✅ | ❌ |
-| Employee | ✅ | ✅ | ❌ | ❌ |
-| Shift | ✅ | ✅ | ❌ | ❌ |
-| Shift Schedule | ✅ | ✅ | ❌ | ❌ |
-| Attendance Setting — Read | ✅ | ✅ | ✅ | ❌ |
-| Attendance Setting — Write | ✅ | ✅ | ❌ | ❌ |
-| QR Generator | ✅ | ✅ | ❌ | ❌ |
-| Master Data — Planned | ✅ | ✅ | ❌ | ❌ |
+| View Department | ✅ | ✅ | ✅ | ❌ |
+| Search & Filter | ✅ | ✅ | ✅ | ❌ |
+| Create | ✅ | ✅ | ❌ | ❌ |
+| Update | ✅ | ✅ | ❌ | ❌ |
+| Delete | ✅ | ✅ | ❌ | ❌ |
 
----
+Manager melihat informasi bahwa aksesnya bersifat read-only. Tombol create, edit, dan delete tidak dirender untuk Manager.
+
+## Employee–Department Integration
+
+Employee Management sudah menggunakan Department master data.
+
+### Form Employee
+
+Dropdown Department diambil dari:
+
+```http
+GET /api/v1/departments?active_only=true
+```
+
+Pilihan Department tidak lagi ditulis secara hardcoded di frontend.
+
+Payload create dan update Employee:
+
+```json
+{
+  "department_id": 1
+}
+```
+
+Frontend mengirim `department_id` sebagai number dan tidak lagi mengirim input Department berbentuk teks bebas.
+
+### Employee Response
+
+Frontend menormalisasi field berikut:
+
+```json
+{
+  "department_id": 1,
+  "department_code": "IT",
+  "department_name": "Information Technology",
+  "department_master": {
+    "id": 1,
+    "code": "IT",
+    "name": "Information Technology"
+  }
+}
+```
+
+### Employee Filter
+
+```http
+GET /api/v1/employees?department_id=1
+```
+
+Employee table menampilkan nama dan kode Department dari relationship backend.
 
 ## Application Routes
 
 | Route | Access | Description |
 |---|---|---|
-| `/login` | Public | Login page |
-| `/dashboard` | All roles | Role-aware dashboard |
+| `/login` | Public | Login |
+| `/dashboard` | All roles | Dashboard berdasarkan role |
 | `/attendance` | All roles | Attendance pribadi atau monitoring |
-| `/leave` | All roles | Leave request dan history pribadi |
+| `/leave` | All roles | Leave request dan history |
 | `/approval` | Admin, HR, Manager | Leave approval |
 | `/report` | Admin, HR, Manager | Reports dan CSV export |
+| `/master-data` | Admin, HR, Manager | Department master data |
 | `/employee` | Admin, HR | Employee management |
 | `/shift` | Admin, HR | Shift management |
-| `/shift-schedule` | Admin, HR | Basic shift assignment |
-| `/master-data` | Admin, HR | Planned organization master data page |
+| `/shift-schedule` | Admin, HR | Shift assignment |
 
----
+## Department API Service
 
-## Development Roadmap
+File:
 
-### Phase 1 — Core Stabilization
+```text
+src/services/departmentService.js
+```
 
-- [ ] Organization master data UI.
-- [ ] Employee profile dan emergency contact UI.
-- [ ] Employee document management UI.
-- [ ] Employee self-service profile.
-- [ ] Change password page.
-- [ ] Attendance correction request.
-- [ ] Generic approval interface.
-- [ ] Audit log viewer.
-- [ ] Notification center.
+Endpoints yang digunakan:
 
-### Phase 2 — Time, Attendance & Leave Expansion
-
-- [ ] Shift schedule calendar.
-- [ ] Bulk dan rotating shift UI.
-- [ ] Day off dan holiday calendar.
-- [ ] Overtime request dan approval.
-- [ ] Leave policy management.
-- [ ] Leave attachment.
-- [ ] Half-day leave dan hourly permission.
-- [ ] Attendance anomaly indicators.
-
-### Phase 3 — Payroll
-
-- [ ] Salary component administration.
-- [ ] Employee salary profile.
-- [ ] Payroll period dan calculation UI.
-- [ ] Payroll review dan finalization.
-- [ ] Employee payslip.
-- [ ] Payroll report.
-
-### Phase 4 — Portfolio Hardening
-
-- [ ] Component dan flow tests.
-- [ ] Mobile responsive review.
-- [ ] PWA install acceptance test.
-- [ ] Error boundary dan consistent feedback component.
-- [ ] Accessibility review.
-- [ ] Production build dan deployment.
-- [ ] Final screenshots dan portfolio documentation.
-
-Optional future modules:
-
-- Recruitment.
-- Onboarding dan offboarding.
-- Performance management.
-- Reimbursement.
-- Asset management.
-- Announcement dan company calendar.
-
-### Definition of Done
-
-Sebuah frontend module dianggap selesai apabila:
-
-- API sudah terintegrasi tanpa mock data.
-- Role access sesuai backend.
-- Loading, empty state, error state, dan success feedback tersedia.
-- Form mempunyai client-side dan server validation feedback.
-- Responsive pada mobile dan desktop.
-- Alur utama sudah diuji.
-- README atau dokumentasi terkait diperbarui.
-
----
+```text
+GET    /api/v1/departments
+POST   /api/v1/departments
+GET    /api/v1/departments/{department}
+PUT    /api/v1/departments/{department}
+DELETE /api/v1/departments/{department}
+```
 
 ## Project Structure
 
-```txt
+```text
 src/
-├── assets/                    # Static assets
-├── components/
-│   ├── layout/                # Sidebar dan application shell
-│   ├── shift/                 # Shift components
-│   └── ui/                    # Reusable UI components
-├── hooks/                     # Custom hooks
-├── lib/
-│   ├── axios.js               # Axios instance dan interceptor
-│   └── utils.js               # Shared utilities
+├── components/layout/
+├── lib/axios.js
 ├── pages/
-│   ├── auth/                  # Login
-│   ├── dashboard/             # Dashboard summary
-│   ├── employee/              # Employee management
-│   ├── shift/                 # Shift management
-│   ├── shift-schedule/        # Shift assignment
-│   ├── attendance/            # GPS, photo, radius, dan QR
-│   ├── leave/                 # Leave request
-│   ├── approval/              # Leave approval
-│   └── report/                # Reports dan export
-├── routes/                    # React Router dan ProtectedRoute
-├── services/                  # API services per module
-└── store/                     # Zustand stores
+│   ├── auth/
+│   ├── dashboard/
+│   ├── employee/
+│   ├── master-data/
+│   │   ├── MasterDataPage.jsx
+│   │   ├── department.helpers.js
+│   │   └── components/
+│   │       ├── DepartmentFormModal.jsx
+│   │       └── DepartmentTable.jsx
+│   ├── attendance/
+│   ├── leave/
+│   ├── approval/
+│   ├── report/
+│   ├── shift/
+│   └── shift-schedule/
+├── routes/
+├── services/
+│   ├── departmentService.js
+│   └── employeeService.js
+└── store/
 ```
 
-Planned master data structure:
+## Testing
 
-```txt
-src/
-├── pages/master-data/MasterDataPage.jsx
-├── components/master-data/
-│   ├── DepartmentTab.jsx
-│   ├── PositionTab.jsx
-│   └── BranchTab.jsx
-└── services/
-    ├── departmentService.js
-    ├── positionService.js
-    └── branchService.js
+Department tests mencakup:
+
+- Load dan render Department dari API.
+- Admin create flow.
+- Normalisasi payload Department.
+- Manager read-only access.
+- Laravel validation feedback.
+- Normalisasi relationship Department pada Employee response.
+- Payload Employee menggunakan numeric `department_id`.
+
+Jalankan:
+
+```bash
+npm test
+npm run lint
+npm run build
 ```
 
----
+Frontend CI menjalankan:
+
+1. Dependency installation.
+2. ESLint untuk source yang berubah.
+3. Vitest component tests.
+4. Production build.
+
+## Environment
+
+Buat `.env`:
+
+```env
+VITE_API_BASE_URL=http://localhost:8000/api/v1
+```
+
+Untuk backend melalui ngrok:
+
+```env
+VITE_API_BASE_URL=https://your-backend-ngrok-url.ngrok-free.app/api/v1
+```
+
+## Local Setup
+
+```bash
+npm install
+npm run dev
+```
+
+Akses default:
+
+```text
+http://localhost:3000
+```
+
+Untuk mobile testing:
+
+```bash
+npm run dev -- --host 0.0.0.0
+```
 
 ## Demo Accounts
 
@@ -328,123 +249,44 @@ src/
 | Manager | `manager@hris.test` | `password123` |
 | Employee | `employee@hris.test` | `password123` |
 
----
+## Module Development Workflow
 
-## Environment Variables
+Urutan pengembangan wajib untuk setiap modul:
 
-Buat file `.env` di root project:
-
-```env
-VITE_API_BASE_URL=http://localhost:8000/api/v1
+```text
+1. Backend migration dan model
+2. Backend validation, controller, routes, seeder, dan tests
+3. Backend CI hijau dan merge
+4. Frontend service dan UI
+5. Frontend role access, loading, empty, error, success, dan validation state
+6. Integrasi frontend ke API tanpa mock atau hardcoded data
+7. Frontend tests dan CI hijau
+8. Update README backend dan frontend
+9. Merge frontend
+10. Baru lanjut ke modul berikutnya
 ```
 
-Untuk mobile testing dengan backend ngrok:
+## Definition of Done
 
-```env
-VITE_API_BASE_URL=https://your-backend-ngrok-url.ngrok-free.app/api/v1
+Sebuah modul HRIS dianggap selesai hanya apabila:
+
+- Backend dan frontend sudah tersedia.
+- Contract request dan response sinkron.
+- Tidak ada data dropdown yang masih hardcoded.
+- Role access sama di backend dan frontend.
+- Loading, empty, error, success, dan validation feedback tersedia.
+- Responsive pada desktop dan mobile.
+- Backend tests lulus.
+- Frontend tests lulus.
+- Backend dan frontend CI hijau.
+- README kedua repository sudah diperbarui.
+
+## Next Module
+
+Module berikutnya setelah Department:
+
+```text
+Position Master Data
 ```
 
-Restart Vite setiap kali `.env` berubah.
-
----
-
-## Local Setup
-
-```bash
-npm install
-npm run dev
-```
-
-Default development server:
-
-```txt
-http://localhost:3000
-```
-
-Agar dapat diakses dari jaringan lokal atau ngrok:
-
-```bash
-npm run dev -- --host 0.0.0.0
-```
-
----
-
-## Mobile Testing with ngrok
-
-### 1. Run Backend
-
-```bash
-cd hris-be-msr
-php artisan serve --host=0.0.0.0 --port=8000
-ngrok http 8000
-```
-
-### 2. Configure Frontend
-
-```env
-VITE_API_BASE_URL=https://your-backend-ngrok-url.ngrok-free.app/api/v1
-```
-
-### 3. Run Frontend
-
-```bash
-cd hris-fe-msr
-npm run dev -- --host 0.0.0.0
-ngrok http 3000
-```
-
-Buka URL frontend ngrok melalui Chrome Android dan izinkan akses kamera serta lokasi.
-
----
-
-## Attendance Photo Processing
-
-Foto dari kamera mobile diproses sebelum upload:
-
-```txt
-1. Validasi file tidak kosong
-2. Load image dari object URL
-3. Resize maksimal 1280px
-4. Convert ke JPEG
-5. Compress dengan quality 0.82
-6. Upload sebagai multipart/form-data
-```
-
-Proses ini membuat upload kamera Android lebih stabil dibanding mengirim file mentah.
-
----
-
-## PWA Cache Troubleshooting
-
-Service worker dapat menyimpan build lama ketika development. Jalankan di browser console bila perubahan tidak muncul:
-
-```js
-navigator.serviceWorker.getRegistrations().then((registrations) => {
-  registrations.forEach((registration) => registration.unregister())
-})
-
-caches.keys().then((keys) => {
-  keys.forEach((key) => caches.delete(key))
-})
-
-localStorage.removeItem('hris-auth-storage')
-location.reload()
-```
-
-Axios juga mengirim header berikut ketika menggunakan backend ngrok:
-
-```txt
-ngrok-skip-browser-warning: true
-```
-
----
-
-## Pair Repository
-
-Backend Laravel API: [AtsukoAditia/hris-be-msr](https://github.com/AtsukoAditia/hris-be-msr)
-
----
-
-## Author
-
-**Aditia Nugraha** — [@AtsukoAditia](https://github.com/AtsukoAditia)
+Position baru dimulai setelah Department frontend PR selesai di-merge dan README backend/frontend telah sinkron.

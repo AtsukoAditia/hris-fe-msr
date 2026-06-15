@@ -61,6 +61,12 @@
   }
 }
 
+@layer components {
+  .form-input {
+    @apply w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500;
+  }
+}
+
 /* PWA safe area */
 .safe-area-top {
   padding-top: env(safe-area-inset-top);
