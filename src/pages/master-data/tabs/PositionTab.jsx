@@ -22,10 +22,10 @@ const PositionTab = ({ canManage }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [toast, setToast] = useState(null)
 
-  const notify = (message, type = 'success') => {
+  const notify = useCallback((message, type = 'success') => {
     setToast({ message, type })
     window.setTimeout(() => setToast(null), 3000)
-  }
+  }, [])
 
   const fetchDepartments = useCallback(async () => {
     try {
@@ -35,7 +35,7 @@ const PositionTab = ({ canManage }) => {
       console.error(error)
       notify(error.response?.data?.message || 'Gagal memuat departemen.', 'error')
     }
-  }, [])
+  }, [notify])
 
   const fetchPositions = useCallback(async () => {
     setIsLoading(true)
@@ -52,7 +52,7 @@ const PositionTab = ({ canManage }) => {
     } finally {
       setIsLoading(false)
     }
-  }, [departmentId, search, status])
+  }, [departmentId, notify, search, status])
 
   useEffect(() => { fetchDepartments() }, [fetchDepartments])
   useEffect(() => {
