@@ -7,7 +7,7 @@ export const initialFormData = {
   birth_date: '',
   gender: '',
   position: '',
-  department: '',
+  department_id: '',
   join_date: '',
   employment_type: 'permanent',
   status: 'active',
@@ -31,6 +31,9 @@ export const normalizeEmployee = (employee) => {
   const isFaceRegistered = typeof employee.is_face_registered === 'boolean'
     ? employee.is_face_registered
     : Boolean(employee.face_image || faceImageUrl)
+  const departmentMaster = employee.department_master || employee.departmentMaster || null
+  const departmentName = employee.department_name || departmentMaster?.name || employee.department || ''
+  const departmentCode = employee.department_code || departmentMaster?.code || ''
 
   return {
     id: employee.id,
@@ -43,7 +46,11 @@ export const normalizeEmployee = (employee) => {
     birth_date: normalizeDateInput(employee.birth_date),
     gender: employee.gender || '',
     position: employee.position || '',
-    department: employee.department || '',
+    department_id: employee.department_id || departmentMaster?.id || '',
+    department: departmentName,
+    department_name: departmentName,
+    department_code: departmentCode,
+    department_master: departmentMaster,
     join_date: normalizeDateInput(employee.join_date),
     employment_type: employee.employment_type || 'permanent',
     role: employee.user?.role || employee.role || 'employee',
@@ -71,7 +78,7 @@ export const mapFormDataToPayload = (formData) => ({
   birth_date: formData.birth_date || null,
   gender: formData.gender || null,
   position: formData.position?.trim(),
-  department: formData.department,
+  department_id: formData.department_id ? Number(formData.department_id) : null,
   join_date: formData.join_date,
   employment_type: formData.employment_type || 'permanent',
   role: formData.role,
