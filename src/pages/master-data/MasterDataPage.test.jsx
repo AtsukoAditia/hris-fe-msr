@@ -5,10 +5,14 @@ import MasterDataPage from './MasterDataPage'
 
 const mocks = vi.hoisted(() => ({
   user: { role: 'admin' },
-  getAll: vi.fn(),
-  create: vi.fn(),
-  update: vi.fn(),
-  delete: vi.fn(),
+  getDepartments: vi.fn(),
+  createDepartment: vi.fn(),
+  updateDepartment: vi.fn(),
+  deleteDepartment: vi.fn(),
+  getPositions: vi.fn(),
+  createPosition: vi.fn(),
+  updatePosition: vi.fn(),
+  deletePosition: vi.fn(),
 }))
 
 vi.mock('../../store/authStore', () => ({
@@ -17,10 +21,19 @@ vi.mock('../../store/authStore', () => ({
 
 vi.mock('../../services/departmentService', () => ({
   default: {
-    getAll: mocks.getAll,
-    create: mocks.create,
-    update: mocks.update,
-    delete: mocks.delete,
+    getAll: mocks.getDepartments,
+    create: mocks.createDepartment,
+    update: mocks.updateDepartment,
+    delete: mocks.deleteDepartment,
+  },
+}))
+
+vi.mock('../../services/positionService', () => ({
+  default: {
+    getAll: mocks.getPositions,
+    create: mocks.createPosition,
+    update: mocks.updatePosition,
+    delete: mocks.deletePosition,
   },
 }))
 
@@ -41,20 +54,44 @@ const departments = [
   },
 ]
 
+const positions = [
+  {
+    id: 10,
+    department_id: 1,
+    code: 'SOFTWARE-ENGINEER',
+    name: 'Software Engineer',
+    description: 'Build company systems',
+    is_active: true,
+    department: departments[0],
+  },
+]
+
 describe('MasterDataPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.user = { role: 'admin' }
-    mocks.getAll.mockResolvedValue({ data: { data: departments } })
-    mocks.create.mockResolvedValue({ data: { data: departments[0] } })
+    mocks.getDepartments.mockResolvedValue({ data: { data: departments } })
+    mocks.getPositions.mockResolvedValue({ data: { data: positions } })
+    mocks.createDepartment.mockResolvedValue({ data: { data: departments[0] } })
   })
 
-  it('loads and displays Department master data', async () => {
+  it('loads Department master data on the default tab', async () => {
     render(<MasterDataPage />)
 
     expect(await screen.findByText('Information Technology')).toBeInTheDocument()
     expect(screen.getByText('Operations')).toBeInTheDocument()
-    expect(mocks.getAll).toHaveBeenCalledWith({ status: 'all' })
+    expect(mocks.getDepartments).toHaveBeenCalledWith({ status: 'all' })
+  })
+
+  it('switches to the Position tab', async () => {
+    const user = userEvent.setup()
+    render(<MasterDataPage />)
+
+    await screen.findByText('Information Technology')
+    await user.click(screen.getByRole('button', { name: 'Jabatan' }))
+
+    expect(await screen.findByText('Software Engineer')).toBeInTheDocument()
+    expect(mocks.getPositions).toHaveBeenCalledWith({ status: 'all' })
   })
 
   it('allows Admin to create a Department with normalized payload', async () => {
@@ -68,7 +105,7 @@ describe('MasterDataPage', () => {
     await user.click(screen.getByRole('button', { name: 'Simpan' }))
 
     await waitFor(() => {
-      expect(mocks.create).toHaveBeenCalledWith({
+      expect(mocks.createDepartment).toHaveBeenCalledWith({
         code: 'QA',
         name: 'Quality Assurance',
         description: null,
@@ -77,19 +114,19 @@ describe('MasterDataPage', () => {
     })
   })
 
-  it('renders Manager access as read-only', async () => {
+  it('renders Manager Department access as read-only', async () => {
     mocks.user = { role: 'manager' }
     render(<MasterDataPage />)
 
     expect(await screen.findByText('Information Technology')).toBeInTheDocument()
-    expect(screen.getByText(/Role Manager memiliki akses baca/)).toBeInTheDocument()
+    expect(screen.getByText('Manager memiliki akses baca.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Tambah Departemen' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Edit Information Technology' })).not.toBeInTheDocument()
   })
 
   it('shows Laravel validation errors in the Department form', async () => {
     const user = userEvent.setup()
-    mocks.create.mockRejectedValue({
+    mocks.createDepartment.mockRejectedValue({
       response: {
         data: {
           message: 'Data tidak valid.',

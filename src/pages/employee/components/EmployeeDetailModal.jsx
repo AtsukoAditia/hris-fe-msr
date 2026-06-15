@@ -19,11 +19,11 @@ const EmployeeDetailModal = ({ employee, onClose, onFaceUpdated }) => {
     setIsUploadingFace(true)
 
     try {
-      const res = await employeeService.enrollFace(employee.id, file)
-      onFaceUpdated?.(res.data?.data)
-    } catch (err) {
-      console.error(err)
-      setFaceError(err.response?.data?.message || 'Gagal menyimpan foto wajah.')
+      const response = await employeeService.enrollFace(employee.id, file)
+      onFaceUpdated?.(response.data?.data)
+    } catch (error) {
+      console.error(error)
+      setFaceError(error.response?.data?.message || 'Gagal menyimpan foto wajah.')
     } finally {
       setIsUploadingFace(false)
       event.target.value = ''
@@ -31,76 +31,48 @@ const EmployeeDetailModal = ({ employee, onClose, onFaceUpdated }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b border-gray-200 p-6">
           <h2 className="text-xl font-semibold text-gray-900">Detail Pegawai</h2>
-          <button type="button" onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-            <X className="w-5 h-5" />
-          </button>
+          <button type="button" onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
         </div>
 
         <div className="p-6">
-          <div className="flex items-center mb-6">
-            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mr-4 overflow-hidden">
-              {facePreview ? (
-                <img src={facePreview} alt="Face enrollment" className="w-full h-full object-cover" />
-              ) : (
-                <User className="w-10 h-10 text-blue-600" />
-              )}
+          <div className="mb-6 flex items-center">
+            <div className="mr-4 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-blue-100">
+              {facePreview ? <img src={facePreview} alt="Face enrollment" className="h-full w-full object-cover" /> : <User className="h-10 w-10 text-blue-600" />}
             </div>
             <div>
               <h3 className="text-2xl font-bold text-gray-900">{employee.name || '-'}</h3>
-              <p className="text-gray-600">{employee.position || '-'}</p>
-              <div className="flex flex-wrap gap-2 mt-2">
-                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${employee.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                  {employee.status === 'active' ? 'Aktif' : 'Nonaktif'}
-                </span>
-                <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 capitalize">
-                  {employee.role || '-'}
-                </span>
-                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${employee.is_face_registered ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                  {employee.is_face_registered ? 'Face registered' : 'Face belum terdaftar'}
-                </span>
+              <p className="text-gray-600">{employee.position_name || employee.position || '-'}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <span className={`rounded-full px-2 py-1 text-xs font-medium ${employee.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{employee.status === 'active' ? 'Aktif' : 'Nonaktif'}</span>
+                <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium capitalize text-blue-800">{employee.role || '-'}</span>
+                <span className={`rounded-full px-2 py-1 text-xs font-medium ${employee.is_face_registered ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{employee.is_face_registered ? 'Face registered' : 'Face belum terdaftar'}</span>
               </div>
             </div>
           </div>
 
-          <div className="mb-6 rounded-xl border border-gray-200 p-4 bg-gray-50">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-gray-900">Foto Wajah Absensi</h3>
-                <p className="text-xs text-gray-500 mt-1">
-                  Siapkan foto wajah referensi untuk validasi absensi kamera nanti. Format JPG, PNG, atau WEBP maksimal 2MB.
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Terdaftar: {employee.face_registered_at ? formatDate(employee.face_registered_at) : '-'}
-                </p>
-                {faceError && <p className="text-xs text-red-600 mt-2">{faceError}</p>}
+                <p className="mt-1 text-xs text-gray-500">Format JPG, PNG, atau WEBP maksimal 2MB.</p>
+                <p className="mt-1 text-xs text-gray-500">Terdaftar: {employee.face_registered_at ? formatDate(employee.face_registered_at) : '-'}</p>
+                {faceError && <p className="mt-2 text-xs text-red-600">{faceError}</p>}
               </div>
               <div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="user"
-                  className="hidden"
-                  onChange={handleFaceFileChange}
-                />
-                <button
-                  type="button"
-                  disabled={isUploadingFace}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                >
-                  <Camera className="w-4 h-4 mr-2" />
+                <input ref={fileInputRef} type="file" accept="image/*" capture="user" className="hidden" onChange={handleFaceFileChange} />
+                <button type="button" disabled={isUploadingFace} onClick={() => fileInputRef.current?.click()} className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50">
+                  <Camera className="mr-2 h-4 w-4" />
                   {isUploadingFace ? 'Menyimpan...' : 'Capture / Upload Wajah'}
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div className="space-y-4">
               <InfoItem icon={<Mail />} label="Email" value={employee.email} />
               <InfoItem icon={<Hash />} label="NIK" value={employee.nik} />
@@ -111,7 +83,8 @@ const EmployeeDetailModal = ({ employee, onClose, onFaceUpdated }) => {
             </div>
 
             <div className="space-y-4">
-              <InfoItem icon={<Briefcase />} label="Departemen" value={employee.department} />
+              <InfoItem icon={<Briefcase />} label="Departemen" value={formatMasterValue(employee.department_name || employee.department, employee.department_code)} />
+              <InfoItem icon={<Briefcase />} label="Jabatan" value={formatMasterValue(employee.position_name || employee.position, employee.position_code)} />
               <InfoItem icon={<BadgeCheck />} label="Role" value={employee.role} capitalize />
               <InfoItem icon={<Calendar />} label="Tanggal Bergabung" value={employee.join_date} />
               <InfoItem icon={<Briefcase />} label="Tipe Kerja" value={formatEmploymentType(employee.employment_type)} />
@@ -119,10 +92,8 @@ const EmployeeDetailModal = ({ employee, onClose, onFaceUpdated }) => {
             </div>
           </div>
 
-          <div className="flex justify-end pt-6 mt-6 border-t border-gray-200">
-            <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-              Tutup
-            </button>
+          <div className="mt-6 flex justify-end border-t border-gray-200 pt-6">
+            <button type="button" onClick={onClose} className="rounded-lg bg-gray-100 px-4 py-2 text-gray-700 hover:bg-gray-200">Tutup</button>
           </div>
         </div>
       </div>
@@ -132,36 +103,14 @@ const EmployeeDetailModal = ({ employee, onClose, onFaceUpdated }) => {
 
 const InfoItem = ({ icon, label, value, capitalize = false }) => (
   <div className="flex items-start">
-    <span className="w-5 h-5 text-gray-400 mr-3 mt-0.5 [&>svg]:w-5 [&>svg]:h-5">{icon}</span>
-    <div>
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className={`text-gray-900 ${capitalize ? 'capitalize' : ''}`}>{value || '-'}</p>
-    </div>
+    <span className="mr-3 mt-0.5 h-5 w-5 text-gray-400 [&>svg]:h-5 [&>svg]:w-5">{icon}</span>
+    <div><p className="text-sm text-gray-500">{label}</p><p className={`text-gray-900 ${capitalize ? 'capitalize' : ''}`}>{value || '-'}</p></div>
   </div>
 )
 
-const formatDate = (value) => {
-  if (!value) return '-'
-  return new Date(value).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-const formatGender = (value) => {
-  const map = {
-    male: 'Laki-laki',
-    female: 'Perempuan',
-  }
-
-  return map[value] || value || '-'
-}
-
-const formatEmploymentType = (value) => {
-  const map = {
-    permanent: 'Permanent',
-    contract: 'Contract',
-    internship: 'Internship',
-  }
-
-  return map[value] || value || '-'
-}
+const formatMasterValue = (name, code) => code ? `${name || '-'} (${code})` : name || '-'
+const formatDate = (value) => value ? new Date(value).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'
+const formatGender = (value) => ({ male: 'Laki-laki', female: 'Perempuan' })[value] || value || '-'
+const formatEmploymentType = (value) => ({ permanent: 'Permanent', contract: 'Contract', internship: 'Internship' })[value] || value || '-'
 
 export default EmployeeDetailModal
