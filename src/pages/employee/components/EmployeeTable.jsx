@@ -49,7 +49,10 @@ const EmployeeTable = ({
               <td className="px-6 py-4 text-sm text-gray-900">{employee.formatted_employee_number || employee.employee_number || '-'}</td>
               <td className="px-6 py-4 text-sm text-gray-900">{employee.nik || '-'}</td>
               <td className="px-6 py-4 text-sm text-gray-900">{employee.position || '-'}</td>
-              <td className="px-6 py-4 text-sm text-gray-900">{employee.department || '-'}</td>
+              <td className="px-6 py-4 text-sm text-gray-900">
+                <div className="font-medium">{employee.department_name || employee.department || '-'}</div>
+                {employee.department_code && <div className="text-xs text-gray-500">{employee.department_code}</div>}
+              </td>
               <td className="px-6 py-4">
                 <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 capitalize">
                   {employee.role || '-'}
