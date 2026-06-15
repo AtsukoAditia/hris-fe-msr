@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAuthStore } from '../../store/authStore'
-import DepartmentTab from './tabs/DepartmentTab'
+import DepartmentPanel from './DepartmentPanel'
 import PositionTab from './tabs/PositionTab'
 
 const MasterDataPage = () => {
@@ -18,7 +18,7 @@ const MasterDataPage = () => {
         <button type="button" onClick={() => setTab('department')} className={tab === 'department' ? 'rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white' : 'rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100'}>Departemen</button>
         <button type="button" onClick={() => setTab('position')} className={tab === 'position' ? 'rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white' : 'rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100'}>Jabatan</button>
       </div>
-      {tab === 'department' ? <DepartmentTab /> : <PositionTab canManage={canManage} />}
+      {tab === 'department' ? <DepartmentPanel /> : <PositionTab canManage={canManage} />}
     </div>
   )
 }
