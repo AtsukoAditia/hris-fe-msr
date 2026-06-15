@@ -1,13 +1,15 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Plus, Search, Users, UserCheck, UserX } from 'lucide-react'
 import employeeService from '../../services/employeeService'
 import departmentService from '../../services/departmentService'
+import positionService from '../../services/positionService'
 import { useAuthStore } from '../../store/authStore'
 import EmployeeTable from './components/EmployeeTable'
 import EmployeeFormModal from './components/EmployeeFormModal'
 import EmployeeDetailModal from './components/EmployeeDetailModal'
 import { initialFormData, mapFormDataToPayload, normalizeEmployee, normalizePagination, normalizeRows } from './employee.helpers'
 import { normalizeDepartmentRows } from '../master-data/department.helpers'
+import { normalizePositionRows } from '../master-data/position.helpers'
 
 const EmployeePage = () => {
   const { user } = useAuthStore()
@@ -16,9 +18,10 @@ const EmployeePage = () => {
 
   const [employees, setEmployees] = useState([])
   const [departments, setDepartments] = useState([])
+  const [positions, setPositions] = useState([])
   const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, per_page: 10, total: 0 })
   const [isLoading, setIsLoading] = useState(false)
-  const [isLoadingDepartments, setIsLoadingDepartments] = useState(false)
+  const [isLoadingMasters, setIsLoadingMasters] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedEmployee, setSelectedEmployee] = useState(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
@@ -27,26 +30,32 @@ const EmployeePage = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [departmentFilter, setDepartmentFilter] = useState('')
+  const [positionFilter, setPositionFilter] = useState('')
   const [toast, setToast] = useState(null)
   const [formData, setFormData] = useState(initialFormData)
   const [formErrors, setFormErrors] = useState({})
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type })
-    setTimeout(() => setToast(null), 3000)
+    window.setTimeout(() => setToast(null), 3000)
   }
 
-  const fetchDepartments = useCallback(async () => {
-    setIsLoadingDepartments(true)
+  const fetchMasters = useCallback(async () => {
+    setIsLoadingMasters(true)
     try {
-      const response = await departmentService.getAll({ active_only: true })
-      setDepartments(normalizeDepartmentRows(response))
+      const [departmentResponse, positionResponse] = await Promise.all([
+        departmentService.getAll({ active_only: true }),
+        positionService.getAll({ active_only: true }),
+      ])
+      setDepartments(normalizeDepartmentRows(departmentResponse))
+      setPositions(normalizePositionRows(positionResponse))
     } catch (error) {
       console.error(error)
       setDepartments([])
-      showToast(error.response?.data?.message || 'Gagal memuat master departemen', 'error')
+      setPositions([])
+      showToast(error.response?.data?.message || 'Gagal memuat master organisasi.', 'error')
     } finally {
-      setIsLoadingDepartments(false)
+      setIsLoadingMasters(false)
     }
   }, [])
 
@@ -57,38 +66,63 @@ const EmployeePage = () => {
       if (searchQuery.trim()) params.search = searchQuery.trim()
       if (statusFilter) params.status = statusFilter
       if (departmentFilter) params.department_id = departmentFilter
+      if (positionFilter) params.position_id = positionFilter
 
-      const res = await employeeService.getAll(params)
-      const paginatedEmployees = res.data?.data
-      const rows = normalizeRows(paginatedEmployees)
-      setEmployees(rows.map(normalizeEmployee).filter(Boolean))
+      const response = await employeeService.getAll(params)
+      const paginatedEmployees = response.data?.data
+      setEmployees(normalizeRows(paginatedEmployees).map(normalizeEmployee).filter(Boolean))
       setPagination(normalizePagination(paginatedEmployees))
     } catch (error) {
       console.error(error)
       setEmployees([])
-      showToast(error.response?.data?.message || 'Gagal memuat data karyawan', 'error')
+      showToast(error.response?.data?.messae || 'Gagal memuat data karyawan', 'error')
     } finally {
       setIsLoading(false)
     }
-  }, [departmentFilter, pagination.per_page, searchQuery, statusFilter])
+  }, [departmentFilter, pagination.per_page, positionFilter, searchQuery, statusFilter])
 
+  useEffect(() => { fetchMasters() }, [fetchMasters])
   useEffect(() => {
-    fetchDepartments()
-  }, [fetchDepartments])
-
-  useEffect(() => {
-    const timer = setTimeout(() => fetchEmployees(1), 350)
-    return () => clearTimeout(timer)
+    const timer = window.setTimeout(() => fetchEmployees(1), 350)
+    return () => window.clearTimeout(timer)
   }, [fetchEmployees])
+
+  const formPositions = useMemo(
+    () => positions.filter((item) => String(item.department_id) === String(formData.department_id)),
+    [formData.department_id, positions],
+  )
+
+  const filterPositions = useMemo(
+    () => departmentFilter
+      ? positions.filter((item) => String(item.department_id) === String(departmentFilter))
+      : positions,
+    [departmentFilter, positions],
+  )
 
   const handleInputChange = (event) => {
     const { name, value } = event.target
-    setFormData((current) => ({ ...current, [name]: value }))
-    setFormErrors((current) => ({ ...current, [name]: undefined }))
+    setFormData((current) => ({
+      ...current,
+      [name]: value,
+      ...(name === 'department_id' ? { position_id: '' } : {}),
+    }))
+    setFormErrors((current) => ({
+      ...current,
+      [name]: undefined,
+      ...(name === 'department_id' ? { position_id: undefined } : {}),
+    }))
+  }
+
+  const handleDepartmentFilter = (value) => {
+    setDepartmentFilter(value)
+    const selectedPositionIsValid = positions.some((item) => (
+      String(item.id) === String(positionFilter)
+      && (!value || String(item.department_id) === String(value))
+    ))
+    if (positionFilter && !selectedPositionIsValid) setPositionFilter('')
   }
 
   const handleAddClick = () => {
-    if (!canManageEmployee) return
     setIsEditing(false)
     setSelectedEmployee(null)
     setFormErrors({})
@@ -97,73 +131,38 @@ const EmployeePage = () => {
   }
 
   const handleEditClick = (employee) => {
-    if (!canManageEmployee) return
-    const normalizedEmployee = normalizeEmployee(employee)
+    const item = normalizeEmployee(employee)
     setIsEditing(true)
-    setSelectedEmployee(normalizedEmployee)
+    setSelectedEmployee(item)
     setFormErrors({})
     setFormData({
-      name: normalizedEmployee?.name || '',
-      email: normalizedEmployee?.email || '',
-      nik: normalizedEmployee?.nik || '',
-      phone: normalizedEmployee?.phone || '',
-      address: normalizedEmployee?.address || '',
-      birth_date: normalizedEmployee?.birth_date || '',
-      gender: normalizedEmployee?.gender || '',
-      position: normalizedEmployee?.position || '',
-      department_id: normalizedEmployee?.department_id ? String(normalizedEmployee.department_id) : '',
-      join_date: normalizedEmployee?.join_date || '',
-      employment_type: normalizedEmployee?.employment_type || 'permanent',
-      status: normalizedEmployee?.status || 'active',
-      role: normalizedEmployee?.role || 'employee',
+      name: item?.name || '',
+      email: item?.email || '',
+      nik: item?.nik || '',
+      phone: item?.phone || '',
+      address: item?.address || '',
+      birth_date: item?.birth_date || '',
+      gender: item?.gender || '',
+      department_id: item?.department_id ? String(item.department_id) : '',
+      position_id: item?.position_id ? String(item.position_id) : '',
+      join_date: item?.join_date || '',
+      employment_type: item?.employment_type || 'permanent',
+      status: item?.status || 'active',
+      role: item?.role || 'employee',
     })
     setShowFormModal(true)
   }
 
-  const handleDetailClick = (employee) => {
-    setSelectedEmployee(normalizeEmployee(employee))
-    setShowDetailModal(true)
-  }
-
-  const handleFaceUpdated = (employee) => {
-    const normalizedEmployee = normalizeEmployee(employee)
-    if (!normalizedEmployee) return
-    setSelectedEmployee(normalizedEmployee)
-    setEmployees((current) => current.map((item) => (item.id === normalizedEmployee.id ? normalizedEmployee : item)))
-    showToast('Foto wajah absensi berhasil disimpan')
-  }
-
-  const handleDeleteClick = async (employee) => {
-    if (!canDeleteEmployee) return
-    const normalizedEmployee = normalizeEmployee(employee)
-    if (!window.confirm(`Hapus data karyawan ${normalizedEmployee?.name || 'ini'}? Data akan masuk ke soft delete.`)) return
-
-    try {
-      await employeeService.delete(normalizedEmployee.id)
-      showToast('Data karyawan berhasil dihapus')
-      fetchEmployees(pagination.current_page)
-    } catch (error) {
-      console.error(error)
-      showToast(error.response?.data?.message || 'Gagal menghapus data karyawan', 'error')
-    }
-  }
-
   const handleSubmit = async (event) => {
     event.preventDefault()
-    if (!canManageEmployee) return
-
     setIsSubmitting(true)
     setFormErrors({})
     try {
       const payload = mapFormDataToPayload(formData)
-      if (isEditing && selectedEmployee) {
-        await employeeService.update(selectedEmployee.id, payload)
-        showToast('Data karyawan berhasil diperbarui')
-      } else {
-        await employeeService.create(payload)
-        showToast('Data karyawan berhasil ditambahkan')
-      }
+      if (isEditing && selectedEmployee) await employeeService.update(selectedEmployee.id, payload)
+      else await employeeService.create(payload)
 
+      showToast(isEditing ? 'Data karyawan berhasil diperbarui' : 'Data karyawan berhasil ditambahkan')
       setShowFormModal(false)
       setFormData(initialFormData)
       setSelectedEmployee(null)
@@ -178,45 +177,68 @@ const EmployeePage = () => {
     }
   }
 
+  const handleDeleteClick = async (employee) => {
+    const item = normalizeEmployee(employee)
+    if (!window.confirm(`Hapus data karyawan ${item?.name || 'ini'}?`)) return
+    try {
+      await employeeService.delete(item.id)
+      showToast('Data karyawan berhasil dihapus')
+      fetchEmployees(pagination.current_page)
+    } catch (error) {
+      showToast(error.response?.data?.messae || 'Gagal menghapus data karyawan', 'error')
+    }
+  }
+
+  const handleFaceUpdated = (employee) => {
+    const item = normalizeEmployee(employee)
+    if (!item) return
+    setSelectedEmployee(item)
+    setEmployees((current) => current.map((row) => row.id === item.id ? item : row))
+    showToast('Foto wajah absensi berhasil disimpan')
+  }
+
   const stats = {
     total: pagination.total,
-    active: employees.filter((employee) => employee.status === 'active').length,
-    inactive: employees.filter((employee) => employee.status === 'inactive').length,
+    active: employees.filter((item) => item.status === 'active').length,
+    inactive: employees.filter((item) => item.status === 'inactive').length,
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Management Pegawai</h1>
-          <p className="text-gray-600 mt-1">Kelola data pegawai dan informasi SDM</p>
+          <p className="mt-1 text-gray-600">Kelola data pegawai dan informasi SGM</p>
         </div>
         {canManageEmployee && (
-          <button onClick={handleAddClick} className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <Plus className="w-4 h-4 mr-2" />Tambah Pegawai
+          <button onClick={handleAddClick} className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-white">
+            <Plus className="mr-2 h-4 w-4" />
+            Tambah Pegawai
           </button>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard icon={<Users className="w-5 h-5" />} label="Total Data" value={stats.total} />
-        <StatCard icon={<UserCheck className="w-5 h-5" />} label="Aktif di Halaman Ini" value={stats.active} />
-        <StatCard icon={<UserX className="w-5 h-5" />} label="Nonaktif di Halaman Ini" value={stats.inactive} />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <StatCard icon={<Users className="h-5 w-5" />} label="Total Data" value={stats.total} />
+        <StatCard icon={<UserCheck className="h-5 w-5" />} label="Aktif di Halaman Ini" value={stats.active} />
+        <StatCard icon={<UserX className="h-5 w-5" />} label="Nonaktif di Halaman Ini" value={stats.inactive} />
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div className="relative md:col-span-2">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input type="text" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Cari nama, email, NIK, departemen, jabatan..." className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+      <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
+          <div className="relative lg:col-span-2">
+            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+            <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Cari karyawan..." className="form-input pl-10" />
           </div>
-          <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} disabled={isLoadingDepartments} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100">
+          <select value={departmentFilter} onChange={(event) => handleDepartmentFilter(event.target.value)} className="form-input">
             <option value="">Semua Departemen</option>
-            {departments.map((department) => (
-              <option key={department.id} value={department.id}>{department.code} — {department.name}</option>
-            ))}
+            {departments.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
           </select>
-          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <select value={positionFilter} onChange={(event) => setPositionFilter(event.target.value)} className="form-input">
+            <option value="">Semua Jabatan</option>
+            {filterPositions.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
+          </select>
+          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="form-input">
             <option value="">Semua Status</option>
             <option value="active">Aktif</option>
             <option value="inactive">Nonaktif</option>
@@ -224,24 +246,37 @@ const EmployeePage = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <EmployeeTable employees={employees} isLoading={isLoading} canManageEmployee={canManageEmployee} canDeleteEmployee={canDeleteEmployee} onDetail={handleDetailClick} onEdit={handleEditClick} onDelete={handleDeleteClick} />
+      <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
+        <EmployeeTable
+          employees={employees}
+          isLoading={isLoading}
+          canManageEmployee={canManageEmployee}
+          canDeleteEmployee={canDeleteEmployee}
+          onDetail={(item) => {
+            setSelectedEmployee(normalizeEmployee(item))
+            setShowDetailModal(true)
+          }}
+          onEdit={handleEditClick}
+          onDelete={handleDeleteClick}
+        />
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-gray-600">
-        <p>Menampilkan halaman {pagination.current_page} dari {pagination.last_page} • Total {pagination.total} data</p>
+      <div className="flex justify-between text-sm text-gray-600">
+        <p>Halaman {pagination.current_page} dari {pagination.last_page} • Total {pagination.total}</p>
         <div className="flex gap-2">
-          <button type="button" disabled={pagination.current_page <= 1 || isLoading} onClick={() => fetchEmployees(pagination.current_page - 1)} className="px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50">Sebelumnya</button>
-          <button type="button" disabled={pagination.current_page >= pagination.last_page || isLoading} onClick={() => fetchEmployees(pagination.current_page + 1)} className="px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50">Berikutnya</button>
+          <button disabled={pagination.current_page <= 1 || isLoading} onClick={() => fetchEmployees(pagination.current_page - 1)} className="rounded-lg border px-3 py-2 disabled:opacity-50">Sebelumnya</button>
+          <button disabled={pagination.current_page >= pagination.last_page || isLoading} onClick={() => fetchEmployees(pagination.current_page + 1)} className="rounded-lg border px-3 py-2 disabled:opacity-50">Berikutnya</button>
         </div>
       </div>
 
-      {showFormModal && canManageEmployee && (
+      {showFormModal && (
         <EmployeeFormModal
           isEditing={isEditing}
           formData={formData}
           departments={departments}
-          isLoadingDepartments={isLoadingDepartments}
+          positions={formPositions}
+          isLoadingDepartments={isLoadingMasters}
+          isLoadingPositions={isLoadingMasters}
           errors={formErrors}
           isSubmitting={isSubmitting}
           onChange={handleInputChange}
@@ -250,19 +285,30 @@ const EmployeePage = () => {
         />
       )}
 
-      {showDetailModal && <EmployeeDetailModal employee={selectedEmployee} onClose={() => setShowDetailModal(false)} onFaceUpdated={handleFaceUpdated} />}
+      {showDetailModal && (
+        <EmployeeDetailModal
+          employee={selectedEmployee}
+          onClose={() => setShowDetailModal(false)}
+          onFaceUpdated={handleFaceUpdated}
+        />
+      )}
 
       {toast && (
-        <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white ${toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'}`}>{toast.message}</div>
+        <div className={`fixed right-4 top-4 z-50 rounded-lg px-6 py-3 text-white shadow-lg ${toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'}`}>
+          {toast.message}
+        </div>
       )}
     </div>
   )
 }
 
 const StatCard = ({ icon, label, value }) => (
-  <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex items-center gap-3">
-    <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">{icon}</div>
-    <div><p className="text-xs text-gray-500">{label}</p><p className="text-xl font-bold text-gray-900">{value}</p></div>
+  <div className="flex items-center gap-3 rounded-xl border bg-white p-4 shadow-sm">
+    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600">{icon}</div>
+    <div>
+      <p className="text-xs text-gray-500">{label}</p>
+      <p className="text-xl font-bold text-gray-900">{value}</p>
+    </div>
   </div>
 )
 
