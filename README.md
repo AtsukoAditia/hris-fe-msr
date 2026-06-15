@@ -2,7 +2,7 @@
 
 > React + Vite + PWA frontend untuk Smart Attendance HRIS.
 
-Frontend ini terhubung langsung dengan backend Laravel [`hris-be-msr`](https://github.com/AtsukoAditia/hris-be-msr). Setiap modul hanya dinyatakan selesai setelah fitur backend, frontend, role access, tests, CI, dan dokumentasi sudah sinkron.
+Frontend terhubung dengan backend Laravel [`hris-be-msr`](https://github.com/AtsukoAditia/hris-be-msr). Modul dianggap selesai setelah backend, frontend, authorization, tests, CI, dan dokumentasi sinkron.
 
 ## Tech Stack
 
@@ -12,8 +12,7 @@ Frontend ini terhubung langsung dengan backend Laravel [`hris-be-msr`](https://g
 | Styling | Tailwind CSS |
 | Routing | React Router v6 |
 | State | Zustand |
-| HTTP Client | Axios |
-| Icons | Lucide React |
+| HTTP | Axios |
 | Testing | Vitest + React Testing Library |
 | PWA | vite-plugin-pwa + Workbox |
 
@@ -24,16 +23,12 @@ Frontend ini terhubung langsung dengan backend Laravel [`hris-be-msr`](https://g
 | Authentication & Role Access | ✅ | ✅ | Synced |
 | Dashboard | ✅ | ✅ | Synced |
 | Employee Management | ✅ | ✅ | Synced |
-| Shift Management | ✅ | ✅ | Synced |
-| Shift Schedule | ✅ | ✅ | Synced |
-| Attendance GPS, Photo, Radius & QR | ✅ | ✅ | Synced |
-| Leave Request & Approval | ✅ | ✅ | Synced |
-| Reports & CSV Export | ✅ | ✅ | Synced |
+| Attendance, Leave, Shift & Report | ✅ | ✅ | Synced |
 | **Department Master Data** | ✅ | ✅ | **Completed & Synced** |
-| Position Master Data | ⬜ | ⬜ | Next Module |
-| Branch / Work Location | ⬜ | ⬜ | Planned |
+| **Position Master Data** | ✅ | ✅ | **Completed & Synced** |
+| Branch / Work Location | ⬜ | ⬜ | Next Module |
 
-## Department Master Data
+## Organization Master Data
 
 Route:
 
@@ -41,156 +36,108 @@ Route:
 /master-data
 ```
 
-Fitur yang sudah tersedia:
+Tersedia dua tab:
 
-- Department list dari API tanpa mock data.
-- Search berdasarkan kode, nama, dan deskripsi.
-- Filter semua, aktif, dan nonaktif.
-- Statistik data yang sedang ditampilkan.
-- Create Department.
-- Update Department.
-- Soft delete Department.
-- Loading state.
-- Empty state.
-- Error dan success feedback.
-- Laravel field validation feedback.
-- Responsive table dan modal.
-- Role-aware action buttons.
+- **Department** — list, search, status filter, create, update, soft-delete action, validation feedback.
+- **Position** — list, search, Department filter, status filter, create, update, soft-delete action, validation feedback.
 
-### Role Access Department
+### Role Access
 
 | Action | Admin | HR | Manager | Employee |
 |---|:---:|:---:|:---:|:---:|
-| View Department | ✅ | ✅ | ✅ | ❌ |
+| View Department & Position | ✅ | ✅ | ✅ | ❌ |
 | Search & Filter | ✅ | ✅ | ✅ | ❌ |
 | Create | ✅ | ✅ | ❌ | ❌ |
 | Update | ✅ | ✅ | ❌ | ❌ |
 | Delete | ✅ | ✅ | ❌ | ❌ |
 
-Manager melihat informasi bahwa aksesnya bersifat read-only. Tombol create, edit, dan delete tidak dirender untuk Manager.
+Manager mendapatkan UI read-only. Tombol create, edit, dan delete tidak dirender.
 
-## Employee–Department Integration
+## Employee Organization Integration
 
-Employee Management sudah menggunakan Department master data.
-
-### Form Employee
-
-Dropdown Department diambil dari:
+Employee form menggunakan master data aktif dari backend:
 
 ```http
 GET /api/v1/departments?active_only=true
+GET /api/v1/positions?active_only=true
 ```
 
-Pilihan Department tidak lagi ditulis secara hardcoded di frontend.
+Alur form:
 
-Payload create dan update Employee:
-
-```json
-{
-  "department_id": 1
-}
-```
-
-Frontend mengirim `department_id` sebagai number dan tidak lagi mengirim input Department berbentuk teks bebas.
-
-### Employee Response
-
-Frontend menormalisasi field berikut:
+1. Pilih Department.
+2. Dropdown Position hanya menampilkan Position milik Department tersebut.
+3. Submit mengirim ID numerik.
 
 ```json
 {
   "department_id": 1,
-  "department_code": "IT",
-  "department_name": "Information Technology",
-  "department_master": {
-    "id": 1,
-    "code": "IT",
-    "name": "Information Technology"
-  }
+  "position_id": 5
 }
 ```
 
-### Employee Filter
+Frontend tidak lagi mengirim Department atau Position sebagai input teks bebas.
+
+Employee list mendukung:
 
 ```http
-GET /api/v1/employees?department_id=1
+GET /api/v1/employees?department_id=1&position_id=5
 ```
 
-Employee table menampilkan nama dan kode Department dari relationship backend.
+Table dan detail Employee menampilkan:
+
+- `department_name`
+- `department_code`
+- `position_name`
+- `position_code`
+- relationship `department_master`
+- relationship `position_master`
+
+## API Services
+
+```text
+src/services/departmentService.js
+src/services/positionService.js
+src/services/employeeService.js
+```
+
+Position endpoints:
+
+```text
+GET    /api/v1/positions
+POST   /api/v1/positions
+GET    /api/v1/positions/{position}
+PUT    /api/v1/positions/{position}
+DELETE /api/v1/positions/{position}
+```
 
 ## Application Routes
 
 | Route | Access | Description |
 |---|---|---|
 | `/login` | Public | Login |
-| `/dashboard` | All roles | Dashboard berdasarkan role |
-| `/attendance` | All roles | Attendance pribadi atau monitoring |
-| `/leave` | All roles | Leave request dan history |
-| `/approval` | Admin, HR, Manager | Leave approval |
-| `/report` | Admin, HR, Manager | Reports dan CSV export |
-| `/master-data` | Admin, HR, Manager | Department master data |
+| `/dashboard` | All roles | Dashboard |
+| `/attendance` | All roles | Attendance |
+| `/leave` | All roles | Leave |
+| `/approval` | Admin, HR, Manager | Approval |
+| `/report` | Admin, HR, Manager | Reports |
+| `/master-data` | Admin, HR, Manager | Department & Position master data |
 | `/employee` | Admin, HR | Employee management |
 | `/shift` | Admin, HR | Shift management |
 | `/shift-schedule` | Admin, HR | Shift assignment |
 
-## Department API Service
-
-File:
-
-```text
-src/services/departmentService.js
-```
-
-Endpoints yang digunakan:
-
-```text
-GET    /api/v1/departments
-POST   /api/v1/departments
-GET    /api/v1/departments/{department}
-PUT    /api/v1/departments/{department}
-DELETE /api/v1/departments/{department}
-```
-
-## Project Structure
-
-```text
-src/
-├── components/layout/
-├── lib/axios.js
-├── pages/
-│   ├── auth/
-│   ├── dashboard/
-│   ├── employee/
-│   ├── master-data/
-│   │   ├── MasterDataPage.jsx
-│   │   ├── department.helpers.js
-│   │   └── components/
-│   │       ├── DepartmentFormModal.jsx
-│   │       └── DepartmentTable.jsx
-│   ├── attendance/
-│   ├── leave/
-│   ├── approval/
-│   ├── report/
-│   ├── shift/
-│   └── shift-schedule/
-├── routes/
-├── services/
-│   ├── departmentService.js
-│   └── employeeService.js
-└── store/
-```
-
 ## Testing
 
-Department tests mencakup:
+Coverage Organization Master Data:
 
-- Load dan render Department dari API.
-- Admin create flow.
-- Normalisasi payload Department.
+- Department regression flow.
+- Department/Position tab switching.
+- Position list dan Department relationship.
+- Position create dan payload normalization.
 - Manager read-only access.
 - Laravel validation feedback.
-- Normalisasi relationship Department pada Employee response.
-- Payload Employee menggunakan numeric `department_id`.
+- Employee response normalization untuk Department dan Position.
+- Numeric `department_id` dan `position_id` payload.
+- Dependent Department → Position selection pada Employee form.
 
 Jalankan:
 
@@ -200,25 +147,12 @@ npm run lint
 npm run build
 ```
 
-Frontend CI menjalankan:
-
-1. Dependency installation.
-2. ESLint untuk source yang berubah.
-3. Vitest component tests.
-4. Production build.
+Frontend CI menjalankan dependency installation, ESLint, Vitest, dan production build.
 
 ## Environment
 
-Buat `.env`:
-
 ```env
 VITE_API_BASE_URL=http://localhost:8000/api/v1
-```
-
-Untuk backend melalui ngrok:
-
-```env
-VITE_API_BASE_URL=https://your-backend-ngrok-url.ngrok-free.app/api/v1
 ```
 
 ## Local Setup
@@ -228,65 +162,24 @@ npm install
 npm run dev
 ```
 
-Akses default:
-
-```text
-http://localhost:3000
-```
-
-Untuk mobile testing:
+Mobile testing:
 
 ```bash
 npm run dev -- --host 0.0.0.0
 ```
 
-## Demo Accounts
-
-| Role | Email | Password |
-|---|---|---|
-| Admin | `admin@hris.test` | `password123` |
-| HR | `hr@hris.test` | `password123` |
-| Manager | `manager@hris.test` | `password123` |
-| Employee | `employee@hris.test` | `password123` |
-
-## Module Development Workflow
-
-Urutan pengembangan wajib untuk setiap modul:
-
-```text
-1. Backend migration dan model
-2. Backend validation, controller, routes, seeder, dan tests
-3. Backend CI hijau dan merge
-4. Frontend service dan UI
-5. Frontend role access, loading, empty, error, success, dan validation state
-6. Integrasi frontend ke API tanpa mock atau hardcoded data
-7. Frontend tests dan CI hijau
-8. Update README backend dan frontend
-9. Merge frontend
-10. Baru lanjut ke modul berikutnya
-```
-
 ## Definition of Done
 
-Sebuah modul HRIS dianggap selesai hanya apabila:
-
-- Backend dan frontend sudah tersedia.
-- Contract request dan response sinkron.
-- Tidak ada data dropdown yang masih hardcoded.
-- Role access sama di backend dan frontend.
+- Backend dan frontend tersedia.
+- Request/response contract sinkron.
+- Dropdown tidak hardcoded.
+- Role access sama dengan backend.
 - Loading, empty, error, success, dan validation feedback tersedia.
-- Responsive pada desktop dan mobile.
-- Backend tests lulus.
-- Frontend tests lulus.
-- Backend dan frontend CI hijau.
-- README kedua repository sudah diperbarui.
+- Tests dan CI backend/frontend hijau.
+- README kedua repository diperbarui.
 
 ## Next Module
 
-Module berikutnya setelah Department:
-
 ```text
-Position Master Data
+Branch / Work Location Master Data
 ```
-
-Position baru dimulai setelah Department frontend PR selesai di-merge dan README backend/frontend telah sinkron.
