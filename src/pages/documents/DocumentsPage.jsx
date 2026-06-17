@@ -3,6 +3,7 @@ import { ArrowLeft, Plus } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import documentService from '../../services/documentService'
 import profileService from '../../services/profileService'
+import DocumentDetailModal from './components/DocumentDetailModal'
 import DocumentFilters from './components/DocumentFilters'
 import DocumentFormModal from './components/DocumentFormModal'
 import DocumentList from './components/DocumentList'
@@ -11,15 +12,18 @@ import ReplaceDocumentModal from './components/ReplaceDocumentModal'
 import {
   buildFilterParams,
   downloadBlobResponse,
+  extractApiErrorMessage,
   initialDocumentFilters,
   initialDocumentForm,
   mapMetadataPayload,
   normalizeCategories,
+  normalizeDocumentDetail,
   normalizeDocumentList,
   normalizeSummary,
   toDocumentForm,
   toReplaceFormData,
   toUploadFormData,
+  validateDocumentFile,
 } from './document.helpers'
 
 const DocumentsPage = () => {
@@ -43,6 +47,10 @@ const DocumentsPage = () => {
   const [replaceDocument, setReplaceDocument] = useState(null)
   const [replacementFile, setReplacementFile] = useState(null)
   const [replaceError, setReplaceError] = useState('')
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [detailDocument, setDetailDocument] = useState(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState('')
   const [downloadingId, setDownloadingId] = useState(null)
 
   const notify = useCallback((message, type = 'success') => {
@@ -137,10 +145,39 @@ const DocumentsPage = () => {
     setFormOpen(true)
   }
 
+  const openDetail = async (document) => {
+    setDetailOpen(true)
+    setDetailDocument(null)
+    setDetailLoading(true)
+    setDetailError('')
+
+    try {
+      const response = isAdminView
+        ? await documentService.getEmployeeDocumentDetail(employeeId, document.id)
+        : await documentService.getMineDetail(document.id)
+      const detail = normalizeDocumentDetail(response)
+      if (!detail) throw new Error('Detail dokumen tidak valid.')
+      setDetailDocument(detail)
+    } catch (error) {
+      setDetailError(await extractApiErrorMessage(error, 'Gagal memuat detail dokumen.'))
+    } finally {
+      setDetailLoading(false)
+    }
+  }
+
   const submitDocument = async (event) => {
     event.preventDefault()
-    setSubmitting(true)
     setFormErrors({})
+
+    if (!selectedDocument) {
+      const fileError = validateDocumentFile(formData.file)
+      if (fileError) {
+        setFormErrors({ file: [fileError] })
+        return
+      }
+    }
+
+    setSubmitting(true)
     try {
       if (selectedDocument) {
         await documentService.updateEmployeeDocument(employeeId, selectedDocument.id, mapMetadataPayload(formData))
@@ -160,8 +197,15 @@ const DocumentsPage = () => {
 
   const submitReplacement = async (event) => {
     event.preventDefault()
-    setSubmitting(true)
     setReplaceError('')
+
+    const fileError = validateDocumentFile(replacementFile)
+    if (fileError) {
+      setReplaceError(fileError)
+      return
+    }
+
+    setSubmitting(true)
     try {
       await documentService.replaceEmployeeDocument(employeeId, replaceDocument.id, toReplaceFormData(replacementFile))
       setReplaceDocument(null)
@@ -194,7 +238,7 @@ const DocumentsPage = () => {
         : await documentService.downloadMine(document.id)
       downloadBlobResponse(response, document.file?.original_name || 'document')
     } catch (error) {
-      notify(error.response?.data?.message || 'Gagal mengunduh dokumen.', 'error')
+      notify(await extractApiErrorMessage(error, 'Gagal mengunduh dokumen.'), 'error')
     } finally {
       setDownloadingId(null)
     }
@@ -217,7 +261,7 @@ const DocumentsPage = () => {
       <DocumentFilters filters={filters} categories={categories} onChange={changeFilter} onReset={resetFilters} />
 
       {pageError && <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{pageError}<button type="button" onClick={loadDocuments} className="ml-2 font-semibold underline">Coba lagi</button></div>}
-      <DocumentList documents={documents} loading={loading} canManage={isAdminView} downloadingId={downloadingId} onDownload={downloadDocument} onEdit={openEdit} onReplace={(document) => { setReplaceDocument(document); setReplacementFile(null); setReplaceError('') }} onDelete={deleteDocument} />
+      <DocumentList documents={documents} loading={loading} canManage={isAdminView} downloadingId={downloadingId} onDetail={openDetail} onDownload={downloadDocument} onEdit={openEdit} onReplace={(document) => { setReplaceDocument(document); setReplacementFile(null); setReplaceError('') }} onDelete={deleteDocument} />
 
       {pagination?.last_page > 1 && (
         <nav aria-label="Pagination dokumen" className="flex items-center justify-center gap-3">
@@ -228,7 +272,8 @@ const DocumentsPage = () => {
       )}
 
       {formOpen && <DocumentFormModal document={selectedDocument} categories={categories} formData={formData} errors={formErrors} submitting={submitting} onChange={changeForm} onClose={() => !submitting && setFormOpen(false)} onSubmit={submitDocument} />}
-      {replaceDocument && <ReplaceDocumentModal document={replaceDocument} file={replacementFile} error={replaceError} submitting={submitting} onFileChange={(event) => setReplacementFile(event.target.files?.[0] || null)} onClose={() => !submitting && setReplaceDocument(null)} onSubmit={submitReplacement} />}
+      {replaceDocument && <ReplaceDocumentModal document={replaceDocument} file={replacementFile} error={replaceError} submitting={submitting} onFileChange={(event) => { setReplacementFile(event.target.files?.[0] || null); setReplaceError('') }} onClose={() => !submitting && setReplaceDocument(null)} onSubmit={submitReplacement} />}
+      {detailOpen && <DocumentDetailModal document={detailDocument} loading={detailLoading} error={detailError} downloading={downloadingId === detailDocument?.id} onClose={() => setDetailOpen(false)} onDownload={downloadDocument} />}
       {toast && <div className={`fixed right-4 top-4 z-[60] max-w-sm rounded-lg px-5 py-3 text-sm text-white shadow-lg ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'}`}>{toast.message}</div>}
     </div>
   )
