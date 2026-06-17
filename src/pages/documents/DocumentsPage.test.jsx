@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -89,7 +89,7 @@ describe('Employee Documents page', () => {
 
     expect(await screen.findByRole('heading', { name: 'Dokumen Saya' })).toBeInTheDocument()
     expect(screen.getByText('Employment Contract')).toBeInTheDocument()
-    expect(screen.getByText('Segera Kedaluwarsa')).toBeInTheDocument()
+    expect(screen.getAllByText('Segera Kedaluwarsa')).toHaveLength(3)
     expect(screen.queryByRole('button', { name: 'Unggah Dokumen' })).not.toBeInTheDocument()
     expect(screen.queryByTitle('Edit metadata')).not.toBeInTheDocument()
     expect(mocks.getMine).toHaveBeenCalled()
@@ -117,11 +117,11 @@ describe('Employee Documents page', () => {
     await user.upload(within(dialog).getByLabelText('File Dokumen'), file)
     await user.selectOptions(within(dialog).getByLabelText('Kategori'), 'employment')
     await user.type(within(dialog).getByLabelText('Judul Dokumen'), 'New Contract')
-    await user.click(within(dialog).getByRole('button', { name: 'Unggah Dokumen' }))
+    fireEvent.submit(dialog.querySelector('form'))
 
-    await waitFor(() => {
-      expect(mocks.uploadEmployeeDocument).toHaveBeenCalledWith('42', expect.any(FormData))
-    })
+    await waitFor(() => expect(mocks.uploadEmployeeDocument).toHaveBeenCalledWith('42', expect.any(FormData)))
+    const submitted = mocks.uploadEmployeeDocument.mock.calls[0][1]
+    expect(submitted.get('file').name).toBe('new-contract.pdf')
   })
 
   it('edits metadata and replaces a file from the Admin route', async () => {
@@ -133,13 +133,13 @@ describe('Employee Documents page', () => {
     const editDialog = screen.getByRole('dialog', { name: 'Edit Metadata Dokumen' })
     await user.clear(within(editDialog).getByLabelText('Judul Dokumen'))
     await user.type(within(editDialog).getByLabelText('Judul Dokumen'), 'Updated Contract')
-    await user.click(within(editDialog).getByRole('button', { name: 'Perbarui Metadata' }))
+    await user.click(within(editDialog).getByRole('button', { name: 'Perbarui Metadata', exact: true }))
     await waitFor(() => expect(mocks.updateEmployeeDocument).toHaveBeenCalledWith('42', 7, expect.objectContaining({ title: 'Updated Contract' })))
 
     await user.click(screen.getByTitle('Ganti file'))
     const replaceDialog = screen.getByRole('dialog', { name: 'Ganti File Dokumen' })
     await user.upload(within(replaceDialog).getByLabelText('File Baru'), new File(['%PDF'], 'replacement.pdf', { type: 'application/pdf' }))
-    await user.click(within(replaceDialog).getByRole('button', { name: 'Ganti File' }))
+    fireEvent.submit(replaceDialog.querySelector('form'))
     await waitFor(() => expect(mocks.replaceEmployeeDocument).toHaveBeenCalledWith('42', 7, expect.any(FormData)))
   })
 })
