@@ -4,28 +4,28 @@ const Navbar = ({ onMenuToggle }) => {
   const { user } = useAuthStore()
 
   return (
-    <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between flex-shrink-0">
-      {/* Left: Hamburger + Title */}
+    <header className="flex flex-shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
       <div className="flex items-center gap-3">
         <button
+          type="button"
           onClick={onMenuToggle}
-          className="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+          aria-label="Buka menu navigasi"
+          className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 lg:hidden"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-        <h2 className="text-base font-semibold text-gray-800 hidden sm:block">HRIS MSR</h2>
+        <h2 className="hidden text-base font-semibold text-gray-800 sm:block">HRIS MSR</h2>
       </div>
 
-      {/* Right: User info */}
       <div className="flex items-center gap-3">
-        <div className="text-right hidden sm:block">
+        <div className="hidden text-right sm:block">
           <p className="text-sm font-medium text-gray-800">{user?.name || 'User'}</p>
           <p className="text-xs text-gray-500">{user?.role || 'Employee'}</p>
         </div>
-        <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center">
-          <span className="text-white text-sm font-semibold">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600">
+          <span className="text-sm font-semibold text-white">
             {user?.name?.charAt(0)?.toUpperCase() || 'U'}
           </span>
         </div>
