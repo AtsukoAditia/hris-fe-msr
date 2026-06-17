@@ -3,6 +3,7 @@ import { useAuthStore } from '../../store/authStore'
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: '📊' },
+  { path: '/profile', label: 'Profil Saya', icon: '👤' },
   { path: '/attendance', label: 'Absensi', icon: '📋' },
   { path: '/leave', label: 'Cuti', icon: '🌴' },
   { path: '/approval', label: 'Persetujuan', icon: '✅', allowedRoles: ['admin', 'hr', 'manager'] },
