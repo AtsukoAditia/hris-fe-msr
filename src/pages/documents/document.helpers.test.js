@@ -82,6 +82,7 @@ describe('document helpers', () => {
   it('matches backend file type and 10 MB constraints', () => {
     expect(validateDocumentFile(null)).toBe('File dokumen wajib dipilih.')
     expect(validateDocumentFile(new File(['pdf'], 'contract.pdf', { type: 'application/pdf' }))).toBe('')
+    expect(validateDocumentFile(new File(['pdf'], 'contract.pdf', { type: '' }))).toBe('')
     expect(validateDocumentFile(new File(['exe'], 'payload.exe', { type: 'application/octet-stream' }))).toContain('Format file')
 
     const oversized = new File([new Uint8Array(10 * 1024 * 1024 + 1)], 'large.pdf', { type: 'application/pdf' })
