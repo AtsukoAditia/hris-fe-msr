@@ -6,27 +6,25 @@ test.beforeEach(async ({ page }) => installDocumentApiMocks(page))
 
 test('self document list and secure download work on mobile', async ({ page }) => {
   await page.goto('/documents')
-
   await expect(page.getByRole('heading', { name: 'Dokumen Saya' })).toBeVisible()
   await expect(page.getByText('Mobile Employment Contract')).toBeVisible()
-  await expect(page.getByText('Segera Kedaluwarsa')).toBeVisible()
-  await expect(page.getByText('Rahasia')).toBeVisible()
+  await expect(page.locator('span.rounded-full').filter({ hasText: 'Segera Kedaluwarsa' })).toBeVisible()
+  await expect(page.getByText('Rahasia', { exact: true })).toBeVisible()
   await expectNoDocumentOverflow(page)
 
   const requestPromise = page.waitForRequest((request) => new URL(request.url()).pathname.endsWith('/documents/my/7/download'))
-  await page.getByRole('button', { name: 'Unduh' }).click()
+  await page.getByRole('button', { name: 'Unduh', exact: true }).click()
   await requestPromise
   await expectNoDocumentOverflow(page)
 })
 
 test('Admin upload and replace modals work on mobile', async ({ page }) => {
   await page.goto('/employee/42/documents')
-
   await expect(page.getByRole('heading', { name: 'Dokumen Karyawan' })).toBeVisible()
   await expect(page.getByText(/Mobile Document Employee/)).toBeVisible()
   await expectNoDocumentOverflow(page)
 
-  await page.getByRole('button', { name: 'Unggah Dokumen' }).click()
+  await page.getByRole('button', { name: 'Unggah Dokumen', exact: true }).click()
   await expectModalFitsViewport(page, 'Unggah Dokumen Karyawan')
   const uploadDialog = page.getByRole('dialog', { name: 'Unggah Dokumen Karyawan' })
   await uploadDialog.getByLabel('File Dokumen').setInputFiles({
@@ -37,7 +35,7 @@ test('Admin upload and replace modals work on mobile', async ({ page }) => {
   await uploadDialog.getByLabel('Kategori').selectOption('employment')
   await uploadDialog.getByLabel('Judul Dokumen').fill('Mobile Upload')
   const uploadRequest = page.waitForRequest((request) => request.method() === 'POST' && new URL(request.url()).pathname.endsWith('/employees/42/documents'))
-  await uploadDialog.getByRole('button', { name: 'Unggah Dokumen' }).click()
+  await uploadDialog.getByRole('button', { name: 'Unggah Dokumen', exact: true }).click()
   await uploadRequest
   await expectNoDocumentOverflow(page)
 
@@ -50,7 +48,7 @@ test('Admin upload and replace modals work on mobile', async ({ page }) => {
     buffer: Buffer.from('replacement'),
   })
   const replaceRequest = page.waitForRequest((request) => request.method() === 'POST' && new URL(request.url()).pathname.endsWith('/employees/42/documents/7/replace'))
-  await replaceDialog.getByRole('button', { name: 'Ganti File' }).click()
+  await replaceDialog.getByRole('button', { name: 'Ganti File', exact: true }).click()
   await replaceRequest
   await expectNoDocumentOverflow(page)
 })
