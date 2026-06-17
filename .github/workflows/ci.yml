@@ -72,7 +72,20 @@ jobs:
           npx eslint --report-unused-disable-directives --max-warnings 0 "${SOURCE_FILES[@]}"
 
       - name: Run component tests
-        run: npm test
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p test-results
+          npm test 2>&1 | tee test-results/component-tests.log
+
+      - name: Upload component test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-component-test-log
+          path: test-results/component-tests.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Build production bundle
         run: npm run build
