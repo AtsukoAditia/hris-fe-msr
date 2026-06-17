@@ -14,12 +14,22 @@ const item = {
   title: 'Mobile Employment Contract',
   description: 'Permanent employment contract.',
   labels: ['contract', 'permanent'],
-  file: { original_name: 'mobile-contract.pdf', mime_type: 'application/pdf', extension: 'pdf', size_bytes: 2048, version: 1 },
+  file: {
+    original_name: 'mobile-contract.pdf',
+    mime_type: 'application/pdf',
+    extension: 'pdf',
+    size_bytes: 2048,
+    checksum_sha256: 'mobile-checksum',
+    version: 1,
+  },
   issue_date: '2026-01-01',
   expiry_date: '2026-07-01',
   expiry_status: 'expiring',
   days_until_expiry: 14,
   is_confidential: true,
+  uploaded_by: { id: 1, name: 'Document Admin', email: 'document.admin@hris.test' },
+  created_at: '2026-06-01T08:00:00.000000Z',
+  updated_at: '2026-06-01T08:00:00.000000Z',
 }
 
 const json = (route, data, status = 200) => route.fulfill({
@@ -38,7 +48,8 @@ export const installDocumentApiMocks = async (page) => {
 
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request()
-    const path = new URL(request.url()).pathname.split('/api/v1')[1] || '/'
+    const url = new URL(request.url())
+    const path = url.pathname.split('/api/v1')[1] || '/'
     const method = request.method()
 
     if (path === '/auth/me') return json(route, { user })
@@ -60,8 +71,17 @@ export const installDocumentApiMocks = async (page) => {
 
     if ((path === '/documents/my/summary' || path === '/employee-documents/summary') && method === 'GET') {
       return json(route, { success: true, data: {
-        total: 1, valid: 0, expiring: 1, expired: 0, without_expiry: 0, warning_days: 30,
+        total: 1,
+        valid: 0,
+        expiring: 1,
+        expired: 0,
+        without_expiry: 0,
+        warning_days: Number(url.searchParams.get('expires_within_days') || 30),
       } })
+    }
+
+    if ((path === '/documents/my/7' || path === '/employees/42/documents/7') && method === 'GET') {
+      return json(route, { success: true, data: item })
     }
 
     if (/\/download$/.test(path) && method === 'GET') {
