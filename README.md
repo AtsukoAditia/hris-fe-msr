@@ -13,7 +13,7 @@ Frontend terhubung dengan backend Laravel [`hris-be-msr`](https://github.com/Ats
 | Routing | React Router v6 |
 | State | Zustand |
 | HTTP | Axios |
-| Testing | Vitest + React Testing Library |
+| Testing | Vitest + React Testing Library + Playwright |
 | PWA | vite-plugin-pwa + Workbox |
 
 ## Current Status
@@ -28,6 +28,7 @@ Frontend terhubung dengan backend Laravel [`hris-be-msr`](https://github.com/Ats
 | **Position Master Data** | ✅ | ✅ | **Completed & Synced** |
 | **Branch / Work Location** | ✅ | ✅ | **Completed & Synced** |
 | **Employee Manager Relation** | ✅ | ✅ | **Completed & Synced** |
+| **Organization Mobile Acceptance** | ✅ | ✅ | **Completed** |
 
 ## Organization Master Data
 
@@ -57,16 +58,7 @@ is_active
 employees_count
 ```
 
-Branch UI menampilkan:
-
-- Kode dan nama lokasi.
-- Alamat dan timezone.
-- Latitude dan longitude.
-- Radius area absensi.
-- Jumlah Employee yang menggunakan Branch.
-- Status aktif/nonaktif.
-
-Branch yang masih digunakan Employee akan menampilkan error backend saat delete dan tidak dihapus.
+Branch UI menampilkan kode, nama, alamat, timezone, coordinates, radius area absensi, jumlah Employee, dan status. Branch yang masih digunakan Employee akan menampilkan error backend saat delete dan tidak dihapus.
 
 ### Role Access
 
@@ -117,23 +109,7 @@ GET /api/v1/employees?department_id=1&position_id=5&branch_id=1&manager_id=8
 GET /api/v1/employees?manager_id=none
 ```
 
-Table dan detail Employee menampilkan:
-
-- `department_name`
-- `department_code`
-- `position_name`
-- `position_code`
-- `branch_name`
-- `branch_code`
-- `manager_name`
-- `manager_employee_number`
-- `manager_position_name`
-- relationship `department_master`
-- relationship `position_master`
-- relationship `branch`
-- relationship `manager`
-- Branch address, radius, dan timezone pada detail Employee
-- Atasan Langsung atau status `Tanpa Atasan Langsung`
+Table dan detail Employee menampilkan relational Department, Position, Branch, dan Manager termasuk `manager_name`, `manager_employee_number`, dan `manager_position_name`.
 
 ## API Services
 
@@ -142,14 +118,6 @@ src/services/departmentService.js
 src/services/positionService.js
 src/services/branchService.js
 src/services/employeeService.js
-```
-
-Employee Manager endpoints:
-
-```text
-GET /api/v1/employees/manager-options
-GET /api/v1/employees?manager_id={employeeId}
-GET /api/v1/employees?manager_id=none
 ```
 
 ## Application Routes
@@ -169,23 +137,32 @@ GET /api/v1/employees?manager_id=none
 
 ## Testing
 
-Coverage Organization Master Data:
+Coverage component dan integration:
 
-- Department regression flow.
-- Department, Position, dan Branch tab switching.
-- Position list dan Department relationship.
-- Branch list, location data, create, normalization, read-only, validation, dan guarded delete feedback.
+- Department, Position, dan Branch CRUD flows.
 - Manager read-only access.
 - Laravel validation feedback.
-- Employee response normalization untuk Department, Position, Branch, dan Manager.
-- Numeric `department_id`, `position_id`, `branch_id`, dan `manager_id` payload.
-- Nullable `manager_id` untuk Employee tanpa atasan.
+- Employee organization response normalization dan numeric ID payloads.
 - Dependent Department → Position selection.
-- Active Branch dropdown dan Branch-required Employee submit.
-- Employee Branch list display dan `branch_id` filter API integration.
-- Active Manager dropdown dan current Employee exclusion.
+- Active Branch dan Manager dropdowns.
+- Current Employee exclusion dari pilihan manager.
 - Employee Manager table/detail display.
-- Filter Employee berdasarkan Manager dan tanpa atasan.
+- Filter berdasarkan manager dan tanpa atasan.
+
+Mobile acceptance menggunakan Playwright pada:
+
+| Device Profile | Browser Engine |
+|---|---|
+| Pixel 5 | Chromium |
+| iPhone 13 | WebKit |
+
+Cakupan mobile meliputi navigation drawer, Department/Position/Branch tabs, forms, filters, tables, Employee Manager create/edit/detail flow, modal containment, internal scrolling, dan document-level overflow protection.
+
+Laporan lengkap:
+
+```text
+docs/organization-mobile-acceptance.md
+```
 
 Jalankan:
 
@@ -193,9 +170,10 @@ Jalankan:
 npm test
 npm run lint
 npm run build
+npm run test:e2e
 ```
 
-Frontend CI menjalankan dependency installation, ESLint, Vitest, dan production build.
+Frontend CI menjalankan dependency installation, ESLint, Vitest, dan production build. Workflow Organization Mobile Acceptance menjalankan Playwright pada Chromium dan WebKit serta mengunggah report, screenshots, traces, dan failure video sebagai artifact.
 
 ## Environment
 
@@ -210,7 +188,14 @@ npm install
 npm run dev
 ```
 
-Mobile testing:
+Mobile acceptance:
+
+```bash
+npx playwright install chromium webkit
+npm run test:e2e
+```
+
+Manual testing dari perangkat satu jaringan:
 
 ```bash
 npm run dev -- --host 0.0.0.0
@@ -223,11 +208,11 @@ npm run dev -- --host 0.0.0.0
 - Dropdown master tidak hardcoded.
 - Role access sama dengan backend.
 - Loading, empty, error, success, dan validation feedback tersedia.
-- Tests dan CI backend/frontend hijau.
+- Component, integration, mobile E2E, dan CI hijau.
 - README kedua repository diperbarui.
 
 ## Next Module
 
 ```text
-Organization Master Data Mobile Acceptance Test
+Employee Profile and Emergency Contact
 ```
