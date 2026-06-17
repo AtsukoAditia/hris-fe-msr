@@ -2,18 +2,21 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   buildFilterParams,
   downloadBlobResponse,
+  extractApiErrorMessage,
   formatFileSize,
   mapMetadataPayload,
   normalizeCategories,
+  normalizeDocumentDetail,
   normalizeDocumentList,
   normalizeSummary,
   statusMeta,
   toDocumentForm,
   toUploadFormData,
+  validateDocumentFile,
 } from './document.helpers'
 
 describe('document helpers', () => {
-  it('normalizes paginated document and summary responses', () => {
+  it('normalizes paginated, detail, summary, and category responses', () => {
     const list = normalizeDocumentList({ data: { data: {
       data: [{ id: 1, title: 'Contract' }],
       current_page: 2,
@@ -24,6 +27,7 @@ describe('document helpers', () => {
 
     expect(list.items).toEqual([{ id: 1, title: 'Contract' }])
     expect(list.pagination).toEqual({ current_page: 2, last_page: 3, per_page: 15, total: 31 })
+    expect(normalizeDocumentDetail({ data: { data: { id: 1, title: 'Contract' } } })).toEqual({ id: 1, title: 'Contract' })
     expect(normalizeSummary({ data: { data: { total: 4, expired: 1, warning_days: 60 } } })).toMatchObject({
       total: 4,
       expired: 1,
@@ -62,7 +66,7 @@ describe('document helpers', () => {
     expect(data.has('description')).toBe(false)
   })
 
-  it('formats document fields and filters', () => {
+  it('formats document fields and expiry filters', () => {
     expect(toDocumentForm({ labels: ['one', 'two'], is_confidential: true })).toMatchObject({ labels: 'one, two', is_confidential: true })
     expect(buildFilterParams({ search: '', category: 'identity', status: 'expired', sort: 'expiry_asc', expires_within_days: 45 }, 2)).toEqual({
       page: 2,
@@ -75,7 +79,17 @@ describe('document helpers', () => {
     expect(statusMeta('expiring').label).toBe('Segera Kedaluwarsa')
   })
 
-  it('downloads blob responses using the server filename', () => {
+  it('matches backend file type and 10 MB constraints', () => {
+    expect(validateDocumentFile(null)).toBe('File dokumen wajib dipilih.')
+    expect(validateDocumentFile(new File(['pdf'], 'contract.pdf', { type: 'application/pdf' }))).toBe('')
+    expect(validateDocumentFile(new File(['pdf'], 'contract.pdf', { type: '' }))).toBe('')
+    expect(validateDocumentFile(new File(['exe'], 'payload.exe', { type: 'application/octet-stream' }))).toContain('Format file')
+
+    const oversized = new File([new Uint8Array(10 * 1024 * 1024 + 1)], 'large.pdf', { type: 'application/pdf' })
+    expect(validateDocumentFile(oversized)).toBe('Ukuran file maksimal 10 MB.')
+  })
+
+  it('downloads blob responses using the exposed server filename', () => {
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
     const createObjectURL = vi.fn(() => 'blob:test')
     const revokeObjectURL = vi.fn()
@@ -92,5 +106,16 @@ describe('document helpers', () => {
     expect(createObjectURL).toHaveBeenCalled()
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:test')
     click.mockRestore()
+  })
+
+  it('extracts backend messages from failed blob downloads', async () => {
+    const message = await extractApiErrorMessage({
+      response: {
+        data: new Blob([JSON.stringify({ message: 'File dokumen tidak ditemukan di penyimpanan.' })], { type: 'application/json' }),
+      },
+    }, 'Fallback')
+
+    expect(message).toBe('File dokumen tidak ditemukan di penyimpanan.')
+    await expect(extractApiErrorMessage({ response: { data: new Blob(['not-json']) } }, 'Fallback')).resolves.toBe('Fallback')
   })
 })

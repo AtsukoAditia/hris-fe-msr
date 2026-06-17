@@ -2,7 +2,7 @@ import { RotateCcw, Search } from 'lucide-react'
 
 const DocumentFilters = ({ filters, categories, onChange, onReset }) => (
   <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
       <label className="relative xl:col-span-2">
         <span className="sr-only">Cari dokumen</span>
         <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -24,6 +24,14 @@ const DocumentFilters = ({ filters, categories, onChange, onReset }) => (
         <option value="expiring">Segera Kedaluwarsa</option>
         <option value="expired">Kedaluwarsa</option>
         <option value="without_expiry">Tanpa Kedaluwarsa</option>
+      </select>
+      <select name="expires_within_days" aria-label="Batas segera kedaluwarsa" value={filters.expires_within_days} onChange={onChange} className="form-input">
+        <option value="7">Dalam 7 hari</option>
+        <option value="30">Dalam 30 hari</option>
+        <option value="60">Dalam 60 hari</option>
+        <option value="90">Dalam 90 hari</option>
+        <option value="180">Dalam 180 hari</option>
+        <option value="365">Dalam 365 hari</option>
       </select>
       <div className="flex gap-2">
         <select name="sort" aria-label="Urutkan dokumen" value={filters.sort} onChange={onChange} className="form-input min-w-0 flex-1">

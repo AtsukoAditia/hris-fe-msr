@@ -1,5 +1,9 @@
 import api from '../lib/axios'
 
+const multipartConfig = {
+  headers: { 'Content-Type': 'multipart/form-data' },
+}
+
 const documentService = {
   getCategories: () => api.get('/document-categories'),
 
@@ -11,13 +15,10 @@ const documentService = {
   getAll: (params) => api.get('/employee-documents', { params }),
   getSummary: (params) => api.get('/employee-documents/summary', { params }),
   getEmployeeDocuments: (employeeId, params) => api.get(`/employees/${employeeId}/documents`, { params }),
-  uploadEmployeeDocument: (employeeId, formData) => api.post(`/employees/${employeeId}/documents`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
+  getEmployeeDocumentDetail: (employeeId, documentId) => api.get(`/employees/${employeeId}/documents/${documentId}`),
+  uploadEmployeeDocument: (employeeId, formData) => api.post(`/employees/${employeeId}/documents`, formData, multipartConfig),
   updateEmployeeDocument: (employeeId, documentId, data) => api.patch(`/employees/${employeeId}/documents/${documentId}`, data),
-  replaceEmployeeDocument: (employeeId, documentId, formData) => api.post(`/employees/${employeeId}/documents/${documentId}/replace`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
+  replaceEmployeeDocument: (employeeId, documentId, formData) => api.post(`/employees/${employeeId}/documents/${documentId}/replace`, formData, multipartConfig),
   deleteEmployeeDocument: (employeeId, documentId) => api.delete(`/employees/${employeeId}/documents/${documentId}`),
   downloadEmployeeDocument: (employeeId, documentId) => api.get(`/employees/${employeeId}/documents/${documentId}/download`, { responseType: 'blob' }),
 }

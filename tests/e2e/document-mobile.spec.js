@@ -4,7 +4,7 @@ import { expectModalFitsViewport, expectNoDocumentOverflow } from './fixtures/mo
 
 test.beforeEach(async ({ page }) => installDocumentApiMocks(page))
 
-test('self document list and secure download work on mobile', async ({ page }) => {
+test('self document detail, expiry filter, and secure download work on mobile', async ({ page }) => {
   await page.goto('/documents')
   await expect(page.getByRole('heading', { name: 'Dokumen Saya' })).toBeVisible()
   await expect(page.getByText('Mobile Employment Contract')).toBeVisible()
@@ -12,17 +12,35 @@ test('self document list and secure download work on mobile', async ({ page }) =
   await expect(page.getByText('Rahasia', { exact: true })).toBeVisible()
   await expectNoDocumentOverflow(page)
 
+  const detailRequest = page.waitForRequest((request) => new URL(request.url()).pathname.endsWith('/documents/my/7'))
+  await page.getByRole('button', { name: 'Detail', exact: true }).click()
+  await detailRequest
+  await expectModalFitsViewport(page, 'Detail Dokumen')
+  const detailDialog = page.getByRole('dialog', { name: 'Detail Dokumen' })
+  await expect(detailDialog.getByText('application/pdf')).toBeVisible()
+  await expect(detailDialog.getByText('mobile-checksum')).toBeVisible()
+  await detailDialog.getByRole('button', { name: 'Tutup', exact: true }).click()
+
+  await page.getByLabel('Batas segera kedaluwarsa').selectOption('60')
+  await expect(page.getByText('Segera Kedaluwarsa (60 hari)')).toBeVisible()
+
   const requestPromise = page.waitForRequest((request) => new URL(request.url()).pathname.endsWith('/documents/my/7/download'))
   await page.getByRole('button', { name: 'Unduh', exact: true }).click()
   await requestPromise
   await expectNoDocumentOverflow(page)
 })
 
-test('Admin upload and replace modals work on mobile', async ({ page }) => {
+test('Admin detail, upload, and replace modals work on mobile', async ({ page }) => {
   await page.goto('/employee/42/documents')
   await expect(page.getByRole('heading', { name: 'Dokumen Karyawan' })).toBeVisible()
   await expect(page.getByText(/Mobile Document Employee/)).toBeVisible()
   await expectNoDocumentOverflow(page)
+
+  const detailRequest = page.waitForRequest((request) => new URL(request.url()).pathname.endsWith('/employees/42/documents/7'))
+  await page.getByRole('button', { name: 'Detail', exact: true }).click()
+  await detailRequest
+  await expectModalFitsViewport(page, 'Detail Dokumen')
+  await page.getByRole('dialog', { name: 'Detail Dokumen' }).getByRole('button', { name: 'Tutup', exact: true }).click()
 
   await page.getByRole('button', { name: 'Unggah Dokumen', exact: true }).click()
   await expectModalFitsViewport(page, 'Unggah Dokumen Karyawan')

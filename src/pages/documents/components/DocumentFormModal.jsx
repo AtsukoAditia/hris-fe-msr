@@ -2,6 +2,7 @@ import { X } from 'lucide-react'
 
 const DocumentFormModal = ({ document, categories, formData, errors, submitting, onChange, onClose, onSubmit }) => {
   const title = document ? 'Edit Metadata Dokumen' : 'Unggah Dokumen Karyawan'
+  const today = localDateValue(new Date())
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -28,21 +29,21 @@ const DocumentFormModal = ({ document, categories, formData, errors, submitting,
               </select>
             </Field>
             <Field label="Judul Dokumen" error={fieldError(errors, 'title')}>
-              <input name="title" value={formData.title} onChange={onChange} required className="form-input" />
+              <input name="title" value={formData.title} onChange={onChange} required maxLength={150} className="form-input" />
             </Field>
           </div>
           <Field label="Deskripsi" error={fieldError(errors, 'description')}>
-            <textarea name="description" value={formData.description} onChange={onChange} rows={3} className="form-input resize-none" />
+            <textarea name="description" value={formData.description} onChange={onChange} rows={3} maxLength={2000} className="form-input resize-none" />
           </Field>
-          <Field label="Label" hint="Pisahkan dengan koma, maksimal 10 label." error={fieldError(errors, 'labels')}>
+          <Field label="Label" hint="Pisahkan dengan koma, maksimal 10 label; setiap label maksimal 50 karakter." error={fieldError(errors, 'labels')}>
             <input name="labels" value={formData.labels} onChange={onChange} className="form-input" placeholder="kontrak, permanen" />
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Tanggal Terbit" error={fieldError(errors, 'issue_date')}>
-              <input type="date" name="issue_date" value={formData.issue_date} onChange={onChange} className="form-input" />
+              <input type="date" name="issue_date" value={formData.issue_date} onChange={onChange} max={today} className="form-input" />
             </Field>
             <Field label="Tanggal Kedaluwarsa" error={fieldError(errors, 'expiry_date')}>
-              <input type="date" name="expiry_date" value={formData.expiry_date} onChange={onChange} className="form-input" />
+              <input type="date" name="expiry_date" value={formData.expiry_date} onChange={onChange} min={formData.issue_date || undefined} className="form-input" />
             </Field>
           </div>
           <label className="flex items-start gap-3 rounded-lg border border-gray-200 p-4">
@@ -70,5 +71,12 @@ const Field = ({ label, hint, error, children }) => (
 )
 
 const fieldError = (errors, field) => errors?.[field]?.[0] || errors?.[field]
+
+const localDateValue = (date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 export default DocumentFormModal
