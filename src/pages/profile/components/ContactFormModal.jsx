@@ -50,7 +50,7 @@ const ContactFormModal = ({ contact, formData, errors, isSubmitting, onChange, o
             <textarea name="notes" value={formData.notes} onChange={onChange} rows={3} className="form-input resize-none" />
           </Field>
           <label className="flex items-start gap-3 rounded-lg border border-gray-200 p-4">
-            <input type="checkbox" name="is_primary" checked={formData.is_primary} onChange={onChange} className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600" />
+            <input aria-label="Jadikan kontak utama" type="checkbox" name="is_primary" checked={formData.is_primary} onChange={onChange} className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600" />
             <span>
               <span className="block text-sm font-medium text-gray-900">Jadikan kontak utama</span>
               <span className="block text-xs text-gray-500">Kontak utama sebelumnya akan otomatis diganti.</span>
