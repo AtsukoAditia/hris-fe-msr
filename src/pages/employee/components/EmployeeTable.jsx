@@ -22,6 +22,7 @@ const EmployeeTable = ({
             <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">NIK</th>
             <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Jabatan</th>
             <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Departemen</th>
+            <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Cabang</th>
             <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Role</th>
             <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Status</th>
             <th className="px-6 py-4 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Aksi</th>
@@ -45,6 +46,10 @@ const EmployeeTable = ({
               <td className="px-6 py-4 text-sm text-gray-900">
                 <div className="font-medium">{employee.department_name || employee.department || '-'}</div>
                 {employee.department_code && <div className="text-xs text-gray-500">{employee.department_code}</div>}
+              </td>
+              <td className="px-6 py-4 text-sm text-gray-900">
+                <div className="font-medium">{employee.branch_name || '-'}</div>
+                {employee.branch_code && <div className="text-xs text-gray-500">{employee.branch_code}</div>}
               </td>
               <td className="px-6 py-4"><span className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-medium capitalize text-blue-800">{employee.role || '-'}</span></td>
               <td className="px-6 py-4"><span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${employee.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{employee.status === 'active' ? 'Aktif' : 'Nonaktif'}</span></td>

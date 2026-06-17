@@ -35,7 +35,7 @@ const EmployeeDetailModal = ({ employee, onClose, onFaceUpdated }) => {
       <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-gray-200 p-6">
           <h2 className="text-xl font-semibold text-gray-900">Detail Pegawai</h2>
-          <button type="button" onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
+          <button type="button" onClick={onClose} aria-label="Tutup detail pegawai" className="p-2 text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
         </div>
 
         <div className="p-6">
@@ -85,6 +85,9 @@ const EmployeeDetailModal = ({ employee, onClose, onFaceUpdated }) => {
             <div className="space-y-4">
               <InfoItem icon={<Briefcase />} label="Departemen" value={formatMasterValue(employee.department_name || employee.department, employee.department_code)} />
               <InfoItem icon={<Briefcase />} label="Jabatan" value={formatMasterValue(employee.position_name || employee.position, employee.position_code)} />
+              <InfoItem icon={<MapPin />} label="Cabang / Lokasi Kerja" value={formatMasterValue(employee.branch_name, employee.branch_code)} />
+              <InfoItem icon={<MapPin />} label="Alamat Cabang" value={employee.branch?.address} />
+              <InfoItem icon={<Shield />} label="Area Absensi" value={formatAttendanceArea(employee.branch)} />
               <InfoItem icon={<BadgeCheck />} label="Role" value={employee.role} capitalize />
               <InfoItem icon={<Calendar />} label="Tanggal Bergabung" value={employee.join_date} />
               <InfoItem icon={<Briefcase />} label="Tipe Kerja" value={formatEmploymentType(employee.employment_type)} />
@@ -109,6 +112,7 @@ const InfoItem = ({ icon, label, value, capitalize = false }) => (
 )
 
 const formatMasterValue = (name, code) => code ? `${name || '-'} (${code})` : name || '-'
+const formatAttendanceArea = (branch) => branch ? `${branch.radius_meters || '-'} meter • ${branch.timezone || '-'}` : '-'
 const formatDate = (value) => value ? new Date(value).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'
 const formatGender = (value) => ({ male: 'Laki-laki', female: 'Perempuan' })[value] || value || '-'
 const formatEmploymentType = (value) => ({ permanent: 'Permanent', contract: 'Contract', internship: 'Internship' })[value] || value || '-'

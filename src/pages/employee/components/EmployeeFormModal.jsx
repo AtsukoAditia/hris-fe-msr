@@ -5,8 +5,10 @@ const EmployeeFormModal = ({
   formData,
   departments,
   positions,
+  branches,
   isLoadingDepartments,
   isLoadingPositions,
+  isLoadingBranches,
   errors = {},
   isSubmitting,
   onChange,
@@ -50,13 +52,20 @@ const EmployeeFormModal = ({
             </select>
             {formData.department_id && !isLoadingPositions && positions.length === 0 && <p className="mt-1 text-xs text-amber-600">Belum ada jabatan aktif pada departemen ini.</p>}
           </Field>
+          <Field label="Cabang / Lokasi Kerja" error={errors.branch_id?.[0]}>
+            <select name="branch_id" value={formData.branch_id} onChange={onChange} required disabled={isLoadingBranches || branches.length === 0} className="form-input disabled:bg-gray-100">
+              <option value="">{isLoadingBranches ? 'Memuat cabang...' : 'Pilih Cabang / Lokasi'}</option>
+              {branches.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
+            </select>
+            {!isLoadingBranches && branches.length === 0 && <p className="mt-1 text-xs text-amber-600">Belum ada cabang aktif yang dapat dipilih.</p>}
+          </Field>
           <Field label="Tanggal Bergabung" error={errors.join_date?.[0]}><input type="date" name="join_date" value={formData.join_date} onChange={onChange} required className="form-input" /></Field>
           <Field label="Tipe Kerja" error={errors.employment_type?.[0]}><select name="employment_type" value={formData.employment_type} onChange={onChange} className="form-input"><option value="permanent">Permanent</option><option value="contract">Contract</option><option value="internship">Internship</option></select></Field>
         </Section>
 
         <div className="flex justify-end gap-3 border-t border-gray-200 pt-4">
           <button type="button" onClick={onClose} disabled={isSubmitting} className="rounded-lg bg-gray-100 px-4 py-2 text-gray-700">Batal</button>
-          <button type="submit" disabled={isSubmitting || !formData.department_id || !formData.position_id} className="rounded-lg bg-blue-600 px-4 py-2 text-white disabled:opacity-50">{isSubmitting ? 'Menyimpan...' : isEditing ? 'Perbarui' : 'Simpan'}</button>
+          <button type="submit" disabled={isSubmitting || !formData.department_id || !formData.position_id || !formData.branch_id} className="rounded-lg bg-blue-600 px-4 py-2 text-white disabled:opacity-50">{isSubmitting ? 'Menyimpan...' : isEditing ? 'Perbarui' : 'Simpan'}</button>
         </div>
       </form>
     </div>

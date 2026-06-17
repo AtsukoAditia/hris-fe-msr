@@ -8,6 +8,7 @@ export const initialFormData = {
   gender: '',
   department_id: '',
   position_id: '',
+  branch_id: '',
   join_date: '',
   employment_type: 'permanent',
   status: 'active',
@@ -26,8 +27,10 @@ export const normalizeEmployee = (employee) => {
   const faceImageUrl = employee.face_image_url || employee.faceImageUrl || null
   const departmentMaster = employee.department_master || employee.departmentMaster || null
   const positionMaster = employee.position_master || employee.positionMaster || null
+  const branchMaster = employee.branch || employee.branch_master || employee.branchMaster || null
   const departmentName = employee.department_name || departmentMaster?.name || employee.department || ''
   const positionName = employee.position_name || positionMaster?.name || employee.position || ''
+  const branchName = employee.branch_name || branchMaster?.name || ''
 
   return {
     id: employee.id,
@@ -49,6 +52,10 @@ export const normalizeEmployee = (employee) => {
     position_name: positionName,
     position_code: employee.position_code || positionMaster?.code || '',
     position_master: positionMaster,
+    branch_id: employee.branch_id || branchMaster?.id || '',
+    branch: branchMaster,
+    branch_name: branchName,
+    branch_code: employee.branch_code || branchMaster?.code || '',
     join_date: normalizeDateInput(employee.join_date),
     employment_type: employee.employment_type || 'permanent',
     role: employee.user?.role || employee.role || 'employee',
@@ -77,6 +84,7 @@ export const mapFormDataToPayload = (formData) => ({
   gender: formData.gender || null,
   department_id: formData.department_id ? Number(formData.department_id) : null,
   position_id: formData.position_id ? Number(formData.position_id) : null,
+  branch_id: formData.branch_id ? Number(formData.branch_id) : null,
   join_date: formData.join_date,
   employment_type: formData.employment_type || 'permanent',
   role: formData.role,
