@@ -105,8 +105,8 @@ describe('Employee Manager frontend integration', () => {
   it('loads manager options and displays the direct manager in the Employee table', async () => {
     render(<EmployeeManagementPage />)
 
-    expect(await screen.findByText('Managed Employee')).toBeInTheDocument()
-    expect(screen.getByText('Engineering Lead')).toBeInTheDocument()
+    expect((await screen.findAllByText('Managed Employee')).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Engineering Lead').length).toBeGreaterThan(0)
     expect(screen.getByText('Engineering Manager')).toBeInTheDocument()
     expect(mocks.getManagerOptions).toHaveBeenCalledTimes(1)
   })
@@ -115,7 +115,8 @@ describe('Employee Manager frontend integration', () => {
     const user = userEvent.setup()
     render(<EmployeeManagementPage />)
 
-    await screen.findByText('Managed Employee')
+    await screen.findAllByText('Managed Employee')
+    await screen.findByRole('option', { name: 'Semua Atasan' })
     const managerFilter = screen.getAllByRole('combobox').find((field) => Array.from(field.options).some((option) => option.textContent === 'Semua Atasan'))
 
     await user.selectOptions(managerFilter, '20')
@@ -133,7 +134,7 @@ describe('Employee Manager frontend integration', () => {
     const user = userEvent.setup()
     render(<EmployeeManagementPage />)
 
-    await screen.findByText('Managed Employee')
+    await screen.findAllByText('Managed Employee')
     await user.click(screen.getByTitle('Edit'))
 
     const managerField = screen.getAllByRole('combobox').find((field) => field.name === 'manager_id')
