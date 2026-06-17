@@ -1,5 +1,4 @@
 import { ContactRound, Edit2, Eye, Trash2, User } from 'lucide-react'
-import { Link } from 'react-router-dom'
 
 const EmployeeTable = ({
   employees,
@@ -41,28 +40,16 @@ const EmployeeTable = ({
               </td>
               <td className="px-6 py-4 text-sm text-gray-900">{employee.formatted_employee_number || employee.employee_number || '-'}</td>
               <td className="px-6 py-4 text-sm text-gray-900">{employee.nik || '-'}</td>
-              <td className="px-6 py-4 text-sm text-gray-900">
-                <div className="font-medium">{employee.position_name || employee.position || '-'}</div>
-                {employee.position_code && <div className="text-xs text-gray-500">{employee.position_code}</div>}
-              </td>
-              <td className="px-6 py-4 text-sm text-gray-900">
-                <div className="font-medium">{employee.department_name || employee.department || '-'}</div>
-                {employee.department_code && <div className="text-xs text-gray-500">{employee.department_code}</div>}
-              </td>
-              <td className="px-6 py-4 text-sm text-gray-900">
-                <div className="font-medium">{employee.branch_name || '-'}</div>
-                {employee.branch_code && <div className="text-xs text-gray-500">{employee.branch_code}</div>}
-              </td>
-              <td className="px-6 py-4 text-sm text-gray-900">
-                <div className="font-medium">{employee.manager_name || '-'}</div>
-                {(employee.manager_position_name || employee.manager_employee_number) && <div className="text-xs text-gray-500">{employee.manager_position_name || employee.manager_employee_number}</div>}
-              </td>
+              <td className="px-6 py-4 text-sm text-gray-900"><div className="font-medium">{employee.position_name || employee.position || '-'}</div>{employee.position_code && <div className="text-xs text-gray-500">{employee.position_code}</div>}</td>
+              <td className="px-6 py-4 text-sm text-gray-900"><div className="font-medium">{employee.department_name || employee.department || '-'}</div>{employee.department_code && <div className="text-xs text-gray-500">{employee.department_code}</div>}</td>
+              <td className="px-6 py-4 text-sm text-gray-900"><div className="font-medium">{employee.branch_name || '-'}</div>{employee.branch_code && <div className="text-xs text-gray-500">{employee.branch_code}</div>}</td>
+              <td className="px-6 py-4 text-sm text-gray-900"><div className="font-medium">{employee.manager_name || '-'}</div>{(employee.manager_position_name || employee.manager_employee_number) && <div className="text-xs text-gray-500">{employee.manager_position_name || employee.manager_employee_number}</div>}</td>
               <td className="px-6 py-4"><span className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-medium capitalize text-blue-800">{employee.role || '-'}</span></td>
               <td className="px-6 py-4"><span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${employee.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{employee.status === 'active' ? 'Aktif' : 'Nonaktif'}</span></td>
               <td className="px-6 py-4 text-right">
                 <div className="flex items-center justify-end space-x-2">
                   <button type="button" onClick={() => onDetail(employee)} className="p-2 text-gray-400 hover:text-blue-600" title="Detail"><Eye className="h-4 w-4" /></button>
-                  {canManageEmployee && <Link to={`/employee/${employee.id}/profile`} className="p-2 text-gray-400 hover:text-indigo-600" title="Profil"><ContactRound className="h-4 w-4" /></Link>}
+                  {canManageEmployee && <a href={`/employee/${employee.id}/profile`} className="p-2 text-gray-400 hover:text-indigo-600" title="Profil"><ContactRound className="h-4 w-4" /></a>}
                   {canManageEmployee && <button type="button" onClick={() => onEdit(employee)} className="p-2 text-gray-400 hover:text-yellow-600" title="Edit"><Edit2 className="h-4 w-4" /></button>}
                   {canDeleteEmployee && <button type="button" onClick={() => onDelete(employee)} className="p-2 text-gray-400 hover:text-red-600" title="Hapus"><Trash2 className="h-4 w-4" /></button>}
                 </div>
