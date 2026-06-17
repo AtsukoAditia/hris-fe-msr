@@ -11,11 +11,11 @@ test('Employee Manager table, edit, and detail work on mobile', async ({ page },
 
   await expect(page.getByRole('heading', { name: 'Management Pegawai' })).toBeVisible()
   await expect(page.getByText('managed.employee@hris.test')).toBeVisible()
-  await expect(page.getByText('Engineering Lead').first()).toBeVisible()
   await expectNoDocumentOverflow(page)
   await expectScrollableTable(page)
 
   const managedRow = page.getByRole('row').filter({ hasText: 'Managed Employee' })
+  await expect(managedRow.getByText('Engineering Lead', { exact: true })).toBeVisible()
   await managedRow.getByTitle('Edit').click()
   await expectModalFitsViewport(page, 'Edit Pegawai')
 
