@@ -37,6 +37,11 @@ export const normalizeDocumentList = (response) => {
   }
 }
 
+export const normalizeDocumentDetail = (response) => {
+  const value = payload(response)
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : null
+}
+
 export const normalizeSummary = (response) => {
   const value = payload(response)
   return {
@@ -123,7 +128,7 @@ export const downloadBlobResponse = (response, fallbackName = 'document') => {
   const disposition = response?.headers?.['content-disposition'] || response?.headers?.get?.('content-disposition') || ''
   const encodedMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i)
   const plainMatch = disposition.match(/filename="?([^";]+)"?/i)
-  const filename = decodeURIComponent(encodedMatch?.[1] || plainMatch?.[1] || fallbackName)
+  const filename = safeDecodeFilename(encodedMatch?.[1] || plainMatch?.[1] || fallbackName)
   const blob = response?.data instanceof Blob ? response.data : new Blob([response?.data])
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
@@ -136,6 +141,51 @@ export const downloadBlobResponse = (response, fallbackName = 'document') => {
   return filename
 }
 
+export const extractApiErrorMessage = async (error, fallbackMessage) => {
+  const data = error?.response?.data
+
+  if (data instanceof Blob) {
+    try {
+      const text = await data.text()
+      if (!text) return fallbackMessage
+      const parsed = JSON.parse(text)
+      return parsed?.message || fallbackMessage
+    } catch {
+      return fallbackMessage
+    }
+  }
+
+  if (data instanceof ArrayBuffer) {
+    try {
+      const text = new TextDecoder().decode(data)
+      const parsed = JSON.parse(text)
+      return parsed?.message || fallbackMessage
+    } catch {
+      return fallbackMessage
+    }
+  }
+
+  return data?.message || error?.message || fallbackMessage
+}
+
+export const validateDocumentFile = (file) => {
+  if (!file) return 'File dokumen wajib dipilih.'
+
+  const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
+  const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp']
+  const extension = String(file.name || '').split('.').pop()?.toLowerCase()
+
+  if (!allowedTypes.includes(file.type) || !allowedExtensions.includes(extension)) {
+    return 'Format file harus PDF, JPG, PNG, atau WEBP.'
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    return 'Ukuran file maksimal 10 MB.'
+  }
+
+  return ''
+}
+
 const parseLabels = (value) => [...new Set(
   String(value || '')
     .split(',')
@@ -146,4 +196,12 @@ const parseLabels = (value) => [...new Set(
 const nullable = (value) => {
   const trimmed = String(value ?? '').trim()
   return trimmed === '' ? null : trimmed
+}
+
+const safeDecodeFilename = (value) => {
+  try {
+    return decodeURIComponent(String(value))
+  } catch {
+    return String(value)
+  }
 }
