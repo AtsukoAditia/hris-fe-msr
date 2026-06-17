@@ -27,7 +27,7 @@ Frontend terhubung dengan backend Laravel [`hris-be-msr`](https://github.com/Ats
 | **Department Master Data** | ✅ | ✅ | **Completed & Synced** |
 | **Position Master Data** | ✅ | ✅ | **Completed & Synced** |
 | **Branch / Work Location** | ✅ | ✅ | **Completed & Synced** |
-| Employee Manager Relation | ⬜ | ⬜ | Next Module |
+| **Employee Manager Relation** | ✅ | ✅ | **Completed & Synced** |
 
 ## Organization Master Data
 
@@ -88,6 +88,7 @@ Employee form menggunakan master data aktif dari backend:
 GET /api/v1/departments?active_only=true
 GET /api/v1/positions?active_only=true
 GET /api/v1/branches?active_only=true
+GET /api/v1/employees/manager-options
 ```
 
 Alur form:
@@ -95,22 +96,25 @@ Alur form:
 1. Pilih Department.
 2. Dropdown Position hanya menampilkan Position milik Department tersebut.
 3. Pilih Branch / Work Location aktif.
-4. Submit mengirim ID numerik.
+4. Pilih Atasan Langsung aktif atau gunakan opsi `Tanpa Atasan Langsung`.
+5. Submit mengirim ID numerik dan `manager_id` nullable.
 
 ```json
 {
   "department_id": 1,
   "position_id": 5,
-  "branch_id": 1
+  "branch_id": 1,
+  "manager_id": 8
 }
 ```
 
-Frontend tidak mengirim Department, Position, atau Branch sebagai input teks bebas.
+Frontend tidak mengirim Department, Position, Branch, atau Manager sebagai input teks bebas. Saat edit, Employee aktif tidak ditampilkan sebagai pilihan manager untuk dirinya sendiri. Validasi circular hierarchy tetap ditangani backend dan ditampilkan sebagai validation feedback pada field Manager.
 
 Employee list mendukung:
 
 ```http
-GET /api/v1/employees?department_id=1&position_id=5&branch_id=1
+GET /api/v1/employees?department_id=1&position_id=5&branch_id=1&manager_id=8
+GET /api/v1/employees?manager_id=none
 ```
 
 Table dan detail Employee menampilkan:
@@ -121,10 +125,15 @@ Table dan detail Employee menampilkan:
 - `position_code`
 - `branch_name`
 - `branch_code`
+- `manager_name`
+- `manager_employee_number`
+- `manager_position_name`
 - relationship `department_master`
 - relationship `position_master`
 - relationship `branch`
+- relationship `manager`
 - Branch address, radius, dan timezone pada detail Employee
+- Atasan Langsung atau status `Tanpa Atasan Langsung`
 
 ## API Services
 
@@ -135,14 +144,12 @@ src/services/branchService.js
 src/services/employeeService.js
 ```
 
-Branch endpoints:
+Employee Manager endpoints:
 
 ```text
-GET    /api/v1/branches
-POST   /api/v1/branches
-GET    /api/v1/branches/{branch}
-PUT    /api/v1/branches/{branch}
-DELETE /api/v1/branches/{branch}
+GET /api/v1/employees/manager-options
+GET /api/v1/employees?manager_id={employeeId}
+GET /api/v1/employees?manager_id=none
 ```
 
 ## Application Routes
@@ -156,7 +163,7 @@ DELETE /api/v1/branches/{branch}
 | `/approval` | Admin, HR, Manager | Approval |
 | `/report` | Admin, HR, Manager | Reports |
 | `/master-data` | Admin, HR, Manager | Department, Position & Branch master data |
-| `/employee` | Admin, HR | Employee management |
+| `/employee` | Admin, HR | Employee management dan direct manager relation |
 | `/shift` | Admin, HR | Shift management |
 | `/shift-schedule` | Admin, HR | Shift assignment |
 
@@ -170,11 +177,15 @@ Coverage Organization Master Data:
 - Branch list, location data, create, normalization, read-only, validation, dan guarded delete feedback.
 - Manager read-only access.
 - Laravel validation feedback.
-- Employee response normalization untuk Department, Position, dan Branch.
-- Numeric `department_id`, `position_id`, dan `branch_id` payload.
+- Employee response normalization untuk Department, Position, Branch, dan Manager.
+- Numeric `department_id`, `position_id`, `branch_id`, dan `manager_id` payload.
+- Nullable `manager_id` untuk Employee tanpa atasan.
 - Dependent Department → Position selection.
 - Active Branch dropdown dan Branch-required Employee submit.
 - Employee Branch list display dan `branch_id` filter API integration.
+- Active Manager dropdown dan current Employee exclusion.
+- Employee Manager table/detail display.
+- Filter Employee berdasarkan Manager dan tanpa atasan.
 
 Jalankan:
 
@@ -218,5 +229,5 @@ npm run dev -- --host 0.0.0.0
 ## Next Module
 
 ```text
-Employee Direct Manager Relation
+Organization Master Data Mobile Acceptance Test
 ```
