@@ -1,0 +1,39 @@
+name: Frontend Test Diagnostic
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  test-diagnostic:
+    name: Capture Vitest output
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Capture Vitest output
+        shell: bash
+        run: npm test -- --reporter=verbose > vitest-diagnostic.txt 2>&1 || true
+
+      - name: Upload Vitest output
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-diagnostic
+          path: vitest-diagnostic.txt
+          retention-days: 1
