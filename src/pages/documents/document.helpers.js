@@ -174,8 +174,9 @@ export const validateDocumentFile = (file) => {
   const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
   const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp']
   const extension = String(file.name || '').split('.').pop()?.toLowerCase()
+  const hasInvalidMime = Boolean(file.type) && !allowedTypes.includes(file.type)
 
-  if (!allowedTypes.includes(file.type) || !allowedExtensions.includes(extension)) {
+  if (!allowedExtensions.includes(extension) || hasInvalidMime) {
     return 'Format file harus PDF, JPG, PNG, atau WEBP.'
   }
 
