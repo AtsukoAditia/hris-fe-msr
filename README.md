@@ -26,7 +26,8 @@ Frontend terhubung dengan backend Laravel [`hris-be-msr`](https://github.com/Ats
 | Attendance, Leave, Shift & Report | ✅ | ✅ | Synced |
 | **Department Master Data** | ✅ | ✅ | **Completed & Synced** |
 | **Position Master Data** | ✅ | ✅ | **Completed & Synced** |
-| Branch / Work Location | ⬜ | ⬜ | Next Module |
+| **Branch / Work Location** | ✅ | ✅ | **Completed & Synced** |
+| Employee Manager Relation | ⬜ | ⬜ | Next Module |
 
 ## Organization Master Data
 
@@ -36,16 +37,42 @@ Route:
 /master-data
 ```
 
-Tersedia dua tab:
+Tersedia tiga tab:
 
 - **Department** — list, search, status filter, create, update, soft-delete action, validation feedback.
 - **Position** — list, search, Department filter, status filter, create, update, soft-delete action, validation feedback.
+- **Branch / Work Location** — list, search, status filter, location configuration, create, update, guarded delete, validation feedback.
+
+### Branch Location Fields
+
+```text
+code
+name
+address
+latitude
+longitude
+radius_meters
+timezone
+is_active
+employees_count
+```
+
+Branch UI menampilkan:
+
+- Kode dan nama lokasi.
+- Alamat dan timezone.
+- Latitude dan longitude.
+- Radius area absensi.
+- Jumlah Employee yang menggunakan Branch.
+- Status aktif/nonaktif.
+
+Branch yang masih digunakan Employee akan menampilkan error backend saat delete dan tidak dihapus.
 
 ### Role Access
 
 | Action | Admin | HR | Manager | Employee |
 |---|:---:|:---:|:---:|:---:|
-| View Department & Position | ✅ | ✅ | ✅ | ❌ |
+| View Department, Position & Branch | ✅ | ✅ | ✅ | ❌ |
 | Search & Filter | ✅ | ✅ | ✅ | ❌ |
 | Create | ✅ | ✅ | ❌ | ❌ |
 | Update | ✅ | ✅ | ❌ | ❌ |
@@ -60,27 +87,30 @@ Employee form menggunakan master data aktif dari backend:
 ```http
 GET /api/v1/departments?active_only=true
 GET /api/v1/positions?active_only=true
+GET /api/v1/branches?active_only=true
 ```
 
 Alur form:
 
 1. Pilih Department.
 2. Dropdown Position hanya menampilkan Position milik Department tersebut.
-3. Submit mengirim ID numerik.
+3. Pilih Branch / Work Location aktif.
+4. Submit mengirim ID numerik.
 
 ```json
 {
   "department_id": 1,
-  "position_id": 5
+  "position_id": 5,
+  "branch_id": 1
 }
 ```
 
-Frontend tidak lagi mengirim Department atau Position sebagai input teks bebas.
+Frontend tidak mengirim Department, Position, atau Branch sebagai input teks bebas.
 
 Employee list mendukung:
 
 ```http
-GET /api/v1/employees?department_id=1&position_id=5
+GET /api/v1/employees?department_id=1&position_id=5&branch_id=1
 ```
 
 Table dan detail Employee menampilkan:
@@ -89,25 +119,30 @@ Table dan detail Employee menampilkan:
 - `department_code`
 - `position_name`
 - `position_code`
+- `branch_name`
+- `branch_code`
 - relationship `department_master`
 - relationship `position_master`
+- relationship `branch`
+- Branch address, radius, dan timezone pada detail Employee
 
 ## API Services
 
 ```text
 src/services/departmentService.js
 src/services/positionService.js
+src/services/branchService.js
 src/services/employeeService.js
 ```
 
-Position endpoints:
+Branch endpoints:
 
 ```text
-GET    /api/v1/positions
-POST   /api/v1/positions
-GET    /api/v1/positions/{position}
-PUT    /api/v1/positions/{position}
-DELETE /api/v1/positions/{position}
+GET    /api/v1/branches
+POST   /api/v1/branches
+GET    /api/v1/branches/{branch}
+PUT    /api/v1/branches/{branch}
+DELETE /api/v1/branches/{branch}
 ```
 
 ## Application Routes
@@ -120,7 +155,7 @@ DELETE /api/v1/positions/{position}
 | `/leave` | All roles | Leave |
 | `/approval` | Admin, HR, Manager | Approval |
 | `/report` | Admin, HR, Manager | Reports |
-| `/master-data` | Admin, HR, Manager | Department & Position master data |
+| `/master-data` | Admin, HR, Manager | Department, Position & Branch master data |
 | `/employee` | Admin, HR | Employee management |
 | `/shift` | Admin, HR | Shift management |
 | `/shift-schedule` | Admin, HR | Shift assignment |
@@ -130,14 +165,16 @@ DELETE /api/v1/positions/{position}
 Coverage Organization Master Data:
 
 - Department regression flow.
-- Department/Position tab switching.
+- Department, Position, dan Branch tab switching.
 - Position list dan Department relationship.
-- Position create dan payload normalization.
+- Branch list, location data, create, normalization, read-only, validation, dan guarded delete feedback.
 - Manager read-only access.
 - Laravel validation feedback.
-- Employee response normalization untuk Department dan Position.
-- Numeric `department_id` dan `position_id` payload.
-- Dependent Department → Position selection pada Employee form.
+- Employee response normalization untuk Department, Position, dan Branch.
+- Numeric `department_id`, `position_id`, dan `branch_id` payload.
+- Dependent Department → Position selection.
+- Active Branch dropdown dan Branch-required Employee submit.
+- Employee Branch list display dan `branch_id` filter API integration.
 
 Jalankan:
 
@@ -172,7 +209,7 @@ npm run dev -- --host 0.0.0.0
 
 - Backend dan frontend tersedia.
 - Request/response contract sinkron.
-- Dropdown tidak hardcoded.
+- Dropdown master tidak hardcoded.
 - Role access sama dengan backend.
 - Loading, empty, error, success, dan validation feedback tersedia.
 - Tests dan CI backend/frontend hijau.
@@ -181,5 +218,5 @@ npm run dev -- --host 0.0.0.0
 ## Next Module
 
 ```text
-Branch / Work Location Master Data
+Employee Direct Manager Relation
 ```
