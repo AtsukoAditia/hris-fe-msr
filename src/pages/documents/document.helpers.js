@@ -146,7 +146,7 @@ export const extractApiErrorMessage = async (error, fallbackMessage) => {
 
   if (data instanceof Blob) {
     try {
-      const text = await data.text()
+      const text = await readBlobText(data)
       if (!text) return fallbackMessage
       const parsed = JSON.parse(text)
       return parsed?.message || fallbackMessage
@@ -205,4 +205,22 @@ const safeDecodeFilename = (value) => {
   } catch {
     return String(value)
   }
+}
+
+const readBlobText = async (blob) => {
+  if (typeof blob.text === 'function') {
+    return blob.text()
+  }
+
+  if (typeof blob.arrayBuffer === 'function') {
+    const buffer = await blob.arrayBuffer()
+    return new TextDecoder().decode(buffer)
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.onerror = () => reject(reader.error || new Error('Gagal membaca response Blob.'))
+    reader.readAsText(blob)
+  })
 }
