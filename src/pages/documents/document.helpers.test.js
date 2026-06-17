@@ -76,14 +76,7 @@ describe('document helpers', () => {
   })
 
   it('downloads blob responses using the server filename', () => {
-    const click = vi.fn()
-    const appendChild = vi.spyOn(document.body, 'appendChild')
-    const createElement = vi.spyOn(document, 'createElement').mockReturnValue({
-      click,
-      remove: vi.fn(),
-      href: '',
-      download: '',
-    })
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
     const createObjectURL = vi.fn(() => 'blob:test')
     const revokeObjectURL = vi.fn()
     URL.createObjectURL = createObjectURL
@@ -98,8 +91,6 @@ describe('document helpers', () => {
     expect(click).toHaveBeenCalled()
     expect(createObjectURL).toHaveBeenCalled()
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:test')
-
-    appendChild.mockRestore()
-    createElement.mockRestore()
+    click.mockRestore()
   })
 })
