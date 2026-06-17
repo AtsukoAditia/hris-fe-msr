@@ -1,7 +1,7 @@
-import { Download, Edit2, FileCheck2, FilePenLine, FileText, Trash2 } from 'lucide-react'
+import { Download, Edit2, Eye, FileCheck2, FilePenLine, FileText, Trash2 } from 'lucide-react'
 import { formatFileSize, statusMeta } from '../document.helpers'
 
-const DocumentList = ({ documents, loading, canManage, downloadingId, onDownload, onEdit, onReplace, onDelete }) => {
+const DocumentList = ({ documents, loading, canManage, downloadingId, onDetail, onDownload, onEdit, onReplace, onDelete }) => {
   if (loading) return <div className="rounded-xl border bg-white p-10 text-center text-gray-500 shadow-sm">Memuat dokumen...</div>
   if (documents.length === 0) return (
     <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center">
@@ -46,6 +46,7 @@ const DocumentList = ({ documents, loading, canManage, downloadingId, onDownload
             )}
 
             <div className="mt-5 flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-4">
+              <button type="button" onClick={() => onDetail(document)} className="inline-flex items-center rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"><Eye className="mr-2 h-4 w-4" />Detail</button>
               <button type="button" onClick={() => onDownload(document)} disabled={downloadingId === document.id} className="inline-flex items-center rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
                 <Download className="mr-2 h-4 w-4" />{downloadingId === document.id ? 'Mengunduh...' : 'Unduh'}
               </button>
