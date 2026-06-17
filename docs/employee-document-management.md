@@ -63,11 +63,11 @@ without_expiry
 
 Halaman menampilkan summary untuk total, berlaku, segera kedaluwarsa, kedaluwarsa, dan tanpa tanggal kedaluwarsa. Label summary menampilkan `warning_days` yang dikembalikan backend.
 
-## Download Contract
+## Download and Multipart Contract
 
 Backend mengekspos `Content-Disposition` melalui CORS agar frontend dapat mempertahankan filename dari server. Jika download gagal dan backend mengembalikan JSON sebagai Blob, frontend membaca Blob tersebut dan menampilkan `message` backend.
 
-Multipart upload dan replace membiarkan Axios/browser membentuk `Content-Type` beserta boundary secara otomatis.
+Upload dan replace menggunakan `multipart/form-data`. Axios/browser menyusun boundary request, sementara backend menerima field file dan metadata sesuai kontrak FormRequest.
 
 ## Components
 
