@@ -2,7 +2,7 @@ import { X } from 'lucide-react'
 
 const DocumentFormModal = ({ document, categories, formData, errors, submitting, onChange, onClose, onSubmit }) => {
   const title = document ? 'Edit Metadata Dokumen' : 'Unggah Dokumen Karyawan'
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localDateValue(new Date())
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -71,5 +71,12 @@ const Field = ({ label, hint, error, children }) => (
 )
 
 const fieldError = (errors, field) => errors?.[field]?.[0] || errors?.[field]
+
+const localDateValue = (date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 export default DocumentFormModal
