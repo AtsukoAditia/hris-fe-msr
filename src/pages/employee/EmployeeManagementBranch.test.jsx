@@ -5,6 +5,7 @@ import EmployeeManagementPage from './EmployeeManagementPage'
 
 const mocks = vi.hoisted(() => ({
   getEmployees: vi.fn(),
+  getManagerOptions: vi.fn(),
   getDepartments: vi.fn(),
   getPositions: vi.fn(),
   getBranches: vi.fn(),
@@ -17,6 +18,7 @@ vi.mock('../../store/authStore', () => ({
 vi.mock('../../services/employeeService', () => ({
   default: {
     getAll: mocks.getEmployees,
+    getManagerOptions: mocks.getManagerOptions,
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
@@ -39,6 +41,7 @@ vi.mock('../../services/branchService', () => ({
 const departments = [{ id: 1, code: 'IT', name: 'Information Technology', is_active: true }]
 const positions = [{ id: 10, department_id: 1, code: 'SOFTWARE-ENGINEER', name: 'Software Engineer', is_active: true }]
 const branches = [{ id: 1, code: 'HQ-JKT', name: 'Head Office Jakarta', is_active: true }]
+const managers = [{ id: 20, name: 'Engineering Lead', employee_number: 'IT-0020', position_name: 'Engineering Manager' }]
 
 const employeePage = {
   data: [
@@ -72,6 +75,7 @@ describe('Employee Branch integration', () => {
     mocks.getDepartments.mockResolvedValue({ data: { data: departments } })
     mocks.getPositions.mockResolvedValue({ data: { data: positions } })
     mocks.getBranches.mockResolvedValue({ data: { data: branches } })
+    mocks.getManagerOptions.mockResolvedValue({ data: { data: managers } })
     mocks.getEmployees.mockResolvedValue({ data: { data: employeePage } })
   })
 
