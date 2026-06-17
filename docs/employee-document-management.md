@@ -1,6 +1,6 @@
 # Employee Document Management Frontend
 
-Status: **Implemented**
+Status: **Implemented and synchronized**
 
 ## Routes
 
@@ -18,7 +18,9 @@ Employee dapat:
 
 - Melihat summary dokumen.
 - Mencari dan memfilter dokumen.
-- Melihat status masa berlaku.
+- Mengubah window `expires_within_days` antara 7–365 hari.
+- Membuka detail dokumen melalui endpoint detail backend.
+- Melihat status masa berlaku, checksum, MIME type, uploader, dan version.
 - Mengunduh file melalui endpoint private terautentikasi.
 
 Employee tidak mendapatkan tombol upload, edit, replace, atau delete.
@@ -28,10 +30,11 @@ Employee tidak mendapatkan tombol upload, edit, replace, atau delete.
 Admin dan HR dapat:
 
 - Membuka dokumen Employee dari tabel Management Pegawai.
+- Membuka detail dokumen melalui endpoint Employee-specific.
 - Mengunggah PDF, JPG, PNG, atau WEBP maksimal 10 MB.
 - Mengubah metadata dokumen.
 - Mengganti file tanpa mengubah ID dokumen.
-- Melihat versi file.
+- Melihat version increment.
 - Menghapus dokumen dengan konfirmasi.
 - Mengunduh file melalui endpoint private.
 
@@ -47,7 +50,7 @@ expiry_date
 is_confidential
 ```
 
-Kategori berasal dari endpoint backend dan tidak di-hardcode sebagai sumber data utama.
+Kategori berasal dari endpoint backend dan tidak di-hardcode sebagai sumber data utama. Frontend mengikuti batas backend untuk title, description, tanggal terbit, tanggal kedaluwarsa, tipe file, dan ukuran file.
 
 ## Expiry States
 
@@ -58,7 +61,13 @@ expired
 without_expiry
 ```
 
-Halaman menampilkan summary untuk total, berlaku, segera kedaluwarsa, kedaluwarsa, dan tanpa tanggal kedaluwarsa.
+Halaman menampilkan summary untuk total, berlaku, segera kedaluwarsa, kedaluwarsa, dan tanpa tanggal kedaluwarsa. Label summary menampilkan `warning_days` yang dikembalikan backend.
+
+## Download Contract
+
+Backend mengekspos `Content-Disposition` melalui CORS agar frontend dapat mempertahankan filename dari server. Jika download gagal dan backend mengembalikan JSON sebagai Blob, frontend membaca Blob tersebut dan menampilkan `message` backend.
+
+Multipart upload dan replace membiarkan Axios/browser membentuk `Content-Type` beserta boundary secara otomatis.
 
 ## Components
 
@@ -67,6 +76,7 @@ src/pages/documents/DocumentsPage.jsx
 src/pages/documents/components/DocumentSummary.jsx
 src/pages/documents/components/DocumentFilters.jsx
 src/pages/documents/components/DocumentList.jsx
+src/pages/documents/components/DocumentDetailModal.jsx
 src/pages/documents/components/DocumentFormModal.jsx
 src/pages/documents/components/ReplaceDocumentModal.jsx
 src/pages/documents/document.helpers.js
@@ -84,13 +94,16 @@ tests/e2e/fixtures/documentApi.js
 
 Coverage mencakup:
 
-- Normalisasi paginator, summary, dan kategori.
+- Normalisasi paginator, detail, summary, dan kategori.
 - Multipart FormData upload dan replace.
 - Metadata mapping dan label normalization.
+- File type dan maximum-size validation yang sama dengan backend.
 - Blob download menggunakan filename dari `Content-Disposition`.
-- Self-service document list dan download.
+- Parsing pesan error backend dari failed Blob download.
+- Self-service dan Admin/HR detail endpoints.
+- Configurable expiry warning window.
 - Admin/HR upload, metadata edit, dan file replacement.
-- Accessible dialog selectors.
+- Accessible detail, upload, dan replace dialogs.
 - Document-level overflow protection.
 - Pixel 5 dengan Chromium.
 - iPhone 13 dengan WebKit.
