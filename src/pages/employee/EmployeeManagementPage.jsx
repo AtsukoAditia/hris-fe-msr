@@ -15,6 +15,7 @@ import {
   initialFormData,
   mapFormDataToPayload,
   normalizeEmployee,
+  normalizeManagerOptions,
   normalizePagination,
   normalizeRows,
 } from './employee.helpers'
@@ -28,8 +29,9 @@ const EmployeeManagementPage = () => {
   const [departments, setDepartments] = useState([])
   const [positions, setPositions] = useState([])
   const [branches, setBranches] = useState([])
+  const [managers, setManagers] = useState([])
   const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, per_page: 10, total: 0 })
-  const [filters, setFilters] = useState({ search: '', department_id: '', position_id: '', branch_id: '', status: '' })
+  const [filters, setFilters] = useState({ search: '', department_id: '', position_id: '', branch_id: '', manager_id: '', status: '' })
   const [formData, setFormData] = useState(initialFormData)
   const [formErrors, setFormErrors] = useState({})
   const [selected, setSelected] = useState(null)
@@ -47,18 +49,21 @@ const EmployeeManagementPage = () => {
   const loadMasters = useCallback(async () => {
     setLoadingMasters(true)
     try {
-      const [departmentResponse, positionResponse, branchResponse] = await Promise.all([
+      const [departmentResponse, positionResponse, branchResponse, managerResponse] = await Promise.all([
         departmentService.getAll({ active_only: true }),
         positionService.getAll({ active_only: true }),
         branchService.getAll({ active_only: true }),
+        employeeService.getManagerOptions(),
       ])
       setDepartments(normalizeDepartmentRows(departmentResponse))
       setPositions(normalizePositionRows(positionResponse))
       setBranches(normalizeBranchRows(branchResponse))
+      setManagers(normalizeManagerOptions(managerResponse))
     } catch (error) {
       setDepartments([])
       setPositions([])
       setBranches([])
+      setManagers([])
       notify(error.response?.data?.message || 'Gagal memuat master organisasi.', 'error')
     } finally {
       setLoadingMasters(false)
@@ -73,6 +78,7 @@ const EmployeeManagementPage = () => {
       if (filters.department_id) params.department_id = filters.department_id
       if (filters.position_id) params.position_id = filters.position_id
       if (filters.branch_id) params.branch_id = filters.branch_id
+      if (filters.manager_id) params.manager_id = filters.manager_id
       if (filters.status) params.status = filters.status
 
       const response = await employeeService.getAll(params)
@@ -104,6 +110,22 @@ const EmployeeManagementPage = () => {
       : positions,
     [filters.department_id, positions],
   )
+
+  const formManagers = useMemo(() => {
+    const options = managers.filter((item) => String(item.id) !== String(selected?.id || ''))
+    if (!selected?.manager_id || options.some((item) => String(item.id) === String(selected.manager_id))) return options
+
+    return [
+      {
+        id: selected.manager_id,
+        name: selected.manager_name,
+        employee_number: selected.manager_employee_number,
+        position_name: selected.manager_position_name,
+        label: `${selected.manager_name || 'Atasan saat ini'} — ${selected.manager_position_name || 'Tanpa Jabatan'} (${selected.manager_employee_number || '-'})`,
+      },
+      ...options,
+    ]
+  }, [managers, selected])
 
   const changeFilter = (name, value) => {
     setFilters((current) => {
@@ -148,6 +170,7 @@ const EmployeeManagementPage = () => {
       department_id: item.department_id ? String(item.department_id) : '',
       position_id: item.position_id ? String(item.position_id) : '',
       branch_id: item.branch_id ? String(item.branch_id) : '',
+      manager_id: item.manager_id ? String(item.manager_id) : '',
       join_date: item.join_date,
       employment_type: item.employment_type,
       status: item.status,
@@ -166,7 +189,10 @@ const EmployeeManagementPage = () => {
       else await employeeService.create(payload)
       notify(selected ? 'Data karyawan berhasil diperbarui.' : 'Data karyawan berhasil ditambahkan.')
       setModal(null)
-      await loadEmployees(selected ? pagination.current_page : 1)
+      await Promise.all([
+        loadEmployees(selected ? pagination.current_page : 1),
+        loadMasters(),
+      ])
     } catch (error) {
       setFormErrors(error.response?.data?.errors || {})
       notify(error.response?.data?.message || 'Gagal menyimpan data karyawan.', 'error')
@@ -181,7 +207,10 @@ const EmployeeManagementPage = () => {
     try {
       await employeeService.delete(item.id)
       notify('Data karyawan berhasil dihapus.')
-      await loadEmployees(pagination.current_page)
+      await Promise.all([
+        loadEmployees(pagination.current_page),
+        loadMasters(),
+      ])
     } catch (error) {
       notify(error.response?.data?.message || 'Gagal menghapus data karyawan.', 'error')
     }
@@ -215,11 +244,12 @@ const EmployeeManagementPage = () => {
       </div>
 
       <div className="rounded-xl border bg-white p-6 shadow-sm">
-        <div className="grid gap-3 xl:grid-cols-6">
+        <div className="grid gap-3 xl:grid-cols-7">
           <div className="relative xl:col-span-2"><Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" /><input value={filters.search} onChange={(event) => changeFilter('search', event.target.value)} placeholder="Cari karyawan..." className="form-input pl-10" /></div>
           <select value={filters.department_id} onChange={(event) => changeFilter('department_id', event.target.value)} className="form-input"><option value="">Semua Departemen</option>{departments.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</select>
           <select value={filters.position_id} onChange={(event) => changeFilter('position_id', event.target.value)} className="form-input"><option value="">Semua Jabatan</option>{filterPositions.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</select>
           <select value={filters.branch_id} onChange={(event) => changeFilter('branch_id', event.target.value)} className="form-input"><option value="">Semua Cabang</option>{branches.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</select>
+          <select value={filters.manager_id} onChange={(event) => changeFilter('manager_id', event.target.value)} className="form-input"><option value="">Semua Atasan</option><option value="none">Tanpa Atasan Langsung</option>{managers.map((item) => <option key={item.id} value={item.id}>{item.name || item.employee_number}</option>)}</select>
           <select value={filters.status} onChange={(event) => changeFilter('status', event.target.value)} className="form-input"><option value="">Semua Status</option><option value="active">Aktif</option><option value="inactive">Nonaktif</option></select>
         </div>
       </div>
@@ -233,7 +263,7 @@ const EmployeeManagementPage = () => {
         <div className="flex gap-2"><button type="button" disabled={pagination.current_page <= 1 || loading} onClick={() => loadEmployees(pagination.current_page - 1)} className="rounded-lg border px-3 py-2 disabled:opacity-50">Sebelumnya</button><button type="button" disabled={pagination.current_page >= pagination.last_page || loading} onClick={() => loadEmployees(pagination.current_page + 1)} className="rounded-lg border px-3 py-2 disabled:opacity-50">Berikutnya</button></div>
       </div>
 
-      {modal === 'form' && <EmployeeFormModal isEditing={Boolean(selected)} formData={formData} departments={departments} positions={formPositions} branches={branches} isLoadingDepartments={loadingMasters} isLoadingPositions={loadingMasters} isLoadingBranches={loadingMasters} errors={formErrors} isSubmitting={submitting} onChange={changeForm} onClose={() => !submitting && setModal(null)} onSubmit={submit} />}
+      {modal === 'form' && <EmployeeFormModal isEditing={Boolean(selected)} formData={formData} departments={departments} positions={formPositions} branches={branches} managers={formManagers} isLoadingDepartments={loadingMasters} isLoadingPositions={loadingMasters} isLoadingBranches={loadingMasters} isLoadingManagers={loadingMasters} errors={formErrors} isSubmitting={submitting} onChange={changeForm} onClose={() => !submitting && setModal(null)} onSubmit={submit} />}
       {modal === 'detail' && <EmployeeDetailModal employee={selected} onClose={() => setModal(null)} onFaceUpdated={updateFace} />}
       {toast && <div className={`fixed right-4 top-4 z-50 rounded-lg px-6 py-3 text-white shadow-lg ${toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'}`}>{toast.message}</div>}
     </div>

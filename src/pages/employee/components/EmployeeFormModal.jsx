@@ -6,9 +6,11 @@ const EmployeeFormModal = ({
   departments,
   positions,
   branches,
+  managers = [],
   isLoadingDepartments,
   isLoadingPositions,
   isLoadingBranches,
+  isLoadingManagers = false,
   errors = {},
   isSubmitting,
   onChange,
@@ -58,6 +60,13 @@ const EmployeeFormModal = ({
               {branches.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
             </select>
             {!isLoadingBranches && branches.length === 0 && <p className="mt-1 text-xs text-amber-600">Belum ada cabang aktif yang dapat dipilih.</p>}
+          </Field>
+          <Field label="Atasan Langsung" error={errors.manager_id?.[0]}>
+            <select name="manager_id" value={formData.manager_id} onChange={onChange} disabled={isLoadingManagers} className="form-input disabled:bg-gray-100">
+              <option value="">{isLoadingManagers ? 'Memuat pilihan atasan...' : 'Tanpa Atasan Langsung'}</option>
+              {managers.map((item) => <option key={item.id} value={item.id}>{item.label || `${item.name || 'Karyawan'} — ${item.position_name || 'Tanpa Jabatan'} (${item.employee_number || '-'})`}</option>)}
+            </select>
+            {!isLoadingManagers && <p className="mt-1 text-xs text-gray-500">Opsional untuk pimpinan tertinggi atau pegawai tanpa atasan langsung.</p>}
           </Field>
           <Field label="Tanggal Bergabung" error={errors.join_date?.[0]}><input type="date" name="join_date" value={formData.join_date} onChange={onChange} required className="form-input" /></Field>
           <Field label="Tipe Kerja" error={errors.employment_type?.[0]}><select name="employment_type" value={formData.employment_type} onChange={onChange} className="form-input"><option value="permanent">Permanent</option><option value="contract">Contract</option><option value="internship">Internship</option></select></Field>
