@@ -13,6 +13,10 @@ const mocks = vi.hoisted(() => ({
   createPosition: vi.fn(),
   updatePosition: vi.fn(),
   deletePosition: vi.fn(),
+  getBranches: vi.fn(),
+  createBranch: vi.fn(),
+  updateBranch: vi.fn(),
+  deleteBranch: vi.fn(),
 }))
 
 vi.mock('../../store/authStore', () => ({
@@ -37,33 +41,26 @@ vi.mock('../../services/positionService', () => ({
   },
 }))
 
+vi.mock('../../services/branchService', () => ({
+  default: {
+    getAll: mocks.getBranches,
+    create: mocks.createBranch,
+    update: mocks.updateBranch,
+    delete: mocks.deleteBranch,
+  },
+}))
+
 const departments = [
-  {
-    id: 1,
-    code: 'IT',
-    name: 'Information Technology',
-    description: 'Technology systems',
-    is_active: true,
-  },
-  {
-    id: 2,
-    code: 'OPS',
-    name: 'Operations',
-    description: null,
-    is_active: false,
-  },
+  { id: 1, code: 'IT', name: 'Information Technology', description: 'Technology systems', is_active: true },
+  { id: 2, code: 'OPS', name: 'Operations', description: null, is_active: false },
 ]
 
 const positions = [
-  {
-    id: 10,
-    department_id: 1,
-    code: 'SOFTWARE-ENGINEER',
-    name: 'Software Engineer',
-    description: 'Build company systems',
-    is_active: true,
-    department: departments[0],
-  },
+  { id: 10, department_id: 1, code: 'SOFTWARE-ENGINEER', name: 'Software Engineer', description: 'Build company systems', is_active: true, department: departments[0] },
+]
+
+const branches = [
+  { id: 1, code: 'HQ-JKT', name: 'Head Office Jakarta', address: 'Jakarta', latitude: '-6.2000000', longitude: '106.8166667', radius_meters: 150, timezone: 'Asia/Jakarta', is_active: true, employees_count: 4 },
 ]
 
 describe('MasterDataPage', () => {
@@ -72,6 +69,7 @@ describe('MasterDataPage', () => {
     mocks.user = { role: 'admin' }
     mocks.getDepartments.mockResolvedValue({ data: { data: departments } })
     mocks.getPositions.mockResolvedValue({ data: { data: positions } })
+    mocks.getBranches.mockResolvedValue({ data: { data: branches } })
     mocks.createDepartment.mockResolvedValue({ data: { data: departments[0] } })
   })
 
@@ -83,15 +81,18 @@ describe('MasterDataPage', () => {
     expect(mocks.getDepartments).toHaveBeenCalledWith({ status: 'all' })
   })
 
-  it('switches to the Position tab', async () => {
+  it('switches between Position and Branch tabs', async () => {
     const user = userEvent.setup()
     render(<MasterDataPage />)
 
     await screen.findByText('Information Technology')
     await user.click(screen.getByRole('button', { name: 'Jabatan' }))
-
     expect(await screen.findByText('Software Engineer')).toBeInTheDocument()
     expect(mocks.getPositions).toHaveBeenCalledWith({ status: 'all' })
+
+    await user.click(screen.getByRole('button', { name: 'Cabang / Lokasi' }))
+    expect(await screen.findByText('Head Office Jakarta')).toBeInTheDocument()
+    expect(mocks.getBranches).toHaveBeenCalledWith({ status: 'all' })
   })
 
   it('allows Admin to create a Department with normalized payload', async () => {
