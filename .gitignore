@@ -112,6 +112,10 @@ dist
 dev-dist/
 package-lock.json
 
+# Playwright reports and artifacts
+playwright-report/
+test-results/
+
 # vitepress build output
 **/.vitepress/dist
 
