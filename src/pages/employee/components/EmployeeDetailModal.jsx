@@ -86,6 +86,7 @@ const EmployeeDetailModal = ({ employee, onClose, onFaceUpdated }) => {
               <InfoItem icon={<Briefcase />} label="Departemen" value={formatMasterValue(employee.department_name || employee.department, employee.department_code)} />
               <InfoItem icon={<Briefcase />} label="Jabatan" value={formatMasterValue(employee.position_name || employee.position, employee.position_code)} />
               <InfoItem icon={<MapPin />} label="Cabang / Lokasi Kerja" value={formatMasterValue(employee.branch_name, employee.branch_code)} />
+              <InfoItem icon={<Users />} label="Atasan Langsung" value={formatManagerValue(employee)} />
               <InfoItem icon={<MapPin />} label="Alamat Cabang" value={employee.branch?.address} />
               <InfoItem icon={<Shield />} label="Area Absensi" value={formatAttendanceArea(employee.branch)} />
               <InfoItem icon={<BadgeCheck />} label="Role" value={employee.role} capitalize />
@@ -112,6 +113,11 @@ const InfoItem = ({ icon, label, value, capitalize = false }) => (
 )
 
 const formatMasterValue = (name, code) => code ? `${name || '-'} (${code})` : name || '-'
+const formatManagerValue = (employee) => {
+  if (!employee.manager_name) return 'Tanpa Atasan Langsung'
+  const details = [employee.manager_position_name, employee.manager_employee_number].filter(Boolean).join(' • ')
+  return details ? `${employee.manager_name} — ${details}` : employee.manager_name
+}
 const formatAttendanceArea = (branch) => branch ? `${branch.radius_meters || '-'} meter • ${branch.timezone || '-'}` : '-'
 const formatDate = (value) => value ? new Date(value).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'
 const formatGender = (value) => ({ male: 'Laki-laki', female: 'Perempuan' })[value] || value || '-'
