@@ -5,8 +5,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import DocumentsPage from './DocumentsPage'
 
 const mocks = vi.hoisted(() => ({
-  getCategories: vi.fn(), getMine: vi.fn(), getMineSummary: vi.fn(), downloadMine: vi.fn(),
-  getEmployeeDocuments: vi.fn(), getSummary: vi.fn(), uploadEmployeeDocument: vi.fn(),
+  getCategories: vi.fn(), getMine: vi.fn(), getMineSummary: vi.fn(), getMineDetail: vi.fn(), downloadMine: vi.fn(),
+  getEmployeeDocuments: vi.fn(), getEmployeeDocumentDetail: vi.fn(), getSummary: vi.fn(), uploadEmployeeDocument: vi.fn(),
   updateEmployeeDocument: vi.fn(), replaceEmployeeDocument: vi.fn(), deleteEmployeeDocument: vi.fn(),
   downloadEmployeeDocument: vi.fn(), getByEmployee: vi.fn(),
 }))
@@ -15,8 +15,10 @@ vi.mock('../../services/documentService', () => ({ default: {
   getCategories: mocks.getCategories,
   getMine: mocks.getMine,
   getMineSummary: mocks.getMineSummary,
+  getMineDetail: mocks.getMineDetail,
   downloadMine: mocks.downloadMine,
   getEmployeeDocuments: mocks.getEmployeeDocuments,
+  getEmployeeDocumentDetail: mocks.getEmployeeDocumentDetail,
   getSummary: mocks.getSummary,
   uploadEmployeeDocument: mocks.uploadEmployeeDocument,
   updateEmployeeDocument: mocks.updateEmployeeDocument,
@@ -34,19 +36,30 @@ const documentItem = {
   title: 'Employment Contract',
   description: 'Permanent contract',
   labels: ['contract'],
-  file: { original_name: 'contract.pdf', size_bytes: 2048, version: 1 },
+  file: {
+    original_name: 'contract.pdf',
+    mime_type: 'application/pdf',
+    extension: 'pdf',
+    size_bytes: 2048,
+    checksum_sha256: 'abc123',
+    version: 1,
+  },
   issue_date: '2026-01-01',
   expiry_date: '2026-07-01',
   expiry_status: 'expiring',
   days_until_expiry: 14,
   is_confidential: true,
+  uploaded_by: { id: 1, name: 'Document Admin', email: 'admin@hris.test' },
+  created_at: '2026-06-01T08:00:00.000000Z',
+  updated_at: '2026-06-01T08:00:00.000000Z',
 }
 
 const listResponse = () => ({ data: { data: {
   data: [documentItem], current_page: 1, last_page: 1, per_page: 15, total: 1,
 } } })
-const summaryResponse = () => ({ data: { data: {
-  total: 1, valid: 0, expiring: 1, expired: 0, without_expiry: 0, warning_days: 30,
+const detailResponse = () => ({ data: { data: documentItem } })
+const summaryResponse = (warningDays = 30) => ({ data: { data: {
+  total: 1, valid: 0, expiring: 1, expired: 0, without_expiry: 0, warning_days: warningDays,
 } } })
 const categoriesResponse = { data: { data: [
   { value: 'employment', label: 'Kepegawaian' },
@@ -69,7 +82,9 @@ describe('Employee Documents page', () => {
     mocks.getCategories.mockResolvedValue(categoriesResponse)
     mocks.getMine.mockResolvedValue(listResponse())
     mocks.getMineSummary.mockResolvedValue(summaryResponse())
+    mocks.getMineDetail.mockResolvedValue(detailResponse())
     mocks.getEmployeeDocuments.mockResolvedValue(listResponse())
+    mocks.getEmployeeDocumentDetail.mockResolvedValue(detailResponse())
     mocks.getSummary.mockResolvedValue(summaryResponse())
     mocks.getByEmployee.mockResolvedValue({ data: { data: { employee: { id: 42, name: 'Managed Employee', employee_number: 'EMP-0042' } } } })
     mocks.uploadEmployeeDocument.mockResolvedValue({ data: { data: documentItem } })
@@ -89,10 +104,28 @@ describe('Employee Documents page', () => {
 
     expect(await screen.findByRole('heading', { name: 'Dokumen Saya' })).toBeInTheDocument()
     expect(screen.getByText('Employment Contract')).toBeInTheDocument()
-    expect(screen.getAllByText('Segera Kedaluwarsa')).toHaveLength(3)
+    expect(screen.getByText('Segera Kedaluwarsa (30 hari)')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Unggah Dokumen' })).not.toBeInTheDocument()
     expect(screen.queryByTitle('Edit metadata')).not.toBeInTheDocument()
     expect(mocks.getMine).toHaveBeenCalled()
+  })
+
+  it('uses backend detail and configurable expiry-window endpoints', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('Employment Contract')
+
+    await user.click(screen.getByRole('button', { name: 'Detail' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Detail Dokumen' })
+    expect(mocks.getMineDetail).toHaveBeenCalledWith(7)
+    expect(within(dialog).getByText('application/pdf')).toBeInTheDocument()
+    expect(within(dialog).getByText('abc123')).toBeInTheDocument()
+
+    await user.click(within(dialog).getByRole('button', { name: 'Tutup' }))
+    await user.selectOptions(screen.getByLabelText('Batas segera kedaluwarsa'), '60')
+
+    await waitFor(() => expect(mocks.getMine).toHaveBeenLastCalledWith(expect.objectContaining({ expires_within_days: 60 })))
+    expect(mocks.getMineSummary).toHaveBeenLastCalledWith({ expires_within_days: 60 })
   })
 
   it('downloads a self-service document through the private endpoint', async () => {
@@ -124,10 +157,15 @@ describe('Employee Documents page', () => {
     expect(submitted.get('file').name).toBe('new-contract.pdf')
   })
 
-  it('edits metadata and replaces a file from the Admin route', async () => {
+  it('uses Admin detail, metadata, and replace endpoints', async () => {
     const user = userEvent.setup()
     renderPage('/employee/42/documents')
     await screen.findByText('Employment Contract')
+
+    await user.click(screen.getByRole('button', { name: 'Detail' }))
+    await screen.findByRole('dialog', { name: 'Detail Dokumen' })
+    expect(mocks.getEmployeeDocumentDetail).toHaveBeenCalledWith('42', 7)
+    await user.click(screen.getByRole('button', { name: 'Tutup' }))
 
     await user.click(screen.getByTitle('Edit metadata'))
     const editDialog = screen.getByRole('dialog', { name: 'Edit Metadata Dokumen' })
