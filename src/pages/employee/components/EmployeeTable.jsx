@@ -1,4 +1,5 @@
-import { Edit2, Eye, Trash2, User } from 'lucide-react'
+import { ContactRound, Edit2, Eye, Trash2, User } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 const EmployeeTable = ({
   employees,
@@ -61,6 +62,7 @@ const EmployeeTable = ({
               <td className="px-6 py-4 text-right">
                 <div className="flex items-center justify-end space-x-2">
                   <button type="button" onClick={() => onDetail(employee)} className="p-2 text-gray-400 hover:text-blue-600" title="Detail"><Eye className="h-4 w-4" /></button>
+                  {canManageEmployee && <Link to={`/employee/${employee.id}/profile`} className="p-2 text-gray-400 hover:text-indigo-600" title="Profil"><ContactRound className="h-4 w-4" /></Link>}
                   {canManageEmployee && <button type="button" onClick={() => onEdit(employee)} className="p-2 text-gray-400 hover:text-yellow-600" title="Edit"><Edit2 className="h-4 w-4" /></button>}
                   {canDeleteEmployee && <button type="button" onClick={() => onDelete(employee)} className="p-2 text-gray-400 hover:text-red-600" title="Hapus"><Trash2 className="h-4 w-4" /></button>}
                 </div>
