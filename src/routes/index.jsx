@@ -13,6 +13,8 @@ import LeavePage from '../pages/leave/LeavePage'
 import MasterDataPage from '../pages/master-data/MasterDataPage'
 import ProfilePage from '../pages/profile/ProfilePage'
 import DocumentsPage from '../pages/documents/DocumentsPage'
+import AccountSecurityPage from '../pages/security/AccountSecurityPage'
+import ProfileChangeRequestsPage from '../pages/profile-change/ProfileChangeRequestsPage'
 
 const AppRoutes = () => (
   <Routes>
@@ -24,6 +26,8 @@ const AppRoutes = () => (
         <Route path="/attendance" element={<AttendancePage />} />
         <Route path="/leave" element={<LeavePage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/profile/changes" element={<ProfileChangeRequestsPage />} />
+        <Route path="/security" element={<AccountSecurityPage />} />
         <Route path="/documents" element={<DocumentsPage />} />
       </Route>
     </Route>
@@ -39,6 +43,7 @@ const AppRoutes = () => (
         <Route path="/employee" element={<EmployeeManagementPage />} />
         <Route path="/employee/:employeeId/profile" element={<ProfilePage />} />
         <Route path="/employee/:employeeId/documents" element={<DocumentsPage />} />
+        <Route path="/profile-change-reviews" element={<ProfileChangeRequestsPage reviewMode />} />
         <Route path="/shift" element={<ShiftPage />} />
         <Route path="/shift-schedule" element={<ShiftSchedulePage />} />
       </Route>

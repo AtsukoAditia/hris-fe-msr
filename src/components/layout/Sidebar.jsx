@@ -4,10 +4,13 @@ import { useAuthStore } from '../../store/authStore'
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: '📊' },
   { path: '/profile', label: 'Profil Saya', icon: '👤' },
+  { path: '/profile/changes', label: 'Perubahan Profil', icon: '📝' },
+  { path: '/security', label: 'Keamanan Akun', icon: '🔐' },
   { path: '/documents', label: 'Dokumen Saya', icon: '📄' },
   { path: '/attendance', label: 'Absensi', icon: '📋' },
   { path: '/leave', label: 'Cuti', icon: '🌴' },
   { path: '/approval', label: 'Persetujuan', icon: '✅', allowedRoles: ['admin', 'hr', 'manager'] },
+  { path: '/profile-change-reviews', label: 'Review Profil', icon: '🧾', allowedRoles: ['admin', 'hr'] },
   { path: '/report', label: 'Laporan', icon: '📈', allowedRoles: ['admin', 'hr', 'manager'] },
   { path: '/master-data', label: 'Departemen', icon: '🏢', allowedRoles: ['admin', 'hr', 'manager'] },
   { path: '/employee', label: 'Karyawan', icon: '👥', allowedRoles: ['admin', 'hr'] },

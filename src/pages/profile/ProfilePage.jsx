@@ -203,53 +203,23 @@ const ProfilePage = () => {
 
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Kelengkapan Profil</p>
-              <p className="mt-1 text-3xl font-bold text-indigo-600">{percentage}%</p>
-            </div>
-            <div className="text-right text-xs text-gray-500">
-              <p>{completion.completed_fields?.length || 0} dari {completion.total_fields || 12}</p>
-              <p>indikator lengkap</p>
-            </div>
+            <div><p className="text-sm font-medium text-gray-600">Kelengkapan Profil</p><p className="mt-1 text-3xl font-bold text-indigo-600">{percentage}%</p></div>
+            <div className="text-right text-xs text-gray-500"><p>{completion.completed_fields?.length || 0} dari {completion.total_fields || 12}</p><p>indikator lengkap</p></div>
           </div>
-          <div className="mt-4 h-2 overflow-hidden rounded-full bg-gray-100">
-            <div className="h-full rounded-full bg-indigo-600 transition-all" style={{ width: `${percentage}%` }} />
-          </div>
-          {completion.missing_fields?.length > 0 && (
-            <p className="mt-3 text-xs text-gray-500">Masih perlu dilengkapi: {completion.missing_fields.slice(0, 3).join(', ')}{completion.missing_fields.length > 3 ? ', ...' : ''}</p>
-          )}
+          <div className="mt-4 h-2 overflow-hidden rounded-full bg-gray-100"><div className="h-full rounded-full bg-indigo-600 transition-all" style={{ width: `${percentage}%` }} /></div>
+          {completion.missing_fields?.length > 0 && <p className="mt-3 text-xs text-gray-500">Masih perlu dilengkapi: {completion.missing_fields.slice(0, 3).join(', ')}{completion.missing_fields.length > 3 ? ', ...' : ''}</p>}
         </div>
       </section>
 
-      <ProfileForm formData={profileForm} errors={profileErrors} isSubmitting={savingProfile} onChange={changeProfile} onSubmit={submitProfile} />
+      <ProfileForm formData={profileForm} errors={profileErrors} isSubmitting={savingProfile} onChange={changeProfile} onSubmit={submitProfile} isAdministrativeView={isAdministrativeView} />
       <EmergencyContactList contacts={contacts} onCreate={openCreateContact} onEdit={openEditContact} onDelete={deleteContact} />
 
-      {contactModalOpen && (
-        <ContactFormModal
-          contact={selectedContact}
-          formData={contactForm}
-          errors={contactErrors}
-          isSubmitting={savingContact}
-          onChange={changeContact}
-          onClose={() => !savingContact && setContactModalOpen(false)}
-          onSubmit={submitContact}
-        />
-      )}
-
-      {toast && (
-        <div className={`fixed right-4 top-4 z-[60] max-w-sm rounded-lg px-5 py-3 text-sm text-white shadow-lg ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'}`}>
-          {toast.message}
-        </div>
-      )}
+      {contactModalOpen && <ContactFormModal contact={selectedContact} formData={contactForm} errors={contactErrors} isSubmitting={savingContact} onChange={changeContact} onClose={() => !savingContact && setContactModalOpen(false)} onSubmit={submitContact} />}
+      {toast && <div className={`fixed right-4 top-4 z-[60] max-w-sm rounded-lg px-5 py-3 text-sm text-white shadow-lg ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'}`}>{toast.message}</div>}
     </div>
   )
 }
 
-const Summary = ({ icon: Icon, text }) => (
-  <div className="flex min-w-0 items-center gap-2">
-    <Icon className="h-4 w-4 shrink-0 text-gray-400" />
-    <span className="truncate">{text}</span>
-  </div>
-)
+const Summary = ({ icon: Icon, text }) => <div className="flex min-w-0 items-center gap-2"><Icon className="h-4 w-4 shrink-0 text-gray-400" /><span className="truncate">{text}</span></div>
 
 export default ProfilePage
