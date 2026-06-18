@@ -6,6 +6,16 @@ import { APPROVAL_PROFILE_FIELDS, PROFILE_FIELD_LABELS } from '../profile/profil
 
 const emptyChanges = Object.fromEntries(APPROVAL_PROFILE_FIELDS.map((field) => [field, '']))
 
+const normalizeListResponse = (response) => {
+  const envelope = response?.data || {}
+  const paginator = Array.isArray(envelope.data) ? envelope : envelope.data || {}
+
+  return {
+    items: Array.isArray(paginator.data) ? paginator.data : [],
+    meta: paginator,
+  }
+}
+
 const ProfileChangeRequestsPage = ({ reviewMode = false }) => {
   const user = useAuthStore((state) => state.user)
   const [items, setItems] = useState([])
@@ -33,9 +43,9 @@ const ProfileChangeRequestsPage = ({ reviewMode = false }) => {
       const response = reviewMode
         ? await profileChangeService.listReviews(params)
         : await profileChangeService.listMine(params)
-      const payload = response.data || {}
-      setItems(payload.data || [])
-      setMeta(payload)
+      const normalized = normalizeListResponse(response)
+      setItems(normalized.items)
+      setMeta(normalized.meta)
     } catch (error) {
       notify(error.response?.data?.message || 'Gagal memuat permintaan perubahan.', 'error')
     } finally {
