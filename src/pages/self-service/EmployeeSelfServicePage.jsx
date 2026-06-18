@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { UserCog } from 'lucide-react'
+import { authService } from '../../services/authService'
 import profileChangeRequestService from '../../services/profileChangeRequestService'
+import { useAuthStore } from '../../store/authStore'
+import CredentialCard from './CredentialCard'
 import DataChangeForm from './DataChangeForm'
 import RequestFilterBar from './RequestFilterBar'
 import RequestList from './RequestList'
@@ -8,6 +12,7 @@ import RequestDetailPanel from './RequestDetailPanel'
 import {
   buildChangeRequestPayload,
   buildFilterParams,
+  initialPasswordForm,
   initialRequestFilters,
   initialRequestForm,
   normalizeDetailResponse,
@@ -15,6 +20,11 @@ import {
 } from './selfService.helpers'
 
 const EmployeeSelfServicePage = () => {
+  const navigate = useNavigate()
+  const { clearAuth } = useAuthStore()
+  const [credentialForm, setCredentialForm] = useState(initialPasswordForm)
+  const [credentialErrors, setCredentialErrors] = useState({})
+  const [savingCredential, setSavingCredential] = useState(false)
   const [requestForm, setRequestForm] = useState(initialRequestForm)
   const [requestErrors, setRequestErrors] = useState({})
   const [savingRequest, setSavingRequest] = useState(false)
@@ -52,6 +62,32 @@ const EmployeeSelfServicePage = () => {
   useEffect(() => {
     loadRequests()
   }, [loadRequests])
+
+  const changeCredentialForm = (event) => {
+    const { name, value } = event.target
+    setCredentialForm((current) => ({ ...current, [name]: value }))
+    setCredentialErrors((current) => ({ ...current, [name]: undefined }))
+  }
+
+  const submitCredential = async (event) => {
+    event.preventDefault()
+    setSavingCredential(true)
+    setCredentialErrors({})
+
+    try {
+      await authService.changePassword(credentialForm)
+      notify('Kredensial berhasil diperbarui. Silakan masuk kembali.')
+      window.setTimeout(() => {
+        clearAuth()
+        navigate('/login', { replace: true })
+      }, 700)
+    } catch (error) {
+      setCredentialErrors(error.response?.data?.errors || {})
+      notify(error.response?.data?.message || 'Gagal memperbarui kredensial.', 'error')
+    } finally {
+      setSavingCredential(false)
+    }
+  }
 
   const changeRequestForm = (event) => {
     const { name, value } = event.target
@@ -115,11 +151,12 @@ const EmployeeSelfServicePage = () => {
           <div className="rounded-xl bg-indigo-100 p-3 text-indigo-600"><UserCog className="h-6 w-6" /></div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Employee Self-Service</h1>
-            <p className="mt-1 text-gray-600">Ajukan perubahan profil dan pantau status review.</p>
+            <p className="mt-1 text-gray-600">Kelola akun, ajukan perubahan profil, dan pantau status review.</p>
           </div>
         </div>
       </header>
 
+      <CredentialCard form={credentialForm} errors={credentialErrors} submitting={savingCredential} onChange={changeCredentialForm} onSubmit={submitCredential} />
       <DataChangeForm form={requestForm} errors={requestErrors} submitting={savingRequest} onChange={changeRequestForm} onSubmit={submitRequest} />
       <RequestFilterBar filters={filters} onChange={changeFilter} onReset={resetFilters} />
 
