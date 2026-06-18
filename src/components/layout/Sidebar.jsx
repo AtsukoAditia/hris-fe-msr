@@ -8,6 +8,7 @@ const navItems = [
   { path: '/security', label: 'Keamanan Akun', icon: '🔐' },
   { path: '/documents', label: 'Dokumen Saya', icon: '📄' },
   { path: '/attendance', label: 'Absensi', icon: '📋' },
+  { path: '/correction', label: 'Koreksi Absensi', icon: '✏️' },
   { path: '/leave', label: 'Cuti', icon: '🌴' },
   { path: '/approval', label: 'Persetujuan', icon: '✅', allowedRoles: ['admin', 'hr', 'manager'] },
   { path: '/profile-change-reviews', label: 'Review Profil', icon: '🧾', allowedRoles: ['admin', 'hr'] },

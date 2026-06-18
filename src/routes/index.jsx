@@ -15,6 +15,7 @@ import ProfilePage from '../pages/profile/ProfilePage'
 import DocumentsPage from '../pages/documents/DocumentsPage'
 import AccountSecurityPage from '../pages/security/AccountSecurityPage'
 import ProfileChangeRequestsPage from '../pages/profile-change/ProfileChangeRequestsPage'
+import CorrectionPage from '../pages/correction/CorrectionPage'
 
 const AppRoutes = () => (
   <Routes>
@@ -29,6 +30,7 @@ const AppRoutes = () => (
         <Route path="/profile/changes" element={<ProfileChangeRequestsPage />} />
         <Route path="/security" element={<AccountSecurityPage />} />
         <Route path="/documents" element={<DocumentsPage />} />
+        <Route path="/correction" element={<CorrectionPage />} />
       </Route>
     </Route>
     <Route element={<ProtectedRoute allowedRoles={['admin', 'hr', 'manager']} />}>
