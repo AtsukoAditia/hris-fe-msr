@@ -1,6 +1,6 @@
 # HRIS Frontend — hris-fe-msr
 
-React + Vite PWA untuk Smart Attendance HRIS. Aplikasi ini terhubung dengan backend Laravel `hris-be-msr` melalui REST API terautentikasi.
+React + Vite PWA untuk Smart Attendance HRIS yang terhubung dengan backend Laravel `hris-be-msr`.
 
 ## Tech Stack
 
@@ -24,9 +24,9 @@ React + Vite PWA untuk Smart Attendance HRIS. Aplikasi ini terhubung dengan back
 | Attendance, Leave, Shift & Report | ✅ | ✅ | Synced |
 | Department, Position & Branch | ✅ | ✅ | Completed |
 | Employee Manager Relation | ✅ | ✅ | Completed |
-| Organization Mobile Acceptance | ✅ | ✅ | Completed |
 | Employee Profile & Emergency Contact | ✅ | ✅ | Completed |
-| **Employee Document Management** | ✅ | ✅ | **Completed** |
+| Employee Document Management | ✅ | ✅ | Completed |
+| **Employee Self-Service Completion** | ✅ | ✅ | **Completed** |
 
 ## Main Routes
 
@@ -34,11 +34,14 @@ React + Vite PWA untuk Smart Attendance HRIS. Aplikasi ini terhubung dengan back
 |---|---|---|
 | `/login` | Public | Login |
 | `/dashboard` | All roles | Dashboard |
-| `/profile` | All roles | Self profile dan emergency contacts |
-| `/documents` | All roles | Self-service Employee documents |
+| `/profile` | All roles | Direct-edit profile dan emergency contacts |
+| `/profile/changes` | All roles | Request perubahan profil dan history |
+| `/security` | All roles | Keamanan akun dan forced re-login |
+| `/documents` | All roles | Employee documents |
 | `/attendance` | All roles | Attendance |
 | `/leave` | All roles | Leave |
-| `/approval` | Admin, HR, Manager | Approval |
+| `/approval` | Admin, HR, Manager | Leave approval |
+| `/profile-change-reviews` | Admin, HR | Review perubahan profil |
 | `/report` | Admin, HR, Manager | Reports |
 | `/master-data` | Admin, HR, Manager | Department, Position, Branch |
 | `/employee` | Admin, HR | Employee management |
@@ -47,35 +50,26 @@ React + Vite PWA untuk Smart Attendance HRIS. Aplikasi ini terhubung dengan back
 | `/shift` | Admin, HR | Shift management |
 | `/shift-schedule` | Admin, HR | Shift assignment |
 
-## Employee Document Management
+## Employee Self-Service
 
-### Self-Service
+Self-profile memisahkan field menjadi dua kategori:
 
-Employee dapat:
+- Direct update: phone, address, personal email, alternate phone, domicile, city, province, postal code.
+- Approval required: birth data, gender, identity, marital status, nationality, tax, social security, dan health insurance identifiers.
 
-- Melihat summary dokumen.
-- Mencari dan memfilter berdasarkan kategori serta status expiry.
-- Melihat metadata, versi, ukuran file, dan label.
-- Mengunduh file melalui private authenticated endpoint.
+Employee dapat mengajukan perubahan data sensitif, melihat history/detail, memfilter status, dan membatalkan request pending. Admin/HR dapat mencari request, membandingkan old/new value, approve, atau reject dengan catatan wajib.
 
-### Admin dan HR
+Account security update membersihkan Zustand auth state dan mengarahkan user ke login kembali setelah berhasil.
 
-Admin dan HR dapat:
-
-- Mengunggah PDF, JPG, PNG, atau WEBP maksimal 10 MB.
-- Mengubah metadata dokumen.
-- Mengganti file sambil mempertahankan ID dokumen.
-- Melihat version increment.
-- Menghapus dan mengunduh dokumen Employee.
-
-Status expiry yang didukung:
+Dokumentasi lengkap:
 
 ```text
-valid
-expiring
-expired
-without_expiry
+docs/employee-self-service.md
 ```
+
+## Employee Document Management
+
+Employee dapat melihat summary, filter expiry, metadata, versi, label, serta download dari private authenticated endpoint. Admin/HR dapat upload, edit metadata, replace, download, dan delete.
 
 Dokumentasi lengkap:
 
@@ -85,7 +79,7 @@ docs/employee-document-management.md
 
 ## Employee Profile
 
-Profile mendukung self-service dan Admin/HR management, data personal lanjutan, completion indicator, serta emergency contact dengan satu kontak utama.
+Profile mendukung self-service, Admin/HR management, completion indicator, dan emergency contacts.
 
 Dokumentasi lengkap:
 
@@ -96,9 +90,11 @@ docs/profile-module.md
 ## API Services
 
 ```text
-src/services/employeeService.js
+src/services/authService.js
 src/services/profileService.js
+src/services/profileChangeService.js
 src/services/documentService.js
+src/services/employeeService.js
 src/services/departmentService.js
 src/services/positionService.js
 src/services/branchService.js
@@ -113,16 +109,16 @@ npm run build
 npm run test:e2e
 ```
 
-Mobile acceptance menggunakan:
+Mobile acceptance:
 
 | Device | Browser Engine |
 |---|---|
 | Pixel 5 | Chromium |
 | iPhone 13 | WebKit |
 
-Coverage mencakup Organization Master, Employee Manager, Profile, Emergency Contact, Employee Document upload/edit/replace/download, modal containment, dan document-level overflow protection.
+Coverage mencakup Organization Master, Profile, Emergency Contact, Employee Documents, Employee Self-Service request/review flows, modal containment, dan document overflow protection.
 
-Frontend CI menjalankan dependency installation, ESLint, Vitest, dan production build. Component-test log disimpan sebagai artifact. Workflow mobile mengunggah Playwright report, screenshots, traces, dan failure video.
+Frontend CI menjalankan dependency installation, ESLint, Vitest, dan production build. Playwright mengunggah report, screenshots, traces, dan failure video.
 
 ## Environment
 
@@ -144,16 +140,10 @@ npx playwright install chromium webkit
 npm run test:e2e
 ```
 
-Testing dari perangkat satu jaringan:
-
-```bash
-npm run dev -- --host 0.0.0.0
-```
-
 ## Definition of Done
 
-Sebuah modul dianggap selesai setelah backend, frontend, authorization, request/response contract, validation states, automated tests, CI, mobile acceptance, dan dokumentasi sinkron.
+Modul selesai setelah backend, frontend, authorization, request/response contract, validation states, automated tests, CI, mobile acceptance, dan dokumentasi sinkron.
 
 ## Next Module
 
-Belum ditetapkan. Pemilihan berikutnya mengikuti roadmap proyek setelah Employee Document Management selesai.
+Attendance Correction Request.
