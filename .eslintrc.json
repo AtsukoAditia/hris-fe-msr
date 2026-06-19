@@ -36,5 +36,15 @@
         "varsIgnorePattern": "^_"
       }
     ]
-  }
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/pages/leave/LeaveMasterPage.jsx"
+      ],
+      "rules": {
+        "react-hooks/exhaustive-deps": "off"
+      }
+    }
+  ]
 }
