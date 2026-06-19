@@ -165,7 +165,7 @@ const CorrectionPage = () => {
       return
     }
     try {
-      await correctionService.reject(rejectingId, { reviewer_note: rejectNote })
+       await correctionService.reject(rejectingId, { review_note: rejectNote })
       showToast('Koreksi berhasil ditolak.')
       setRejectNote('')
       setRejectingId(null)
