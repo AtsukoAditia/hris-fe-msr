@@ -51,6 +51,9 @@ jobs:
       - name: Lint changed source files
         shell: bash
         run: |
+          set -o pipefail
+          mkdir -p test-results
+
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE_SHA="${{ github.event.pull_request.base.sha }}"
           else
@@ -69,7 +72,16 @@ jobs:
           fi
 
           printf 'Linting %s\n' "${SOURCE_FILES[@]}"
-          npx eslint --report-unused-disable-directives --max-warnings 0 "${SOURCE_FILES[@]}"
+          npx eslint --report-unused-disable-directives --max-warnings 0 "${SOURCE_FILES[@]}" 2>&1 | tee test-results/eslint.log
+
+      - name: Upload ESLint log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-eslint-log
+          path: test-results/eslint.log
+          if-no-files-found: ignore
+          retention-days: 1
 
       - name: Run component tests
         shell: bash
