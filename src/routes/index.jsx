@@ -16,6 +16,7 @@ import DocumentsPage from '../pages/documents/DocumentsPage'
 import AccountSecurityPage from '../pages/security/AccountSecurityPage'
 import ProfileChangeRequestsPage from '../pages/profile-change/ProfileChangeRequestsPage'
 import CorrectionPage from '../pages/correction/CorrectionPage'
+import AuditLogPage from '../pages/audit-log/AuditLogPage'
 
 const AppRoutes = () => (
   <Routes>
@@ -48,6 +49,7 @@ const AppRoutes = () => (
         <Route path="/profile-change-reviews" element={<ProfileChangeRequestsPage reviewMode />} />
         <Route path="/shift" element={<ShiftPage />} />
         <Route path="/shift-schedule" element={<ShiftSchedulePage />} />
+        <Route path="/audit-log" element={<AuditLogPage />} />
       </Route>
     </Route>
     <Route path="*" element={<Navigate to="/dashboard" replace />} />

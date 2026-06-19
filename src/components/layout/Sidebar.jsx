@@ -17,6 +17,7 @@ const navItems = [
   { path: '/employee', label: 'Karyawan', icon: '👥', allowedRoles: ['admin', 'hr'] },
   { path: '/shift', label: 'Shift', icon: '🗓', allowedRoles: ['admin', 'hr'] },
   { path: '/shift-schedule', label: 'Jadwal Shift', icon: '📅', allowedRoles: ['admin', 'hr'] },
+  { path: '/audit-log', label: 'Audit Log', icon: '🔍', allowedRoles: ['admin', 'hr'] },
 ]
 
 const Sidebar = ({ isOpen, onClose }) => {
