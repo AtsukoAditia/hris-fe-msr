@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import PayrollListTab from './PayrollListTab'
+import ReportsTab from './ReportsTab'
 import PeriodsTab from './PeriodsTab'
 import ProfilesTab from './ProfilesTab'
 import SalaryComponentsTab from './SalaryComponentsTab'
 
 const tabs = [
   { id: 'payrolls', label: 'Payroll' },
+  { id: 'reports', label: 'Laporan' },
   { id: 'periods', label: 'Periode' },
   { id: 'profiles', label: 'Profil Gaji' },
   { id: 'components', label: 'Komponen' },
@@ -27,13 +29,13 @@ const PayrollPage = () => {
       <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Payroll</h1>
-          <p className="mt-1 text-sm text-gray-500">Kelola komponen, profil gaji, periode, dan proses payroll dasar.</p>
+          <p className="mt-1 text-sm text-gray-500">Kelola payroll, laporan, komponen, profil gaji, dan periode.</p>
         </div>
         <div className="rounded-lg bg-indigo-50 px-3 py-2 text-xs text-indigo-700">Akses: <span className="font-semibold capitalize">{user?.role || '-'}</span></div>
       </header>
 
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-        Payroll Foundation belum menghitung PPh 21, BPJS, atau adjustment setelah finalisasi. Finalisasi harus dilakukan setelah nominal dan data kehadiran diverifikasi.
+        Payroll dasar belum menghitung PPh 21 atau BPJS otomatis. Verifikasi nominal dan data kehadiran sebelum finalisasi.
       </div>
 
       <div className="overflow-x-auto border-b border-gray-200">
@@ -52,6 +54,7 @@ const PayrollPage = () => {
       </div>
 
       {activeTab === 'payrolls' && <PayrollListTab refreshKey={refreshKey} />}
+      {activeTab === 'reports' && <ReportsTab />}
       {activeTab === 'periods' && <PeriodsTab onGenerated={handleGenerated} />}
       {activeTab === 'profiles' && <ProfilesTab />}
       {activeTab === 'components' && <SalaryComponentsTab />}
