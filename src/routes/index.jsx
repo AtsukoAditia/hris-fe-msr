@@ -20,6 +20,7 @@ import AuditLogPage from '../pages/audit-log/AuditLogPage'
 import LeaveMasterPage from '../pages/leave/LeaveMasterPage'
 import OvertimePage from '../pages/overtime/OvertimePage'
 import PayrollPage from '../pages/payroll/PayrollPage'
+import PayslipsPage from '../pages/payslips/PayslipsPage'
 
 const AppRoutes = () => (
   <Routes>
@@ -36,6 +37,11 @@ const AppRoutes = () => (
         <Route path="/security" element={<AccountSecurityPage />} />
         <Route path="/documents" element={<DocumentsPage />} />
         <Route path="/correction" element={<CorrectionPage />} />
+      </Route>
+    </Route>
+    <Route element={<ProtectedRoute allowedRoles={['employee']} />}>
+      <Route element={<MainLayout />}>
+        <Route path="/payslips" element={<PayslipsPage />} />
       </Route>
     </Route>
     <Route element={<ProtectedRoute allowedRoles={['admin', 'hr', 'manager']} />}>
