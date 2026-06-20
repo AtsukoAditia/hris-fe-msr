@@ -10,8 +10,9 @@ test('Payroll workspace remains usable on mobile', async ({ page }, testInfo) =>
   await page.goto('/payroll')
 
   await expect(page.getByRole('heading', { name: 'Payroll' })).toBeVisible()
-  await expect(page.getByText('Budi Santoso')).toBeVisible()
-  await expect(page.getByText('June 2026')).toBeVisible()
+  const payrollCard = page.locator('article').filter({ hasText: 'Budi Santoso' })
+  await expect(payrollCard).toBeVisible()
+  await expect(payrollCard.getByText('June 2026')).toBeVisible()
   await expectNoDocumentOverflow(page)
 
   await page.getByRole('button', { name: 'Buka menu navigasi' }).click()
@@ -33,12 +34,12 @@ test('Payroll workspace remains usable on mobile', async ({ page }, testInfo) =>
   await page.getByRole('button', { name: 'Batal' }).click()
 
   await page.getByRole('button', { name: 'Profil Gaji', exact: true }).click()
-  await expect(page.getByText('Budi Santoso')).toBeVisible()
-  await expect(page.getByText(/10\.000\.000/)).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Budi Santoso' })).toBeVisible()
+  await expect(page.getByText(/10[.]000[.]000/)).toBeVisible()
   await expectNoDocumentOverflow(page)
 
   await page.getByRole('button', { name: 'Komponen', exact: true }).click()
-  await expect(page.getByText('Transport Allowance')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Transport Allowance' })).toBeVisible()
   await page.getByRole('button', { name: /Tambah Komponen/ }).click()
   await expectModalFitsViewport(page, 'Tambah Komponen Gaji')
   await page.getByLabel('Kode').fill('MEAL')
