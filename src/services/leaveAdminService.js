@@ -104,7 +104,7 @@ const leaveAdminService = {
   adjustLeaveBalance: async (data) => api.post('/admin/leave-balances/adjust', {
     leave_balance_id: await getBalanceId(data),
     adjustment_days: Number(data.adjustment ?? data.adjustment_days),
-    reason: data.note ?? data.reason,
+    reason: data.note?.trim() || data.reason?.trim() || 'Manual leave balance adjustment',
   }),
 }
 
