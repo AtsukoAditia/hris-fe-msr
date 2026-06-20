@@ -36,18 +36,19 @@ React + Vite PWA untuk **Smart Attendance HRIS**, terhubung dengan backend Larav
 | Leave Request, Approval, Balance & History | ✅ | ✅ | Completed |
 | Leave Type, Policy, Holiday & Balance Administration | ✅ | ✅ | Completed |
 | Attendance, Leave & Employee Reports + CSV | ✅ | ✅ | Completed |
-| **Overtime Policy & Request Workflow** | ✅ | ⬜ | **Frontend pending** |
+| **Overtime Policy & Request Workflow** | ✅ | ✅ | **Completed** |
 | Payroll Foundation | ⬜ | ⬜ | Planned |
 
-## Current Frontend Milestone — Leave Workflow Alignment
+## Current Frontend Milestone — Overtime Management
 
-Frontend leave terbaru sudah disinkronkan dengan kontrak API backend:
+Frontend overtime sudah disinkronkan dengan kontrak backend:
 
-- Payload pengajuan mengirim `leave_type_id`.
-- Data leave type backend dinormalisasi menjadi pilihan form yang konsisten.
-- Leave balance per type diringkas untuk kartu total, terpakai, dan tersisa.
-- Leave request, history, cancellation, approval, dan master administration tetap menggunakan endpoint backend sebagai source of truth.
-- Lint, component tests, production build, dan mobile acceptance sudah lolos CI.
+- Employee dapat memilih policy aktif, mengajukan lembur, melihat history, dan membatalkan request pending.
+- Admin, HR, dan Manager dapat melihat request sesuai scope lalu approve atau reject.
+- Admin dan HR dapat mencatat menit aktual serta mengelola overtime policy.
+- Payload menggunakan `overtime_policy_id`, `overtime_date`, `planned_start_time`, `planned_end_time`, dan `reason`.
+- Filter status dan tanggal, pagination, loading/error/empty state, serta validasi batas harian tersedia.
+- Route `/overtime` responsif dan tersedia untuk seluruh role terautentikasi.
 
 ## Main Routes
 
@@ -62,6 +63,7 @@ Frontend leave terbaru sudah disinkronkan dengan kontrak API backend:
 | `/attendance` | All roles | Attendance dan history |
 | `/correction` | All roles | Attendance correction request/history |
 | `/leave` | All roles | Leave request, balance, dan history |
+| `/overtime` | All roles | Overtime request, review, actual minutes, dan policy sesuai role |
 | `/approval` | Admin, HR, Manager | Leave approval workflow |
 | `/report` | Admin, HR, Manager | Attendance, leave, dan employee reports |
 | `/master-data` | Admin, HR, Manager | Department, Position, dan Branch |
@@ -74,7 +76,6 @@ Frontend leave terbaru sudah disinkronkan dengan kontrak API backend:
 | `/leave-master` | Admin, HR | Leave type, policy, holiday, dan balance administration |
 | `/audit-log` | Admin, HR | Activity log viewer |
 
-> Overtime belum mempunyai route frontend pada status saat ini.
 
 ## Attendance Correction
 
@@ -128,6 +129,21 @@ src/services/leaveService.js
 src/services/leaveAdminService.js
 ```
 
+## Overtime Management
+
+Route `/overtime` menyediakan workspace berbasis role:
+
+- **Employee:** submit, history, filter, detail ringkas, dan cancel pending request.
+- **Manager:** review request direct report serta approve/reject sesuai backend policy.
+- **Admin/HR:** review seluruh request, mencatat menit aktual, dan CRUD overtime policy.
+- Policy aktif dibaca melalui endpoint authenticated read-only sehingga form tidak menggunakan ID hard-coded.
+
+Service utama:
+
+```text
+src/services/overtimeService.js
+```
+
 ## Employee Self-Service
 
 Self-profile memisahkan field menjadi:
@@ -164,6 +180,7 @@ Service utama:
 
 ```text
 src/services/activityLogService.js
+src/services/overtimeService.js
 ```
 
 ## API Services
@@ -175,6 +192,7 @@ src/services/correctionService.js
 src/services/leaveService.js
 src/services/leaveAdminService.js
 src/services/activityLogService.js
+src/services/overtimeService.js
 src/services/profileService.js
 src/services/profileChangeService.js
 src/services/documentService.js
@@ -256,12 +274,4 @@ Modul dinyatakan selesai setelah backend dan frontend contract sinkron, authoriz
 
 ## Next Focus
 
-**Frontend Overtime Management**, meliputi:
-
-- Employee overtime request dan history.
-- Request detail dan cancellation.
-- Manager/HR/Admin approval dan rejection.
-- Overtime policy administration.
-- Actual overtime minutes display.
-- Responsive mobile UI.
-- Component tests dan Playwright mobile acceptance.
+**Basic Payroll Foundation**, dimulai dari salary component, employee salary profile, payroll period, dan draft calculation yang memakai approved overtime sebagai input.
