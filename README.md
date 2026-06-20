@@ -1,96 +1,180 @@
-# HRIS Frontend — hris-fe-msr
+# HRIS Frontend — `hris-fe-msr`
 
-React + Vite PWA untuk Smart Attendance HRIS yang terhubung dengan backend Laravel `hris-be-msr`.
+React + Vite PWA untuk **Smart Attendance HRIS**, terhubung dengan backend Laravel [`hris-be-msr`](https://github.com/AtsukoAditia/hris-be-msr).
+
+> **Status terakhir diverifikasi:** 20 Juni 2026  
+> Branch utama: `main`
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| UI | React 18 + Vite |
-| Styling | Tailwind CSS |
-| Routing | React Router v6 |
+| UI | React 18 + Vite 5 |
+| Styling | Tailwind CSS 3 |
+| Routing | React Router 6 |
 | State | Zustand |
+| Form & Validation | React Hook Form, Zod |
 | HTTP | Axios |
 | Testing | Vitest, React Testing Library, Playwright |
 | PWA | vite-plugin-pwa + Workbox |
+| CI | GitHub Actions |
 
-## Module Status
+## Current Project Status
 
 | Module | Backend | Frontend | Status |
 |---|:---:|:---:|---|
-| Authentication & Role Access | ✅ | ✅ | Synced |
-| Dashboard | ✅ | ✅ | Synced |
-| Employee Management | ✅ | ✅ | Synced |
-| Attendance, Leave, Shift & Report | ✅ | ✅ | Synced |
-| Department, Position & Branch | ✅ | ✅ | Completed |
-| Employee Manager Relation | ✅ | ✅ | Completed |
-| Employee Profile & Emergency Contact | ✅ | ✅ | Completed |
-| Employee Document Management | ✅ | ✅ | Completed |
-| **Employee Self-Service Completion** | ✅ | ✅ | **Completed** |
+| Foundation, API v1, Authentication & RBAC | ✅ | ✅ | Synced |
+| Role-based Dashboard | ✅ | ✅ | Synced |
+| Organization Master: Department, Position, Branch | ✅ | ✅ | Completed |
+| Employee Management & Direct Manager Relation | ✅ | ✅ | Completed |
+| Employee Profile, Emergency Contact & Documents | ✅ | ✅ | Completed |
+| Employee Self-Service & Profile Change Approval | ✅ | ✅ | Completed |
+| Shift & Basic Shift Schedule | ✅ | ✅ | Completed |
+| Attendance: GPS, Photo, Radius & QR | ✅ | ✅ | Completed |
+| Attendance Correction | ✅ | ✅ | Completed |
+| Activity Log Viewer | ✅ | ✅ | Completed |
+| Leave Request, Approval, Balance & History | ✅ | ✅ | Completed |
+| Leave Type, Policy, Holiday & Balance Administration | ✅ | ✅ | Completed |
+| Attendance, Leave & Employee Reports + CSV | ✅ | ✅ | Completed |
+| **Overtime Policy & Request Workflow** | ✅ | ⬜ | **Frontend pending** |
+| Payroll Foundation | ⬜ | ⬜ | Planned |
+
+## Current Frontend Milestone — Leave Workflow Alignment
+
+Frontend leave terbaru sudah disinkronkan dengan kontrak API backend:
+
+- Payload pengajuan mengirim `leave_type_id`.
+- Data leave type backend dinormalisasi menjadi pilihan form yang konsisten.
+- Leave balance per type diringkas untuk kartu total, terpakai, dan tersisa.
+- Leave request, history, cancellation, approval, dan master administration tetap menggunakan endpoint backend sebagai source of truth.
+- Lint, component tests, production build, dan mobile acceptance sudah lolos CI.
 
 ## Main Routes
 
 | Route | Access | Description |
 |---|---|---|
 | `/login` | Public | Login |
-| `/dashboard` | All roles | Dashboard |
-| `/profile` | All roles | Direct-edit profile dan emergency contacts |
-| `/profile/changes` | All roles | Request perubahan profil dan history |
-| `/security` | All roles | Keamanan akun dan forced re-login |
-| `/documents` | All roles | Employee documents |
-| `/attendance` | All roles | Attendance |
-| `/leave` | All roles | Leave |
-| `/approval` | Admin, HR, Manager | Leave approval |
-| `/profile-change-reviews` | Admin, HR | Review perubahan profil |
-| `/report` | Admin, HR, Manager | Reports |
-| `/master-data` | Admin, HR, Manager | Department, Position, Branch |
+| `/dashboard` | All roles | Role-based dashboard |
+| `/profile` | All roles | Self-profile dan emergency contacts |
+| `/profile/changes` | All roles | Profile change request dan history |
+| `/security` | All roles | Change password dan account security |
+| `/documents` | All roles | Employee document self-service |
+| `/attendance` | All roles | Attendance dan history |
+| `/correction` | All roles | Attendance correction request/history |
+| `/leave` | All roles | Leave request, balance, dan history |
+| `/approval` | Admin, HR, Manager | Leave approval workflow |
+| `/report` | Admin, HR, Manager | Attendance, leave, dan employee reports |
+| `/master-data` | Admin, HR, Manager | Department, Position, dan Branch |
 | `/employee` | Admin, HR | Employee management |
 | `/employee/:employeeId/profile` | Admin, HR | Employee profile management |
 | `/employee/:employeeId/documents` | Admin, HR | Employee document management |
+| `/profile-change-reviews` | Admin, HR | Review profile change requests |
 | `/shift` | Admin, HR | Shift management |
 | `/shift-schedule` | Admin, HR | Shift assignment |
+| `/leave-master` | Admin, HR | Leave type, policy, holiday, dan balance administration |
+| `/audit-log` | Admin, HR | Activity log viewer |
+
+> Overtime belum mempunyai route frontend pada status saat ini.
+
+## Attendance Correction
+
+Attendance Correction sudah tersedia untuk employee dan reviewer.
+
+Employee dapat:
+
+- Melihat daftar dan detail request miliknya.
+- Mengajukan koreksi check-in, check-out, atau keduanya.
+- Mengunggah attachment opsional.
+- Membatalkan request selama masih `pending`.
+- Melihat hasil approval atau rejection.
+
+Reviewer dapat:
+
+- Melihat request sesuai role dan scope.
+- Memfilter data.
+- Membandingkan attendance asli dan requested value.
+- Approve atau reject.
+- Melakukan manual correction untuk Admin/HR.
+
+Service utama:
+
+```text
+src/services/correctionService.js
+```
+
+## Leave Management
+
+Employee leave page menyediakan:
+
+- Leave type selection.
+- Date range dan duration preview.
+- Request submission.
+- Balance summary.
+- Request history.
+- Cancellation untuk request `pending`.
+- Error, loading, dan empty state.
+
+Admin/HR leave master page menyediakan pengelolaan:
+
+- Leave types.
+- Leave policies.
+- Holidays.
+- Leave balances dan adjustments.
+
+Service utama:
+
+```text
+src/services/leaveService.js
+src/services/leaveAdminService.js
+```
 
 ## Employee Self-Service
 
-Self-profile memisahkan field menjadi dua kategori:
+Self-profile memisahkan field menjadi:
 
-- Direct update: phone, address, personal email, alternate phone, domicile, city, province, postal code.
-- Approval required: birth data, gender, identity, marital status, nationality, tax, social security, dan health insurance identifiers.
+- **Direct update:** phone, address, personal email, alternate phone, domicile, city, province, dan postal code.
+- **Approval required:** birth data, gender, identity, marital status, nationality, tax, social security, dan health insurance identifiers.
 
-Employee dapat mengajukan perubahan data sensitif, melihat history/detail, memfilter status, dan membatalkan request pending. Admin/HR dapat mencari request, membandingkan old/new value, approve, atau reject dengan catatan wajib.
-
-Account security update membersihkan Zustand auth state dan mengarahkan user ke login kembali setelah berhasil.
-
-Dokumentasi lengkap:
-
-```text
-docs/employee-self-service.md
-```
+Employee dapat mengajukan perubahan data sensitif, melihat history/detail, memfilter status, dan membatalkan request pending. Admin/HR dapat membandingkan old/new value, approve, atau reject dengan catatan wajib.
 
 ## Employee Document Management
 
-Employee dapat melihat summary, filter expiry, metadata, versi, label, serta download dari private authenticated endpoint. Admin/HR dapat upload, edit metadata, replace, download, dan delete.
+Employee dapat melihat summary, expiry status, metadata, version, labels, dan mengunduh dokumen melalui authenticated endpoint.
 
-Dokumentasi lengkap:
+Admin/HR dapat:
+
+- Upload dokumen.
+- Edit metadata.
+- Replace file dan version.
+- Download.
+- Delete.
+
+File sensitif tidak menggunakan public URL.
+
+## Activity Log Viewer
+
+Admin dan HR dapat membuka `/audit-log` untuk:
+
+- Melihat activity log terpaginated.
+- Memfilter actor, module, action, status, dan tanggal.
+- Membuka detail request/response preview.
+- Melihat metadata endpoint dan actor.
+
+Service utama:
 
 ```text
-docs/employee-document-management.md
-```
-
-## Employee Profile
-
-Profile mendukung self-service, Admin/HR management, completion indicator, dan emergency contacts.
-
-Dokumentasi lengkap:
-
-```text
-docs/profile-module.md
+src/services/activityLogService.js
 ```
 
 ## API Services
 
 ```text
 src/services/authService.js
+src/services/attendanceService.js
+src/services/correctionService.js
+src/services/leaveService.js
+src/services/leaveAdminService.js
+src/services/activityLogService.js
 src/services/profileService.js
 src/services/profileChangeService.js
 src/services/documentService.js
@@ -100,7 +184,21 @@ src/services/positionService.js
 src/services/branchService.js
 ```
 
-## Testing
+## Responsive and PWA Requirements
+
+Frontend dikembangkan dengan prinsip:
+
+- Mobile-first.
+- Responsive desktop dan mobile.
+- Loading, error, dan empty state.
+- Protected route berdasarkan role.
+- API error message ditampilkan secara jelas.
+- Modal dan tabel tidak overflow pada viewport mobile.
+- PWA foundation melalui service worker dan web app manifest.
+
+## Testing and CI
+
+Jalankan secara lokal:
 
 ```bash
 npm test
@@ -109,16 +207,23 @@ npm run build
 npm run test:e2e
 ```
 
-Mobile acceptance:
+Frontend CI menjalankan:
+
+1. Dependency installation.
+2. ESLint.
+3. Vitest component tests.
+4. Production build.
+
+Mobile acceptance menggunakan:
 
 | Device | Browser Engine |
 |---|---|
 | Pixel 5 | Chromium |
 | iPhone 13 | WebKit |
 
-Coverage mencakup Organization Master, Profile, Emergency Contact, Employee Documents, Employee Self-Service request/review flows, modal containment, dan document overflow protection.
+Playwright mengunggah report dan diagnostic artifacts ketika diperlukan.
 
-Frontend CI menjalankan dependency installation, ESLint, Vitest, dan production build. Playwright mengunggah report, screenshots, traces, dan failure video.
+Status CI pada milestone terbaru: **lint, component tests, production build, dan mobile acceptance passing**.
 
 ## Environment
 
@@ -129,11 +234,16 @@ VITE_API_BASE_URL=http://localhost:8000/api/v1
 ## Local Setup
 
 ```bash
+git clone https://github.com/AtsukoAditia/hris-fe-msr.git
+cd hris-fe-msr
 npm install
+cp .env.example .env
 npm run dev
 ```
 
-Mobile acceptance:
+Aplikasi tersedia secara default melalui Vite development server.
+
+Untuk mobile acceptance:
 
 ```bash
 npx playwright install chromium webkit
@@ -142,8 +252,16 @@ npm run test:e2e
 
 ## Definition of Done
 
-Modul selesai setelah backend, frontend, authorization, request/response contract, validation states, automated tests, CI, mobile acceptance, dan dokumentasi sinkron.
+Modul dinyatakan selesai setelah backend dan frontend contract sinkron, authorization diterapkan di backend, validation state tersedia, automated tests lulus, CI hijau, mobile acceptance lulus, dan dokumentasi diperbarui.
 
-## Next Module
+## Next Focus
 
-Attendance Correction Request.
+**Frontend Overtime Management**, meliputi:
+
+- Employee overtime request dan history.
+- Request detail dan cancellation.
+- Manager/HR/Admin approval dan rejection.
+- Overtime policy administration.
+- Actual overtime minutes display.
+- Responsive mobile UI.
+- Component tests dan Playwright mobile acceptance.
