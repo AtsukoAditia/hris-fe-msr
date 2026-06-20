@@ -1,0 +1,53 @@
+name: Overtime README sync
+
+on:
+  push:
+    branches:
+      - feat/overtime-frontend
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/overtime-frontend
+      - name: Update README status
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('README.md')
+          content = path.read_text()
+          content = content.replace(
+              '| **Overtime Policy & Request Workflow** | ✅ | ⬜ | **Frontend pending** |',
+              '| **Overtime Policy & Request Workflow** | ✅ | ✅ | **Completed** |',
+          )
+          start = content.index('## Current Frontend Milestone —')
+          end = content.index('## Main Routes')
+          milestone = '''## Current Frontend Milestone — Overtime Management\n\nFrontend overtime sudah disinkronkan dengan kontrak backend:\n\n- Employee dapat memilih policy aktif, mengajukan lembur, melihat history, dan membatalkan request pending.\n- Admin, HR, dan Manager dapat melihat request sesuai scope lalu approve atau reject.\n- Admin dan HR dapat mencatat menit aktual serta mengelola overtime policy.\n- Payload menggunakan `overtime_policy_id`, `overtime_date`, `planned_start_time`, `planned_end_time`, dan `reason`.\n- Filter status dan tanggal, pagination, loading/error/empty state, serta validasi batas harian tersedia.\n- Route `/overtime` responsif dan tersedia untuk seluruh role terautentikasi.\n\n'''
+          content = content[:start] + milestone + content[end:]
+          content = content.replace(
+              '| `/leave` | All roles | Leave request, balance, dan history |\n',
+              '| `/leave` | All roles | Leave request, balance, dan history |\n| `/overtime` | All roles | Overtime request, review, actual minutes, dan policy sesuai role |\n',
+          )
+          content = content.replace('\n> Overtime belum mempunyai route frontend pada status saat ini.\n', '\n')
+          marker = '## Employee Self-Service\n'
+          section = '''## Overtime Management\n\nRoute `/overtime` menyediakan workspace berbasis role:\n\n- **Employee:** submit, history, filter, detail ringkas, dan cancel pending request.\n- **Manager:** review request direct report serta approve/reject sesuai backend policy.\n- **Admin/HR:** review seluruh request, mencatat menit aktual, dan CRUD overtime policy.\n- Policy aktif dibaca melalui endpoint authenticated read-only sehingga form tidak menggunakan ID hard-coded.\n\nService utama:\n\n```text\nsrc/services/overtimeService.js\n```\n\n'''
+          if section not in content:
+              content = content.replace(marker, section + marker)
+          content = content.replace('src/services/activityLogService.js\n', 'src/services/activityLogService.js\nsrc/services/overtimeService.js\n')
+          focus = content.index('## Next Focus')
+          content = content[:focus] + '''## Next Focus\n\n**Basic Payroll Foundation**, dimulai dari salary component, employee salary profile, payroll period, dan draft calculation yang memakai approved overtime sebagai input.\n'''
+          path.write_text(content)
+          PY
+      - name: Commit README
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add README.md
+          git diff --cached --quiet || git commit -m "docs(overtime): mark frontend workflow completed"
+          git push origin HEAD:feat/overtime-frontend
