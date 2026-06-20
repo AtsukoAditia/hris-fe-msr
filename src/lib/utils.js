@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns'
+import { format, formatDistanceToNow, isToday } from 'date-fns'
 import { id } from 'date-fns/locale'
 
 // Shadcn/UI class merge utility

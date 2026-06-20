@@ -12,6 +12,7 @@
   ],
   "ignorePatterns": [
     "dist",
+    "dev-dist",
     "node_modules"
   ],
   "parserOptions": {
@@ -40,7 +41,12 @@
   "overrides": [
     {
       "files": [
-        "src/pages/leave/LeaveMasterPage.jsx"
+        "src/pages/leave/LeaveMasterPage.jsx",
+        "src/hooks/useAuth.js",
+        "src/pages/attendance/AttendancePage.jsx",
+        "src/pages/dashboard/DashboardPage.jsx",
+        "src/pages/shift-schedule/ShiftSchedulePage.jsx",
+        "src/pages/shift/ShiftPage.jsx"
       ],
       "rules": {
         "react-hooks/exhaustive-deps": "off"

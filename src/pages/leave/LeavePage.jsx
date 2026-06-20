@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import leaveService from '../../services/leaveService'
 
 const initialForm = {
-  leave_type: 'annual',
+  leave_type: '',
   start_date: '',
   end_date: '',
   reason: '',
@@ -15,20 +15,11 @@ const STATUS_BADGE = {
   cancelled: 'bg-gray-100 text-gray-700',
 }
 
-const LEAVE_TYPES = [
-  ['annual', 'Cuti Tahunan'],
-  ['sick', 'Cuti Sakit'],
-  ['emergency', 'Cuti Darurat'],
-  ['maternity', 'Cuti Melahirkan'],
-  ['paternity', 'Cuti Ayah'],
-  ['unpaid', 'Cuti Tidak Dibayar'],
-  ['other', 'Lainnya'],
-]
-
 const LeavePage = () => {
   const [activeTab, setActiveTab] = useState('request')
   const [leaveHistory, setLeaveHistory] = useState([])
   const [leaveBalance, setLeaveBalance] = useState(null)
+  const [leaveTypes, setLeaveTypes] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showRequestModal, setShowRequestModal] = useState(false)
@@ -47,10 +38,23 @@ const LeavePage = () => {
     return []
   }
 
+  const fetchLeaveTypes = useCallback(async () => {
+    try {
+      const res = await leaveService.getLeaveTypes({ per_page: 100 })
+      const data = normalizeRows(res.data)
+      setLeaveTypes(data)
+      if (!leaveForm.leave_type && data.length > 0) {
+        setLeaveForm(prev => ({ ...prev, leave_type: data[0].value }))
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }, [leaveForm.leave_type])
+
   const fetchLeaveHistory = useCallback(async () => {
     setIsLoading(true)
     try {
-      const res = await leaveService.getMyLeaves({ per_page: 50 })
+      const res = await leaveService.listMine({ per_page: 50 })
       setLeaveHistory(normalizeRows(res.data))
     } catch (err) {
       console.error(err)
@@ -72,9 +76,10 @@ const LeavePage = () => {
   }, [])
 
   useEffect(() => {
+    fetchLeaveTypes()
     fetchLeaveHistory()
     fetchLeaveBalance()
-  }, [fetchLeaveHistory, fetchLeaveBalance])
+  }, [fetchLeaveTypes, fetchLeaveHistory, fetchLeaveBalance])
 
   const durationPreview = useMemo(
     () => getCalendarDuration(leaveForm.start_date, leaveForm.end_date),
@@ -196,6 +201,7 @@ const LeavePage = () => {
         <LeaveRequestModal
           leaveForm={leaveForm}
           setLeaveForm={setLeaveForm}
+          leaveTypes={leaveTypes}
           durationPreview={durationPreview}
           isSubmitting={isSubmitting}
           onClose={() => setShowRequestModal(false)}
@@ -206,7 +212,7 @@ const LeavePage = () => {
   )
 }
 
-const LeaveRequestModal = ({ leaveForm, setLeaveForm, durationPreview, isSubmitting, onClose, onSubmit }) => (
+const LeaveRequestModal = ({ leaveForm, setLeaveForm, leaveTypes, durationPreview, isSubmitting, onClose, onSubmit }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
     <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
       <div className="flex items-start justify-between gap-4">
@@ -224,8 +230,9 @@ const LeaveRequestModal = ({ leaveForm, setLeaveForm, durationPreview, isSubmitt
           onChange={(e) => setLeaveForm({ ...leaveForm, leave_type: e.target.value })}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
-          {LEAVE_TYPES.map(([value, label]) => (
-            <option key={value} value={value}>{label}</option>
+          <option value="">Pilih jenis cuti</option>
+          {leaveTypes.map((lt) => (
+            <option key={lt.value} value={lt.value}>{lt.label}</option>
           ))}
         </select>
       </div>
@@ -292,7 +299,7 @@ const LeaveCard = ({ leave, onCancel }) => (
   <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-3">
     <div className="flex items-start justify-between gap-4">
       <div>
-        <p className="font-semibold text-gray-900">{leave.leave_type_label || getLeaveTypeLabel(leave.leave_type)}</p>
+        <p className="font-semibold text-gray-900">{leave.leave_type_label || leave.leave_type}</p>
         <p className="text-sm text-gray-500 mt-0.5">{formatDate(leave.start_date)} - {formatDate(leave.end_date)}</p>
       </div>
       <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_BADGE[leave.status] || 'bg-gray-100 text-gray-600'}`}>
@@ -350,7 +357,6 @@ const formatDate = (dateStr) => {
   return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-const getLeaveTypeLabel = (type) => LEAVE_TYPES.find(([value]) => value === type)?.[1] || 'Cuti'
 const getStatusLabel = (status) => ({ pending: 'Menunggu', approved: 'Disetujui', rejected: 'Ditolak', cancelled: 'Dibatalkan' }[status] || '-')
 
 export default LeavePage
