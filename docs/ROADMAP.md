@@ -18,28 +18,34 @@
 - [x] Overtime workflow
 - [x] Responsive and PWA foundation
 
-## Sprint 1 — Basic Payroll Foundation 🔵
+## Sprint 1 — Basic Payroll Foundation ✅
 
-- [ ] Decide payroll route and navigation structure
-- [ ] Salary component list, filter, create, and edit
-- [ ] Earning/deduction and calculation-type forms
-- [ ] Employee salary profile and effective date
-- [ ] Payroll period list and create/open action
-- [ ] Generate and recalculate draft payroll
-- [ ] Payroll summary and employee detail
-- [ ] Review, finalize, paid, and cancel actions
-- [ ] Validation, loading, error, empty, and conflict states
-- [ ] Desktop table and mobile card layouts
-- [ ] Component tests, build, and mobile acceptance
+- [x] Admin/HR-only `/payroll` route and navigation
+- [x] Salary component list, filter, create, edit, and delete
+- [x] Earning/deduction and fixed/percentage/formula-ready forms
+- [x] Effective-dated employee salary profile
+- [x] Employee salary component assignments
+- [x] Payroll period list, create, edit, close, and delete
+- [x] Generate and recalculate draft payroll
+- [x] Payroll summary and employee detail
+- [x] Review, finalize, paid, and cancel actions
+- [x] Validation, loading, error, empty, and conflict states
+- [x] Desktop table and mobile card layouts
+- [x] Component/helper tests
+- [x] ESLint and production build verification
+- [x] Existing Pixel 5 and iPhone 13 acceptance workflow
+- [x] Documentation synchronization
 
-## Sprint 2 — Payslip and Payroll Reporting
+## Sprint 2 — Payslip and Payroll Reporting 🔵
 
 - [ ] Employee payslip history and detail
-- [ ] Authenticated download
+- [ ] Employee ownership and Admin/HR access states
+- [ ] Authenticated payslip download
 - [ ] Payroll report filters and summaries
 - [ ] CSV export
 - [ ] PDF payslip after backend support is stable
 - [ ] Regression tests
+- [ ] Mobile acceptance
 
 ## Sprint 3 — Shift Schedule Calendar
 
