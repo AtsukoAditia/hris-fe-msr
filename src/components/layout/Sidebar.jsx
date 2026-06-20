@@ -10,6 +10,7 @@ const navItems = [
   { path: '/attendance', label: 'Absensi', icon: '📋' },
   { path: '/correction', label: 'Koreksi Absensi', icon: '✏️' },
   { path: '/leave', label: 'Cuti', icon: '🌴' },
+  { path: '/overtime', label: 'Lembur', icon: '⏱️' },
   { path: '/approval', label: 'Persetujuan', icon: '✅', allowedRoles: ['admin', 'hr', 'manager'] },
   { path: '/profile-change-reviews', label: 'Review Profil', icon: '🧾', allowedRoles: ['admin', 'hr'] },
   { path: '/report', label: 'Laporan', icon: '📈', allowedRoles: ['admin', 'hr', 'manager'] },

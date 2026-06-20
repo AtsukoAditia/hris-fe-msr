@@ -18,6 +18,7 @@ import ProfileChangeRequestsPage from '../pages/profile-change/ProfileChangeRequ
 import CorrectionPage from '../pages/correction/CorrectionPage'
 import AuditLogPage from '../pages/audit-log/AuditLogPage'
 import LeaveMasterPage from '../pages/leave/LeaveMasterPage'
+import OvertimePage from '../pages/overtime/OvertimePage'
 
 const AppRoutes = () => (
   <Routes>
@@ -28,6 +29,7 @@ const AppRoutes = () => (
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/attendance" element={<AttendancePage />} />
         <Route path="/leave" element={<LeavePage />} />
+        <Route path="/overtime" element={<OvertimePage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/profile/changes" element={<ProfileChangeRequestsPage />} />
         <Route path="/security" element={<AccountSecurityPage />} />
