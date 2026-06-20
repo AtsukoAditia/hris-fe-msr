@@ -19,6 +19,7 @@ const navItems = [
   { path: '/correction', label: 'Koreksi Absensi', icon: '✏️' },
   { path: '/leave', label: 'Cuti', icon: '🌴' },
   { path: '/overtime', label: 'Lembur', icon: '⏱️' },
+  { path: '/payslips', label: 'Slip Gaji', icon: '🧾', allowedRoles: ['employee'] },
   { path: '/approval', label: 'Persetujuan', icon: '✅', allowedRoles: ['admin', 'hr', 'manager'] },
   { path: '/profile-change-reviews', label: 'Review Profil', icon: '🧾', allowedRoles: ['admin', 'hr'] },
   { path: '/report', label: 'Laporan', icon: '📈', allowedRoles: ['admin', 'hr', 'manager'] },
