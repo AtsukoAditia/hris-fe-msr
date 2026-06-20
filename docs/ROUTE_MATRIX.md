@@ -2,69 +2,61 @@
 
 > Verified against `src/routes/index.jsx` on 20 June 2026.
 
-## Public Route
+## Public
+
+| Route | Access | Page |
+|---|---|---|
+| `/login` | Public | `LoginPage` |
+
+## Authenticated Self-Service
 
 | Route | Access | Page | Purpose |
 |---|---|---|---|
-| `/login` | Public | `LoginPage` | User authentication |
+| `/dashboard` | All roles | `DashboardPage` | Role summary |
+| `/attendance` | All roles | `AttendancePage` | Attendance |
+| `/leave` | All roles | `LeavePage` | Leave requests |
+| `/overtime` | All roles | `OvertimePage` | Overtime workflow |
+| `/profile` | All roles | `ProfilePage` | Profile |
+| `/documents` | All roles | `DocumentsPage` | Personal documents |
+| `/correction` | All roles | `CorrectionPage` | Attendance corrections |
+| `/payslips` | Employee | `PayslipsPage` | Finalized/paid payslip history, detail, and PDF download |
 
-## All Authenticated Roles
+## Reviewer Routes
 
-| Route | Page | Main Services | Purpose |
-|---|---|---|---|
-| `/dashboard` | `DashboardPage` | Dashboard service | Role-based summary |
-| `/attendance` | `AttendancePage` | `attendanceService` | Check-in/out, QR, history, and monitoring |
-| `/leave` | `LeavePage` | `leaveService` | Leave request, balance, history, and cancellation |
-| `/overtime` | `OvertimePage` | `overtimeService` | Request, review, actual minutes, and policy by role |
-| `/profile` | `ProfilePage` | `profileService` | Own profile and emergency contacts |
-| `/profile/changes` | `ProfileChangeRequestsPage` | `profileChangeService` | Own profile-change requests |
-| `/security` | `AccountSecurityPage` | `authService` | Change password |
-| `/documents` | `DocumentsPage` | `documentService` | Own employee documents |
-| `/correction` | `CorrectionPage` | `correctionService` | Attendance correction by role |
-
-## Admin, HR, and Manager
-
-| Route | Page | Main Services | Purpose |
-|---|---|---|---|
-| `/approval` | `ApprovalPage` | `leaveService` | Leave approval and rejection |
-| `/report` | `ReportPage` | Report service | Attendance, leave, and employee reports |
-| `/master-data` | `MasterDataPage` | Department, position, branch services | Organization master data |
+| Route | Access | Page |
+|---|---|---|
+| `/approval` | Admin, HR, Manager | `ApprovalPage` |
+| `/report` | Admin, HR, Manager | `ReportPage` |
+| `/master-data` | Admin, HR, Manager | `MasterDataPage` |
 
 ## Admin and HR
 
-| Route | Page | Main Services | Purpose |
-|---|---|---|---|
-| `/employee` | `EmployeeManagementPage` | `employeeService` | Employee administration |
-| `/employee/:employeeId/profile` | `ProfilePage` | `profileService` | Managed employee profile |
-| `/employee/:employeeId/documents` | `DocumentsPage` | `documentService` | Managed employee documents |
-| `/profile-change-reviews` | `ProfileChangeRequestsPage` | `profileChangeService` | Review sensitive profile changes |
-| `/shift` | `ShiftPage` | Shift service | Shift administration |
-| `/shift-schedule` | `ShiftSchedulePage` | Shift-schedule service | Shift assignment |
-| `/leave-master` | `LeaveMasterPage` | `leaveAdminService` | Leave administration |
-| `/payroll` | `PayrollPage` | `payrollService`, `employeeService` | Components, salary profiles, periods, and payroll processing |
-| `/audit-log` | `AuditLogPage` | `activityLogService` | Activity log list and detail |
+| Route | Page | Purpose |
+|---|---|---|
+| `/employee` | `EmployeeManagementPage` | Employee administration |
+| `/profile-change-reviews` | `ProfileChangeRequestsPage` | Review profile changes |
+| `/shift` | `ShiftPage` | Shift administration |
+| `/shift-schedule` | `ShiftSchedulePage` | Schedule administration |
+| `/leave-master` | `LeaveMasterPage` | Leave administration |
+| `/payroll` | `PayrollPage` | Payroll processing and reporting |
+| `/audit-log` | `AuditLogPage` | Activity log |
 
 ## Payroll Workspace Tabs
 
-| Tab | Main Component | Backend Contract | Purpose |
-|---|---|---|---|
-| Payroll | `PayrollListTab` | `/admin/payrolls` | Filters, summaries, detail, and lifecycle actions |
-| Periode | `PeriodsTab` | `/admin/payroll-periods` | Period CRUD and draft generation |
-| Profil Gaji | `ProfilesTab` | `/admin/employees/{employee}/salary-profiles` | Effective salary and component assignments |
-| Komponen | `SalaryComponentsTab` | `/admin/salary-components` | Earning/deduction master administration |
+| Tab | Component | Backend Contract |
+|---|---|---|
+| Payroll | `PayrollListTab` | `/admin/payrolls` |
+| Laporan | `ReportsTab` | `/admin/payroll-reports/*` |
+| Periode | `PeriodsTab` | `/admin/payroll-periods` |
+| Profil Gaji | `ProfilesTab` | `/admin/employees/{employee}/salary-profiles` |
+| Komponen | `SalaryComponentsTab` | `/admin/salary-components` |
 
-## Fallback
+## Rules
 
-| Route | Behavior |
-|---|---|
-| `*` | Redirect to `/dashboard` |
-| `/` | Redirect to `/dashboard` after authentication |
-
-## Route Rules
-
-- Every private page must be nested under `ProtectedRoute`.
-- Role guards are UX controls, not the backend security source of truth.
-- Navigation visibility must match route access.
-- Payroll salary data is visible only to Admin and HR in this foundation.
-- Direct URL access must render an authorized page or redirect safely.
-- A route addition must update this matrix, sidebar configuration, tests, and backend documentation.
+- Private pages are nested under `ProtectedRoute`.
+- Navigation visibility matches route guards.
+- Backend authorization remains authoritative.
+- Employees access only their own finalized or paid payslips.
+- Admin and HR manage payroll and payroll reports.
+- Manager cannot access salary data.
+- Unknown routes redirect to `/dashboard`.

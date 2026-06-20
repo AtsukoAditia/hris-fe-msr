@@ -2,45 +2,41 @@
 
 > Last updated: 20 June 2026
 
-## Completed Modules
+## Completed Core Modules
 
-| Module | Main Route | Status |
+- Authentication and RBAC
+- Dashboard
+- Organization master data
+- Employee management, profile, contacts, documents, and change review
+- Shift and basic scheduling
+- Attendance and correction
+- Leave administration
+- Overtime
+- Reports and activity log
+
+## Completed Payroll Modules
+
+| Module | Route | Status |
 |---|---|---|
-| Authentication and RBAC | `/login` | Completed |
-| Dashboard | `/dashboard` | Completed |
-| Organization Master Data | `/master-data` | Completed |
-| Employee Management | `/employee` | Completed |
-| Profile, Contacts, Documents, and Change Review | Profile routes | Completed |
-| Shift and Basic Schedule | `/shift`, `/shift-schedule` | Completed / Enhancement |
-| Attendance and Correction | `/attendance`, `/correction` | Completed |
-| Leave and Leave Administration | `/leave`, `/approval`, `/leave-master` | Completed |
-| Overtime | `/overtime` | Completed |
-| Reports and Activity Log | `/report`, `/audit-log` | Completed |
+| Salary Components | `/payroll` → Komponen | Completed |
+| Employee Salary Profile | `/payroll` → Profil Gaji | Completed |
+| Payroll Period | `/payroll` → Periode | Completed |
+| Payroll Processing | `/payroll` → Payroll | Completed |
+| Employee Payslip | `/payslips` | Completed |
+| Payroll Reporting | `/payroll` → Laporan | Completed |
 
-## Payroll Foundation
-
-| Module | Main UI Capabilities | Route | Status |
-|---|---|---|---|
-| Salary Components | Filter, create, edit, delete, earning/deduction calculation types | `/payroll` → Komponen | Completed |
-| Employee Salary Profile | Effective salary and component assignments | `/payroll` → Profil Gaji | Completed |
-| Payroll Period | Period and cutoff CRUD plus draft generation | `/payroll` → Periode | Completed |
-| Payroll Processing | Summary, filters, detail, recalculate, review, finalize, paid, cancel | `/payroll` → Payroll | Completed |
-| Payslip | Employee-owned history and breakdown | Planned | Planned |
-| Payroll Report | Period summary and CSV/PDF export | Planned | Planned |
-
-Payroll Foundation is restricted to Admin and HR. Payslip ownership and reporting are deferred to Sprint 2.
+Employee payslips include finalized or paid history, detailed income and deduction items, payroll metrics, and authenticated PDF downloads. Admin and HR reporting includes server summaries, consistent filters, CSV/PDF exports, and protected payslip downloads.
 
 ## Planned Enhancements
 
-- Payslip and payroll reporting.
-- Weekly and monthly shift calendar.
-- Notification center.
-- Generic approval inbox.
-- Attendance and leave enhancements.
-- Excel and PDF exports.
-- System settings.
-- Production hardening and broader end-to-end coverage.
+- Weekly and monthly shift calendar
+- Notification center
+- Generic approval workspace
+- Attendance and leave enhancements
+- Excel and specialized operational reports
+- System settings
+- Production hardening
 
 ## Optional Modules
 
-Organization chart, recruitment, onboarding/offboarding, performance, reimbursement, assets, announcements, training, and employee loans remain deferred until core payroll and production readiness are stable.
+Organization chart, recruitment, onboarding and offboarding, performance, reimbursement, assets, announcements, training, and employee loans remain deferred until production readiness is stable.

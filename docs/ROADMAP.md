@@ -1,115 +1,74 @@
 # Roadmap — Smart Attendance HRIS Frontend
 
-> Updated: 20 June 2026. Keep this document synchronized with the backend roadmap.
+> Updated: 20 June 2026. Keep synchronized with the backend roadmap.
 
-## Phase 0 — Core HRIS UI ✅
+## Core HRIS UI ✅
 
-- [x] Authentication, protected routes, and role navigation
-- [x] Dashboard
-- [x] Organization master data
-- [x] Employee management, profile, contacts, and documents
-- [x] Employee self-service and profile change review
+- [x] Authentication, RBAC, dashboard, and PWA foundation
+- [x] Organization and employee management
+- [x] Employee profile, documents, and self-service
 - [x] Shift and basic scheduling
-- [x] Attendance with camera, GPS, radius, and QR
-- [x] Attendance correction
-- [x] Leave request, approval, balance, and master data
-- [x] Activity log viewer
-- [x] Reports and CSV export
-- [x] Overtime workflow
-- [x] Responsive and PWA foundation
+- [x] Attendance, correction, leave, overtime, and activity log
+- [x] Core reports and CSV export
 
 ## Sprint 1 — Basic Payroll Foundation ✅
 
-- [x] Admin/HR-only `/payroll` route and navigation
-- [x] Salary component list, filter, create, edit, and delete
-- [x] Earning/deduction and fixed/percentage/formula-ready forms
-- [x] Effective-dated employee salary profile
-- [x] Employee salary component assignments
-- [x] Payroll period list, create, edit, close, and delete
+- [x] Salary components
+- [x] Effective employee salary profiles
+- [x] Payroll periods and cutoff dates
 - [x] Generate and recalculate draft payroll
-- [x] Payroll summary and employee detail
 - [x] Review, finalize, paid, and cancel actions
-- [x] Validation, loading, error, empty, and conflict states
-- [x] Desktop table and mobile card layouts
-- [x] Component/helper tests
-- [x] ESLint and production build verification
-- [x] Existing Pixel 5 and iPhone 13 acceptance workflow
+- [x] Responsive Admin/HR workspace
+- [x] Component tests, lint, build, and mobile acceptance
+
+## Sprint 2 — Payslip and Payroll Reporting ✅
+
+- [x] Employee payslip history and detail
+- [x] Authenticated PDF payslip download
+- [x] Payroll report filters and server summaries
+- [x] CSV and PDF report export
+- [x] Admin/HR protected payslip download
+- [x] Loading, error, empty, desktop, and mobile states
+- [x] Regression tests, lint, build, and mobile acceptance
 - [x] Documentation synchronization
 
-## Sprint 2 — Payslip and Payroll Reporting 🔵
-
-- [ ] Employee payslip history and detail
-- [ ] Employee ownership and Admin/HR access states
-- [ ] Authenticated payslip download
-- [ ] Payroll report filters and summaries
-- [ ] CSV export
-- [ ] PDF payslip after backend support is stable
-- [ ] Regression tests
-- [ ] Mobile acceptance
-
-## Sprint 3 — Shift Schedule Calendar
+## Sprint 3 — Shift Schedule Calendar 🔵
 
 - [ ] Weekly and monthly views
 - [ ] Employee, department, and branch filters
 - [ ] Bulk assignment and copy previous week
-- [ ] Rotating shifts and day off
-- [ ] Conflict feedback
+- [ ] Rotating shifts, day off, and conflict feedback
 - [ ] Manager team and employee personal schedules
 
 ## Sprint 4 — Notification Center
 
-- [ ] Inbox and unread badge
-- [ ] Mark read and mark all read
-- [ ] Deep links and preferences
-- [ ] Leave, correction, profile, overtime, schedule, document, and checkout triggers
+- [ ] Inbox, unread badge, read actions, deep links, and preferences
 
 ## Sprint 5 — Generic Approval Workspace
 
-- [ ] Unified approval inbox
-- [ ] Request-type filters
-- [ ] Approval timeline
-- [ ] Multi-level and delegation states
-- [ ] Old/new value comparison
-- [ ] Backward-compatible migration from existing screens
+- [ ] Unified inbox, filters, timeline, multi-level approval, and delegation
 
 ## Sprint 6 — Attendance and Leave Enhancements
 
-- [ ] Attendance anomaly and missing-checkout states
-- [ ] Early leave, work from home, and business trip
-- [ ] Half-day leave and hourly permission
-- [ ] Carry-forward display and team leave calendar
+- [ ] Attendance anomaly, missing checkout, half-day leave, hourly permission, and team calendar
 
 ## Sprint 7 — Reporting Enhancement
 
-- [ ] Excel and PDF downloads
-- [ ] Anomaly, late, overtime, expiry, and turnover reports
-- [ ] Consistent filters
-- [ ] Background-export progress
+- [ ] Excel and specialized operational reports
+- [ ] Consistent filters and background-export progress
 
 ## Sprint 8 — System Settings
 
-- [ ] Company profile
-- [ ] Timezone, workdays, and date format
-- [ ] Attendance, leave, overtime, and payroll defaults
-- [ ] Upload limit, QR expiration, and notification preferences
+- [ ] Company, timezone, workdays, attendance, leave, overtime, payroll, upload, and notification settings
 
 ## Sprint 9 — Optional Expansion
 
-- [ ] Organization chart
-- [ ] Recruitment
-- [ ] Onboarding and offboarding
-- [ ] Performance
-- [ ] Reimbursement and assets
-- [ ] Announcements, training, and employee loans
+- [ ] Organization chart, recruitment, onboarding, performance, reimbursement, assets, announcements, training, and loans
 
 ## Sprint 10 — Production Hardening
 
-- [ ] Production environment and error monitoring
-- [ ] PWA install and offline review
-- [ ] Accessibility and bundle review
-- [ ] Critical end-to-end tests
-- [ ] User/admin manual, limitations, and changelog
+- [ ] Production environment, monitoring, PWA/offline review, accessibility, critical E2E, and final manuals
 
 ## Definition of Done
 
-A frontend module is complete when the backend contract is stable, role guards are correct, API access is isolated in services, all UI states are handled, desktop/mobile behavior is accepted, tests and build pass, critical flows pass acceptance, and documentation is synchronized.
+A module is complete when its backend contract is stable, role guards and service integration are correct, all UI states are handled, desktop/mobile behavior is accepted, tests and build pass, and documentation is synchronized.

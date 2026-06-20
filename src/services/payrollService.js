@@ -1,5 +1,7 @@
 import api from '../lib/axios'
 
+const blobConfig = { responseType: 'blob' }
+
 const payrollService = {
   listSalaryComponents: (params = {}) => api.get('/admin/salary-components', { params }),
   createSalaryComponent: (data) => api.post('/admin/salary-components', data),
@@ -27,6 +29,17 @@ const payrollService = {
   finalizePayroll: (id) => api.post(`/admin/payrolls/${id}/finalize`),
   markPayrollPaid: (id) => api.post(`/admin/payrolls/${id}/paid`),
   cancelPayroll: (id, reason) => api.post(`/admin/payrolls/${id}/cancel`, { reason }),
+
+  listMyPayslips: (params = {}) => api.get('/payslips', { params }),
+  getMyPayslip: (id) => api.get(`/payslips/${id}`),
+  downloadMyPayslip: (id) => api.get(`/payslips/${id}/download`, blobConfig),
+
+  getPayrollReportSummary: (params = {}) => api.get('/admin/payroll-reports/summary', { params }),
+  exportPayrollReport: (format, params = {}) => api.get('/admin/payroll-reports/export', {
+    params: { ...params, format },
+    ...blobConfig,
+  }),
+  downloadAdminPayslip: (id) => api.get(`/admin/payrolls/${id}/payslip/download`, blobConfig),
 }
 
 export default payrollService
