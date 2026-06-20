@@ -45,9 +45,9 @@ export const Modal = ({ open, title, onClose, children, size = 'max-w-2xl' }) =>
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button type="button" aria-label="Tutup modal" className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className={`relative max-h-[92vh] w-full ${size} overflow-y-auto rounded-2xl bg-white shadow-xl`}>
+      <div role="dialog" aria-modal="true" aria-labelledby="payroll-modal-title" className={`relative max-h-[92vh] w-full ${size} overflow-y-auto rounded-2xl bg-white shadow-xl`}>
         <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-5 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+          <h2 id="payroll-modal-title" className="text-lg font-semibold text-gray-900">{title}</h2>
           <button type="button" onClick={onClose} aria-label="Tutup" className="text-2xl leading-none text-gray-400 hover:text-gray-700">×</button>
         </div>
         <div className="p-5">{children}</div>
