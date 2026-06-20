@@ -26,7 +26,7 @@ test('Payroll workspace remains usable on mobile', async ({ page }, testInfo) =>
   await page.getByRole('button', { name: 'Tutup', exact: true }).click()
 
   await page.getByRole('button', { name: 'Periode', exact: true }).click()
-  await expect(page.getByText('June 2026')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'June 2026' })).toBeVisible()
   await expectNoDocumentOverflow(page)
   await page.getByRole('button', { name: /Tambah Periode/ }).click()
   await expectModalFitsViewport(page, 'Tambah Periode Payroll')
