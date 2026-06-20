@@ -19,6 +19,7 @@ import CorrectionPage from '../pages/correction/CorrectionPage'
 import AuditLogPage from '../pages/audit-log/AuditLogPage'
 import LeaveMasterPage from '../pages/leave/LeaveMasterPage'
 import OvertimePage from '../pages/overtime/OvertimePage'
+import PayrollPage from '../pages/payroll/PayrollPage'
 
 const AppRoutes = () => (
   <Routes>
@@ -54,6 +55,7 @@ const AppRoutes = () => (
         <Route path="/shift-schedule" element={<ShiftSchedulePage />} />
         <Route path="/leave-master" element={<LeaveMasterPage />} />
         <Route path="/audit-log" element={<AuditLogPage />} />
+        <Route path="/payroll" element={<PayrollPage />} />
       </Route>
     </Route>
     <Route path="*" element={<Navigate to="/dashboard" replace />} />

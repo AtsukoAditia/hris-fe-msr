@@ -1,8 +1,8 @@
 # HRIS Frontend — `hris-fe-msr`
 
-React + Vite PWA untuk **Smart Attendance HRIS**, terhubung dengan backend Laravel [`hris-be-msr`](https://github.com/AtsukoAditia/hris-be-msr).
+React + Vite PWA untuk **Smart Attendance HRIS**, terhubung dengan backend Laravel `hris-be-msr`.
 
-> **Status terakhir diverifikasi:** 20 Juni 2026  
+> Status terakhir diverifikasi: 20 Juni 2026  
 > Branch utama: `main`
 
 ## Tech Stack
@@ -13,7 +13,6 @@ React + Vite PWA untuk **Smart Attendance HRIS**, terhubung dengan backend Larav
 | Styling | Tailwind CSS 3 |
 | Routing | React Router 6 |
 | State | Zustand |
-| Form & Validation | React Hook Form, Zod |
 | HTTP | Axios |
 | Testing | Vitest, React Testing Library, Playwright |
 | PWA | vite-plugin-pwa + Workbox |
@@ -23,32 +22,37 @@ React + Vite PWA untuk **Smart Attendance HRIS**, terhubung dengan backend Larav
 
 | Module | Backend | Frontend | Status |
 |---|:---:|:---:|---|
-| Foundation, API v1, Authentication & RBAC | ✅ | ✅ | Synced |
-| Role-based Dashboard | ✅ | ✅ | Synced |
-| Organization Master: Department, Position, Branch | ✅ | ✅ | Completed |
-| Employee Management & Direct Manager Relation | ✅ | ✅ | Completed |
-| Employee Profile, Emergency Contact & Documents | ✅ | ✅ | Completed |
-| Employee Self-Service & Profile Change Approval | ✅ | ✅ | Completed |
-| Shift & Basic Shift Schedule | ✅ | ✅ | Completed |
-| Attendance: GPS, Photo, Radius & QR | ✅ | ✅ | Completed |
-| Attendance Correction | ✅ | ✅ | Completed |
-| Activity Log Viewer | ✅ | ✅ | Completed |
-| Leave Request, Approval, Balance & History | ✅ | ✅ | Completed |
-| Leave Type, Policy, Holiday & Balance Administration | ✅ | ✅ | Completed |
-| Attendance, Leave & Employee Reports + CSV | ✅ | ✅ | Completed |
-| **Overtime Policy & Request Workflow** | ✅ | ✅ | **Completed** |
-| Payroll Foundation | ⬜ | ⬜ | Planned |
+| Authentication, RBAC, and Dashboard | ✅ | ✅ | Completed |
+| Organization and Employee Management | ✅ | ✅ | Completed |
+| Profile, Documents, and Self-Service | ✅ | ✅ | Completed |
+| Shift, Attendance, and Correction | ✅ | ✅ | Completed |
+| Leave and Overtime | ✅ | ✅ | Completed |
+| Reports and Activity Log | ✅ | ✅ | Completed |
+| Basic Payroll Foundation | ✅ | ✅ | Completed |
+| Payslip and Payroll Reporting | ⬜ | ⬜ | Planned Sprint 2 |
 
-## Current Frontend Milestone — Overtime Management
+## Basic Payroll Foundation
 
-Frontend overtime sudah disinkronkan dengan kontrak backend:
+Admin and HR can open `/payroll` to manage the basic payroll workflow.
 
-- Employee dapat memilih policy aktif, mengajukan lembur, melihat history, dan membatalkan request pending.
-- Admin, HR, dan Manager dapat melihat request sesuai scope lalu approve atau reject.
-- Admin dan HR dapat mencatat menit aktual serta mengelola overtime policy.
-- Payload menggunakan `overtime_policy_id`, `overtime_date`, `planned_start_time`, `planned_end_time`, dan `reason`.
-- Filter status dan tanggal, pagination, loading/error/empty state, serta validasi batas harian tersedia.
-- Route `/overtime` responsif dan tersedia untuk seluruh role terautentikasi.
+The workspace contains four tabs:
+
+- **Payroll:** list, filters, page summary, employee detail, component breakdown, recalculation, review, finalization, mark paid, and cancellation.
+- **Periode:** payroll period and cutoff CRUD plus draft generation.
+- **Profil Gaji:** effective-dated basic salary, currency, notes, and employee component assignments.
+- **Komponen:** earning/deduction components with fixed, percentage, and formula-ready calculation types.
+
+Frontend safeguards and states:
+
+- Protected Admin/HR route.
+- Role-aware sidebar navigation.
+- API calls isolated in `src/services/payrollService.js`.
+- Loading, empty, error, validation, confirmation, and conflict feedback.
+- Desktop tables and mobile cards.
+- Duplicate-submit prevention during lifecycle actions.
+- Status actions aligned with `draft`, `reviewed`, `finalized`, `paid`, and `cancelled`.
+
+The foundation does not yet include employee payslips, payroll report export, automatic PPh 21/BPJS calculation, or post-finalization adjustments.
 
 ## Main Routes
 
@@ -56,134 +60,27 @@ Frontend overtime sudah disinkronkan dengan kontrak backend:
 |---|---|---|
 | `/login` | Public | Login |
 | `/dashboard` | All roles | Role-based dashboard |
-| `/profile` | All roles | Self-profile dan emergency contacts |
-| `/profile/changes` | All roles | Profile change request dan history |
-| `/security` | All roles | Change password dan account security |
-| `/documents` | All roles | Employee document self-service |
-| `/attendance` | All roles | Attendance dan history |
-| `/correction` | All roles | Attendance correction request/history |
-| `/leave` | All roles | Leave request, balance, dan history |
-| `/overtime` | All roles | Overtime request, review, actual minutes, dan policy sesuai role |
-| `/approval` | Admin, HR, Manager | Leave approval workflow |
-| `/report` | Admin, HR, Manager | Attendance, leave, dan employee reports |
-| `/master-data` | Admin, HR, Manager | Department, Position, dan Branch |
+| `/profile` | All roles | Self-profile and emergency contacts |
+| `/documents` | All roles | Document self-service |
+| `/attendance` | All roles | Attendance and history |
+| `/correction` | All roles | Attendance correction by role |
+| `/leave` | All roles | Leave request and history |
+| `/overtime` | All roles | Overtime workspace by role |
+| `/approval` | Admin, HR, Manager | Leave approval |
+| `/report` | Admin, HR, Manager | Operational reports |
+| `/master-data` | Admin, HR, Manager | Organization master data |
 | `/employee` | Admin, HR | Employee management |
-| `/employee/:employeeId/profile` | Admin, HR | Employee profile management |
-| `/employee/:employeeId/documents` | Admin, HR | Employee document management |
-| `/profile-change-reviews` | Admin, HR | Review profile change requests |
 | `/shift` | Admin, HR | Shift management |
 | `/shift-schedule` | Admin, HR | Shift assignment |
-| `/leave-master` | Admin, HR | Leave type, policy, holiday, dan balance administration |
+| `/leave-master` | Admin, HR | Leave administration |
+| `/payroll` | Admin, HR | Payroll Foundation workspace |
 | `/audit-log` | Admin, HR | Activity log viewer |
 
-
-## Attendance Correction
-
-Attendance Correction sudah tersedia untuk employee dan reviewer.
-
-Employee dapat:
-
-- Melihat daftar dan detail request miliknya.
-- Mengajukan koreksi check-in, check-out, atau keduanya.
-- Mengunggah attachment opsional.
-- Membatalkan request selama masih `pending`.
-- Melihat hasil approval atau rejection.
-
-Reviewer dapat:
-
-- Melihat request sesuai role dan scope.
-- Memfilter data.
-- Membandingkan attendance asli dan requested value.
-- Approve atau reject.
-- Melakukan manual correction untuk Admin/HR.
-
-Service utama:
-
-```text
-src/services/correctionService.js
-```
-
-## Leave Management
-
-Employee leave page menyediakan:
-
-- Leave type selection.
-- Date range dan duration preview.
-- Request submission.
-- Balance summary.
-- Request history.
-- Cancellation untuk request `pending`.
-- Error, loading, dan empty state.
-
-Admin/HR leave master page menyediakan pengelolaan:
-
-- Leave types.
-- Leave policies.
-- Holidays.
-- Leave balances dan adjustments.
-
-Service utama:
-
-```text
-src/services/leaveService.js
-src/services/leaveAdminService.js
-```
-
-## Overtime Management
-
-Route `/overtime` menyediakan workspace berbasis role:
-
-- **Employee:** submit, history, filter, detail ringkas, dan cancel pending request.
-- **Manager:** review request direct report serta approve/reject sesuai backend policy.
-- **Admin/HR:** review seluruh request, mencatat menit aktual, dan CRUD overtime policy.
-- Policy aktif dibaca melalui endpoint authenticated read-only sehingga form tidak menggunakan ID hard-coded.
-
-Service utama:
-
-```text
-src/services/overtimeService.js
-```
-
-## Employee Self-Service
-
-Self-profile memisahkan field menjadi:
-
-- **Direct update:** phone, address, personal email, alternate phone, domicile, city, province, dan postal code.
-- **Approval required:** birth data, gender, identity, marital status, nationality, tax, social security, dan health insurance identifiers.
-
-Employee dapat mengajukan perubahan data sensitif, melihat history/detail, memfilter status, dan membatalkan request pending. Admin/HR dapat membandingkan old/new value, approve, atau reject dengan catatan wajib.
-
-## Employee Document Management
-
-Employee dapat melihat summary, expiry status, metadata, version, labels, dan mengunduh dokumen melalui authenticated endpoint.
-
-Admin/HR dapat:
-
-- Upload dokumen.
-- Edit metadata.
-- Replace file dan version.
-- Download.
-- Delete.
-
-File sensitif tidak menggunakan public URL.
-
-## Activity Log Viewer
-
-Admin dan HR dapat membuka `/audit-log` untuk:
-
-- Melihat activity log terpaginated.
-- Memfilter actor, module, action, status, dan tanggal.
-- Membuka detail request/response preview.
-- Melihat metadata endpoint dan actor.
-
-Service utama:
-
-```text
-src/services/activityLogService.js
-src/services/overtimeService.js
-```
+The complete route and role map is available in `docs/ROUTE_MATRIX.md`.
 
 ## API Services
+
+Primary service files:
 
 ```text
 src/services/authService.js
@@ -191,8 +88,9 @@ src/services/attendanceService.js
 src/services/correctionService.js
 src/services/leaveService.js
 src/services/leaveAdminService.js
-src/services/activityLogService.js
 src/services/overtimeService.js
+src/services/payrollService.js
+src/services/activityLogService.js
 src/services/profileService.js
 src/services/profileChangeService.js
 src/services/documentService.js
@@ -204,44 +102,33 @@ src/services/branchService.js
 
 ## Responsive and PWA Requirements
 
-Frontend dikembangkan dengan prinsip:
-
-- Mobile-first.
-- Responsive desktop dan mobile.
-- Loading, error, dan empty state.
-- Protected route berdasarkan role.
-- API error message ditampilkan secara jelas.
-- Modal dan tabel tidak overflow pada viewport mobile.
-- PWA foundation melalui service worker dan web app manifest.
+- Mobile-first layouts.
+- Responsive tables and cards.
+- Loading, error, empty, and validation states.
+- Protected routes based on role.
+- Backend remains the authorization source of truth.
+- Modal and table content must not overflow mobile viewports.
+- PWA foundation through service worker and web app manifest.
 
 ## Testing and CI
 
-Jalankan secara lokal:
+Run locally:
 
 ```bash
-npm test
 npm run lint
+npm test
 npm run build
 npm run test:e2e
 ```
 
-Frontend CI menjalankan:
+Frontend CI validates:
 
 1. Dependency installation.
-2. ESLint.
-3. Vitest component tests.
-4. Production build.
+2. ESLint on changed source files.
+3. Full Vitest component test suite.
+4. Vite production build.
 
-Mobile acceptance menggunakan:
-
-| Device | Browser Engine |
-|---|---|
-| Pixel 5 | Chromium |
-| iPhone 13 | WebKit |
-
-Playwright mengunggah report dan diagnostic artifacts ketika diperlukan.
-
-Status CI pada milestone terbaru: **lint, component tests, production build, dan mobile acceptance passing**.
+Mobile acceptance uses Chromium with a Pixel 5 profile and WebKit with an iPhone 13 profile.
 
 ## Environment
 
@@ -259,19 +146,19 @@ cp .env.example .env
 npm run dev
 ```
 
-Aplikasi tersedia secara default melalui Vite development server.
+## Documentation
 
-Untuk mobile acceptance:
-
-```bash
-npx playwright install chromium webkit
-npm run test:e2e
+```text
+docs/PROJECT_STATUS.md
+docs/MODULES.md
+docs/ROADMAP.md
+docs/ROUTE_MATRIX.md
 ```
 
 ## Definition of Done
 
-Modul dinyatakan selesai setelah backend dan frontend contract sinkron, authorization diterapkan di backend, validation state tersedia, automated tests lulus, CI hijau, mobile acceptance lulus, dan dokumentasi diperbarui.
+A module is complete after backend and frontend contracts are synchronized, route guards and UI states are available, tests and build pass, mobile behavior is accepted, and documentation is current.
 
 ## Next Focus
 
-**Basic Payroll Foundation**, dimulai dari salary component, employee salary profile, payroll period, dan draft calculation yang memakai approved overtime sebagai input.
+**Payslip and Payroll Reporting:** employee payslip ownership, history/detail, authenticated download, period reports, CSV export, and PDF support after the backend contract is stable.

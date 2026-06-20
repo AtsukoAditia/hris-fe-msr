@@ -27,6 +27,7 @@ const navItems = [
   { path: '/shift', label: 'Shift', icon: '🗓', allowedRoles: ['admin', 'hr'] },
   { path: '/shift-schedule', label: 'Jadwal Shift', icon: '📅', allowedRoles: ['admin', 'hr'] },
   { path: '/leave-master', label: 'Master Cuti', icon: '🌿', allowedRoles: ['admin', 'hr'] },
+  { path: '/payroll', label: 'Payroll', icon: '💰', allowedRoles: ['admin', 'hr'] },
   { path: '/audit-log', label: 'Audit Log', icon: '🔍', allowedRoles: ['admin', 'hr'] },
 ]
 
