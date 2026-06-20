@@ -13,14 +13,14 @@
 | Route | Page | Main Services | Purpose |
 |---|---|---|---|
 | `/dashboard` | `DashboardPage` | Dashboard service | Role-based summary |
-| `/attendance` | `AttendancePage` | `attendanceService` | Check-in/out, QR, history, and role-based monitoring |
+| `/attendance` | `AttendancePage` | `attendanceService` | Check-in/out, QR, history, and monitoring |
 | `/leave` | `LeavePage` | `leaveService` | Leave request, balance, history, and cancellation |
-| `/overtime` | `OvertimePage` | `overtimeService` | Employee request plus reviewer/policy workspace based on role |
+| `/overtime` | `OvertimePage` | `overtimeService` | Request, review, actual minutes, and policy by role |
 | `/profile` | `ProfilePage` | `profileService` | Own profile and emergency contacts |
 | `/profile/changes` | `ProfileChangeRequestsPage` | `profileChangeService` | Own profile-change requests |
 | `/security` | `AccountSecurityPage` | `authService` | Change password |
 | `/documents` | `DocumentsPage` | `documentService` | Own employee documents |
-| `/correction` | `CorrectionPage` | `correctionService` | Attendance correction request or review based on role |
+| `/correction` | `CorrectionPage` | `correctionService` | Attendance correction by role |
 
 ## Admin, HR, and Manager
 
@@ -28,7 +28,7 @@
 |---|---|---|---|
 | `/approval` | `ApprovalPage` | `leaveService` | Leave approval and rejection |
 | `/report` | `ReportPage` | Report service | Attendance, leave, and employee reports |
-| `/master-data` | `MasterDataPage` | `departmentService`, `positionService`, `branchService` | Organization master data; write actions depend on backend authorization |
+| `/master-data` | `MasterDataPage` | Department, position, branch services | Organization master data |
 
 ## Admin and HR
 
@@ -40,8 +40,18 @@
 | `/profile-change-reviews` | `ProfileChangeRequestsPage` | `profileChangeService` | Review sensitive profile changes |
 | `/shift` | `ShiftPage` | Shift service | Shift administration |
 | `/shift-schedule` | `ShiftSchedulePage` | Shift-schedule service | Shift assignment |
-| `/leave-master` | `LeaveMasterPage` | `leaveAdminService` | Leave types, policies, holidays, and balances |
+| `/leave-master` | `LeaveMasterPage` | `leaveAdminService` | Leave administration |
+| `/payroll` | `PayrollPage` | `payrollService`, `employeeService` | Components, salary profiles, periods, and payroll processing |
 | `/audit-log` | `AuditLogPage` | `activityLogService` | Activity log list and detail |
+
+## Payroll Workspace Tabs
+
+| Tab | Main Component | Backend Contract | Purpose |
+|---|---|---|---|
+| Payroll | `PayrollListTab` | `/admin/payrolls` | Filters, summaries, detail, and lifecycle actions |
+| Periode | `PeriodsTab` | `/admin/payroll-periods` | Period CRUD and draft generation |
+| Profil Gaji | `ProfilesTab` | `/admin/employees/{employee}/salary-profiles` | Effective salary and component assignments |
+| Komponen | `SalaryComponentsTab` | `/admin/salary-components` | Earning/deduction master administration |
 
 ## Fallback
 
@@ -50,24 +60,11 @@
 | `*` | Redirect to `/dashboard` |
 | `/` | Redirect to `/dashboard` after authentication |
 
-## Planned Payroll Routes
-
-The final shape must follow the backend contract. Recommended options:
-
-```text
-/payroll
-/payroll/components
-/payroll/salaries
-/payroll/reports
-/payslips
-```
-
-A tabbed `/payroll` workspace may be used instead of multiple routes if it keeps role access and mobile navigation clear.
-
 ## Route Rules
 
 - Every private page must be nested under `ProtectedRoute`.
-- Role guards are UX controls, not the security source of truth.
+- Role guards are UX controls, not the backend security source of truth.
 - Navigation visibility must match route access.
+- Payroll salary data is visible only to Admin and HR in this foundation.
 - Direct URL access must render an authorized page or redirect safely.
-- A route addition must update this matrix, sidebar/navigation configuration, tests, and backend documentation.
+- A route addition must update this matrix, sidebar configuration, tests, and backend documentation.
