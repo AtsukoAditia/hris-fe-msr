@@ -1,12 +1,20 @@
-import { NavLink } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: '📊' },
-  { path: '/profile', label: 'Profil Saya', icon: '👤' },
-  { path: '/profile/changes', label: 'Perubahan Profil', icon: '📝' },
-  { path: '/security', label: 'Keamanan Akun', icon: '🔐' },
-  { path: '/documents', label: 'Dokumen Saya', icon: '📄' },
+  {
+    id: 'my-profile',
+    label: 'Profil Saya',
+    icon: '👤',
+    children: [
+      { path: '/profile', label: 'Data Profil', icon: '👤' },
+      { path: '/profile/changes', label: 'Perubahan Profil', icon: '📝' },
+      { path: '/security', label: 'Keamanan Akun', icon: '🔐' },
+      { path: '/documents', label: 'Dokumen Saya', icon: '📄' },
+    ],
+  },
   { path: '/attendance', label: 'Absensi', icon: '📋' },
   { path: '/correction', label: 'Koreksi Absensi', icon: '✏️' },
   { path: '/leave', label: 'Cuti', icon: '🌴' },
@@ -22,14 +30,36 @@ const navItems = [
   { path: '/audit-log', label: 'Audit Log', icon: '🔍', allowedRoles: ['admin', 'hr'] },
 ]
 
+const canAccess = (item, role) => !item.allowedRoles?.length || item.allowedRoles.includes(role)
+
+const isPathActive = (pathname, path) => pathname === path || pathname.startsWith(`${path}/`)
+
 const Sidebar = ({ isOpen, onClose }) => {
   const { user, logout } = useAuthStore()
+  const location = useLocation()
   const userPhoto = user?.face_image_url || user?.photo || user?.employee?.face_image_url || user?.employee?.photo || null
 
-  const filteredNavItems = navItems.filter((item) => {
-    if (!item.allowedRoles || item.allowedRoles.length === 0) return true
-    return item.allowedRoles.includes(user?.role)
-  })
+  const filteredNavItems = navItems
+    .filter((item) => canAccess(item, user?.role))
+    .map((item) => item.children
+      ? { ...item, children: item.children.filter((child) => canAccess(child, user?.role)) }
+      : item)
+
+  const profileGroupActive = filteredNavItems
+    .find((item) => item.id === 'my-profile')
+    ?.children.some((child) => isPathActive(location.pathname, child.path)) ?? false
+
+  const [openGroups, setOpenGroups] = useState({ 'my-profile': profileGroupActive })
+
+  useEffect(() => {
+    if (profileGroupActive) {
+      setOpenGroups((current) => ({ ...current, 'my-profile': true }))
+    }
+  }, [profileGroupActive])
+
+  const toggleGroup = (id) => {
+    setOpenGroups((current) => ({ ...current, [id]: !current[id] }))
+  }
 
   return (
     <>
@@ -42,11 +72,49 @@ const Sidebar = ({ isOpen, onClose }) => {
           </div>
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {filteredNavItems.map((item) => (
-            <NavLink key={item.path} to={item.path} onClick={onClose} className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}`}>
-              <span className="text-lg">{item.icon}</span><span>{item.label}</span>
-            </NavLink>
-          ))}
+          {filteredNavItems.map((item) => {
+            if (item.children) {
+              const isExpanded = Boolean(openGroups[item.id])
+              const isGroupActive = item.children.some((child) => isPathActive(location.pathname, child.path))
+
+              return (
+                <div key={item.id}>
+                  <button
+                    type="button"
+                    aria-expanded={isExpanded}
+                    aria-controls={`${item.id}-submenu`}
+                    onClick={() => toggleGroup(item.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isGroupActive ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}`}
+                  >
+                    <span className="text-lg">{item.icon}</span>
+                    <span className="flex-1 text-left">{item.label}</span>
+                    <span className={`text-xs transition-transform ${isExpanded ? 'rotate-180' : ''}`} aria-hidden="true">▼</span>
+                  </button>
+                  {isExpanded && (
+                    <div id={`${item.id}-submenu`} className="mt-1 ml-4 pl-3 border-l border-gray-200 space-y-1">
+                      {item.children.map((child) => (
+                        <NavLink
+                          key={child.path}
+                          to={child.path}
+                          end
+                          onClick={onClose}
+                          className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
+                        >
+                          <span>{child.icon}</span><span>{child.label}</span>
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            }
+
+            return (
+              <NavLink key={item.path} to={item.path} end onClick={onClose} className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}`}>
+                <span className="text-lg">{item.icon}</span><span>{item.label}</span>
+              </NavLink>
+            )
+          })}
         </nav>
         <div className="p-4 border-t border-gray-200">
           <div className="mb-3 px-3 flex items-center gap-3">
