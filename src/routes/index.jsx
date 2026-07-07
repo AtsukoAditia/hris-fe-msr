@@ -56,6 +56,7 @@ const AppRoutes = () => (
         <Route path="/approval" element={<ApprovalPage />} />
         <Route path="/report" element={<ReportPage />} />
         <Route path="/master-data" element={<MasterDataPage />} />
+        <Route path="/shift-schedule" element={<ShiftSchedulePage />} />
       </Route>
     </Route>
     <Route element={<ProtectedRoute allowedRoles={["admin", "hr"]} />}>
@@ -71,7 +72,6 @@ const AppRoutes = () => (
           element={<ProfileChangeRequestsPage reviewMode />}
         />
         <Route path="/shift" element={<ShiftPage />} />
-        <Route path="/shift-schedule" element={<ShiftSchedulePage />} />
         <Route path="/leave-master" element={<LeaveMasterPage />} />
         <Route path="/audit-log" element={<AuditLogPage />} />
         <Route path="/payroll" element={<PayrollPage />} />
