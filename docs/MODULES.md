@@ -1,42 +1,56 @@
 # Module Inventory — Smart Attendance HRIS Frontend
 
-> Last updated: 20 June 2026
+> Last updated: 8 July 2026
 
-## Completed Core Modules
+## Completed Modules
 
-- Authentication and RBAC
-- Dashboard
-- Organization master data
-- Employee management, profile, contacts, documents, and change review
-- Shift and basic scheduling
-- Attendance and correction
-- Leave administration
-- Overtime
-- Reports and activity log
+| Module | Status |
+|---|---|
+| Authentication and RBAC | Complete |
+| Dashboard | Complete |
+| Organization master data | Complete |
+| Employee management | Complete |
+| Profile and self-service | Complete |
+| Documents | Complete |
+| Shift master | Complete |
+| Attendance | Complete |
+| Attendance correction | Complete |
+| Leave | Complete |
+| Overtime | Complete |
+| Reports | Complete |
+| Activity log | Complete |
+| Payroll foundation | Complete |
+| Payslip and payroll reporting | Complete |
+| Sprint 3 shift schedule | Complete |
 
-## Completed Payroll Modules
+## Sprint 3 Shift Schedule
 
-| Module | Route | Status |
-|---|---|---|
-| Salary Components | `/payroll` → Komponen | Completed |
-| Employee Salary Profile | `/payroll` → Profil Gaji | Completed |
-| Payroll Period | `/payroll` → Periode | Completed |
-| Payroll Processing | `/payroll` → Payroll | Completed |
-| Employee Payslip | `/payslips` | Completed |
-| Payroll Reporting | `/payroll` → Laporan | Completed |
+Completed frontend areas:
 
-Employee payslips include finalized or paid history, detailed income and deduction items, payroll metrics, and authenticated PDF downloads. Admin and HR reporting includes server summaries, consistent filters, CSV/PDF exports, and protected payslip downloads.
+- Personal schedule page.
+- Admin and HR schedule grid.
+- Manager team schedule view.
+- Employee-by-day grid.
+- Bulk assign.
+- Copy week.
+- Day off.
+- Rotating shift.
 
-## Planned Enhancements
+## Next Advanced Modules
 
-- Weekly and monthly shift calendar
-- Notification center
-- Generic approval workspace
-- Attendance and leave enhancements
-- Excel and specialized operational reports
-- System settings
-- Production hardening
+1. Stabilization and contract QA.
+2. Payroll Pro UX.
+3. Advanced shift scheduling UX.
+4. Attendance intelligence dashboard.
+5. Leave and overtime policy UX.
+6. Notification center.
+7. Employee lifecycle workspace.
+8. Performance and HR analytics UI.
+9. Production hardening.
 
-## Optional Modules
+## Rules
 
-Organization chart, recruitment, onboarding and offboarding, performance, reimbursement, assets, announcements, training, and employee loans remain deferred until production readiness is stable.
+- Keep this file synchronized with backend `docs/MODULES.md`.
+- Keep routes synchronized with `docs/ROUTE_MATRIX.md`.
+- Keep API services synchronized with `docs/SERVICE_INVENTORY.md`.
+- Backend authorization remains authoritative.
