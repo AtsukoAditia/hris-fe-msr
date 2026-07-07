@@ -31,6 +31,7 @@
 | `/approval` | Admin, HR, Manager | `ApprovalPage` | Leave approval |
 | `/report` | Admin, HR, Manager | `ReportPage` | Operational reports |
 | `/master-data` | Admin, HR, Manager | `MasterDataPage` | Organization read/manage workspace by role |
+| `/shift-schedule` | Admin, HR, Manager | `ShiftSchedulePage` | Admin/HR schedule administration; Manager read-only team schedule |
 
 ## Admin and HR
 
@@ -41,7 +42,6 @@
 | `/employee/:employeeId/documents` | `DocumentsPage` | Admin/HR employee document management |
 | `/profile-change-reviews` | `ProfileChangeRequestsPage` | Review profile changes |
 | `/shift` | `ShiftPage` | Shift administration |
-| `/shift-schedule` | `ShiftSchedulePage` | Schedule calendar, single assign, bulk assign, copy-week, day-off, rotating shift |
 | `/leave-master` | `LeaveMasterPage` | Leave administration |
 | `/payroll` | `PayrollPage` | Payroll processing and reporting |
 | `/audit-log` | `AuditLogPage` | Activity log |
@@ -61,7 +61,8 @@
 | UI | Backend Contract |
 |---|---|
 | My schedule | `GET /shift-schedules/my-schedule` |
-| Team/admin schedule list | `GET /shift-schedules` and `GET /shift-schedules/team-schedule` |
+| Admin/HR schedule grid | `GET /shift-schedules` |
+| Manager team schedule grid | `GET /shift-schedules/team-schedule` |
 | Single assign/edit/delete | `POST/PUT/DELETE /shift-schedules` |
 | Bulk assign | `POST /shift-schedules/bulk` |
 | Copy week | `POST /shift-schedules/copy-week` |
@@ -73,6 +74,6 @@
 - Navigation visibility matches route guards.
 - Backend authorization remains authoritative.
 - Employees access only their own finalized or paid payslips.
-- Admin and HR manage payroll and payroll reports.
-- Manager cannot access salary data.
+- Admin and HR manage payroll, payroll reports, and shift assignment.
+- Manager can view team shift schedules but cannot access salary data or Admin/HR shift assignment actions.
 - Unknown routes redirect to `/dashboard`.
