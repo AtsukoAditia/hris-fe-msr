@@ -65,8 +65,10 @@ Employees can open `/payslips` to view payslip history, see payroll detail, and 
 Frontend and backend Sprint 3 have been merged into `main` and include:
 
 - `/my-schedule` employee self-service route.
-- Shift schedule calendar workspace.
-- Bulk assign, copy-week, day-off, and rotating shift UI.
+- `/shift-schedule` Admin/HR schedule administration route.
+- `/shift-schedule` Manager read-only team schedule route backed by `/shift-schedules/team-schedule`.
+- Employee-by-day weekly calendar grid, so multi-employee schedules no longer overwrite each other in the UI.
+- Bulk assign, copy-week, day-off, and rotating shift UI for Admin/HR.
 - Service methods aligned with backend endpoints: `/shift-schedules/my-schedule`, `/shift-schedules/team-schedule`, `/shift-schedules/copy-week`, and `/shift-schedules/rotating`.
 - Backend-compatible response handling for bulk/copy/rotating actions.
 
@@ -89,7 +91,7 @@ Frontend and backend Sprint 3 have been merged into `main` and include:
 | `/master-data` | Admin, HR, Manager | Organization master data |
 | `/employee` | Admin, HR | Employee management |
 | `/shift` | Admin, HR | Shift management |
-| `/shift-schedule` | Admin, HR | Shift assignment, copy-week, bulk, day-off, rotating shift |
+| `/shift-schedule` | Admin, HR, Manager | Admin/HR shift assignment; Manager team schedule view |
 | `/leave-master` | Admin, HR | Leave administration |
 | `/payroll` | Admin, HR | Payroll workspace and reports |
 | `/audit-log` | Admin, HR | Activity log viewer |
