@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { useNotificationStore } from "../../store/notificationStore";
 import shiftScheduleService from "../../services/shiftScheduleService";
@@ -16,13 +16,29 @@ function getWeekDates(dateStr) {
   );
 }
 
+function extractRows(response) {
+  const payload = response?.data?.data;
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
+}
+
+function getEmployeeName(employee = {}) {
+  return (
+    employee.full_name ||
+    employee.name ||
+    employee.user?.name ||
+    [employee.first_name, employee.last_name].filter(Boolean).join(" ") ||
+    `Employee #${employee.id}`
+  );
+}
+
 export default function ShiftSchedulePage() {
   const { user } = useAuthStore();
   const notify = useNotificationStore((s) => s.showNotification);
 
   const isAdminOrHr = ["admin", "hr"].includes(user?.role);
 
-  // Filters
   const [employees, setEmployees] = useState([]);
   const [shifts, setShifts] = useState([]);
   const [weekStart, setWeekStart] = useState(() => {
@@ -33,11 +49,9 @@ export default function ShiftSchedulePage() {
   const [filterDept, setFilterDept] = useState("");
   const [filterBranch, setFilterBranch] = useState("");
 
-  // Schedule data
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Single assign modal
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [assignDate, setAssignDate] = useState("");
   const [assignShift, setAssignShift] = useState("");
@@ -46,35 +60,24 @@ export default function ShiftSchedulePage() {
   const [assignNotes, setAssignNotes] = useState("");
   const [assignExistingId, setAssignExistingId] = useState(null);
 
-  // Bulk assign modal
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [bulkEmpIds, setBulkEmpIds] = useState([]);
   const [bulkShiftId, setBulkShiftId] = useState("");
   const [bulkDates, setBulkDates] = useState([]);
   const [bulkIsDayOff, setBulkIsDayOff] = useState(false);
 
-  // Copy week modal
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [copySource, setCopySource] = useState("");
   const [copyTarget, setCopyTarget] = useState("");
   const [copyEmpFilter, setCopyEmpFilter] = useState("");
 
-  // Rotating modal
   const [showRotatingModal, setShowRotatingModal] = useState(false);
   const [rotatingEmpIds, setRotatingEmpIds] = useState([]);
   const [rotatingPattern, setRotatingPattern] = useState([{ shiftId: "" }]);
   const [rotatingStartDate, setRotatingStartDate] = useState("");
   const [rotatingWeeks, setRotatingWeeks] = useState(4);
 
-  const weekDates = getWeekDates(weekStart);
-  const scheduleMap = {};
-  schedules.forEach((s) => {
-    const dateKey =
-      typeof s.schedule_date === "string"
-        ? s.schedule_date.substring(0, 10)
-        : format(new Date(s.schedule_date), "yyyy-MM-dd");
-    scheduleMap[dateKey] = s;
-  });
+  const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart]);
 
   const fetchSchedules = useCallback(async () => {
     setLoading(true);
@@ -83,64 +86,108 @@ export default function ShiftSchedulePage() {
       if (filterEmployee) params.employee_id = filterEmployee;
       if (filterDept) params.department_id = filterDept;
       if (filterBranch) params.branch_id = filterBranch;
-      const res = await shiftScheduleService.list(params);
-      setSchedules(res.data?.data || []);
-    } catch {
-      notify("Gagal memuat jadwal", "error");
+
+      const response = await shiftScheduleService.list(params);
+      setSchedules(extractRows(response));
+    } catch (error) {
+      notify(error.response?.data?.message || "Gagal memuat jadwal", "error");
     } finally {
       setLoading(false);
     }
-  }, [weekStart, filterEmployee, filterDept, filterBranch]);
+  }, [weekDates, filterEmployee, filterDept, filterBranch, notify]);
 
   useEffect(() => {
     (async () => {
       try {
-        const [empRes, shiftRes] = await Promise.all([
+        const [employeeResponse, shiftResponse] = await Promise.all([
           employeeService.list({ per_page: 100 }),
           shiftService.list(),
         ]);
-        setEmployees(empRes.data?.data || []);
-        setShifts(shiftRes.data?.data || []);
+        setEmployees(extractRows(employeeResponse));
+        setShifts(extractRows(shiftResponse));
       } catch {
-        /* empty */
+        notify("Gagal memuat master data jadwal", "warning");
       }
     })();
-  }, []);
+  }, [notify]);
 
   useEffect(() => {
     fetchSchedules();
   }, [fetchSchedules]);
 
-  const departments = [
-    ...new Map(
-      employees
-        .filter((e) => e.department)
-        .map((e) => [e.department?.id, e.department]),
-    ).values(),
-  ];
-  const branches = [
-    ...new Map(
-      employees.filter((e) => e.branch).map((e) => [e.branch?.id, e.branch]),
-    ).values(),
-  ];
+  const departments = useMemo(
+    () => [
+      ...new Map(
+        employees
+          .filter((employee) => employee.department)
+          .map((employee) => [employee.department?.id, employee.department]),
+      ).values(),
+    ],
+    [employees],
+  );
+
+  const branches = useMemo(
+    () => [
+      ...new Map(
+        employees
+          .filter((employee) => employee.branch)
+          .map((employee) => [employee.branch?.id, employee.branch]),
+      ).values(),
+    ],
+    [employees],
+  );
+
+  const employeeRows = useMemo(() => {
+    const byId = new Map(employees.map((employee) => [Number(employee.id), employee]));
+
+    schedules.forEach((schedule) => {
+      if (schedule.employee?.id && !byId.has(Number(schedule.employee.id))) {
+        byId.set(Number(schedule.employee.id), schedule.employee);
+      }
+    });
+
+    let rows = Array.from(byId.values());
+    if (filterEmployee) {
+      rows = rows.filter((employee) => Number(employee.id) === Number(filterEmployee));
+    }
+    if (filterDept) {
+      rows = rows.filter((employee) => Number(employee.department?.id) === Number(filterDept));
+    }
+    if (filterBranch) {
+      rows = rows.filter((employee) => Number(employee.branch?.id) === Number(filterBranch));
+    }
+
+    return rows.sort((a, b) => getEmployeeName(a).localeCompare(getEmployeeName(b)));
+  }, [employees, schedules, filterEmployee, filterDept, filterBranch]);
+
+  const scheduleMap = useMemo(() => {
+    const map = new Map();
+    schedules.forEach((schedule) => {
+      const dateKey =
+        typeof schedule.schedule_date === "string"
+          ? schedule.schedule_date.substring(0, 10)
+          : format(new Date(schedule.schedule_date), "yyyy-MM-dd");
+      map.set(`${schedule.employee_id}:${dateKey}`, schedule);
+    });
+    return map;
+  }, [schedules]);
 
   function changeWeek(offset) {
     const d = parseISO(weekStart);
     setWeekStart(format(addDays(d, offset * 7), "yyyy-MM-dd"));
   }
 
-  // Single assign
-  function openAssign(dateKey, existing = null) {
+  function openAssign(dateKey, employeeId = "", existing = null) {
     setAssignDate(dateKey);
     if (existing) {
       setAssignExistingId(existing.id);
       setAssignEmployee(String(existing.employee_id));
       setAssignShift(existing.shift?.id ? String(existing.shift.id) : "");
-      setAssignIsDayOff(existing.is_day_off);
+      setAssignIsDayOff(Boolean(existing.is_day_off));
       setAssignNotes(existing.notes || "");
     } else {
       setAssignExistingId(null);
-      setAssignEmployee(filterEmployee || "");
+      setAssignEmployee(String(employeeId || filterEmployee || ""));
       setAssignShift("");
       setAssignIsDayOff(false);
       setAssignNotes("");
@@ -150,8 +197,9 @@ export default function ShiftSchedulePage() {
 
   async function handleAssignSave() {
     if (!assignEmployee) return notify("Pilih karyawan", "error");
-    if (!assignIsDayOff && !assignShift)
+    if (!assignIsDayOff && !assignShift) {
       return notify("Pilih shift atau centang day off", "error");
+    }
 
     try {
       if (assignExistingId) {
@@ -172,8 +220,8 @@ export default function ShiftSchedulePage() {
       notify("Jadwal tersimpan", "success");
       setShowAssignModal(false);
       fetchSchedules();
-    } catch (e) {
-      notify(e.response?.data?.message || "Gagal menyimpan", "error");
+    } catch (error) {
+      notify(error.response?.data?.message || "Gagal menyimpan", "error");
     }
   }
 
@@ -183,12 +231,11 @@ export default function ShiftSchedulePage() {
       await shiftScheduleService.destroy(id);
       notify("Jadwal dihapus", "success");
       fetchSchedules();
-    } catch (e) {
-      notify(e.response?.data?.message || "Gagal menghapus", "error");
+    } catch (error) {
+      notify(error.response?.data?.message || "Gagal menghapus", "error");
     }
   }
 
-  // Bulk assign
   function openBulk() {
     setBulkEmpIds(filterEmployee ? [filterEmployee] : []);
     setBulkShiftId("");
@@ -201,57 +248,55 @@ export default function ShiftSchedulePage() {
     if (!bulkEmpIds.length) return notify("Pilih karyawan", "error");
     if (!bulkIsDayOff && !bulkShiftId) return notify("Pilih shift", "error");
 
-    const schedulesPayload = bulkDates.map((d) => ({
+    const schedulesPayload = bulkDates.map((date) => ({
       shift_id: bulkIsDayOff ? null : Number(bulkShiftId),
-      date: d,
+      date,
       is_day_off: bulkIsDayOff,
     }));
 
     try {
-      const res = await shiftScheduleService.bulkAssign({
+      const response = await shiftScheduleService.bulkAssign({
         employee_ids: bulkEmpIds.map(Number),
         schedules: schedulesPayload,
       });
-      const created = res.data?.created?.length || 0;
-      const errors = res.data?.errors || {};
+      const created = response.data?.created?.length ?? response.data?.data?.length ?? 0;
+      const errors = response.data?.errors || {};
       notify(
         `Bulk: ${created} jadwal dibuat${Object.keys(errors).length ? `, ${Object.keys(errors).length} error` : ""}`,
         Object.keys(errors).length ? "warning" : "success",
       );
       setShowBulkModal(false);
       fetchSchedules();
-    } catch (e) {
-      notify(e.response?.data?.message || "Gagal bulk assign", "error");
+    } catch (error) {
+      notify(error.response?.data?.message || "Gagal bulk assign", "error");
     }
   }
 
-  // Copy week
   function openCopyWeek() {
     setCopySource(weekStart);
-    const d = addDays(parseISO(weekStart), 7);
-    setCopyTarget(format(d, "yyyy-MM-dd"));
-    setCopyEmpFilter("");
+    setCopyTarget(format(addDays(parseISO(weekStart), 7), "yyyy-MM-dd"));
+    setCopyEmpFilter(filterEmployee || "");
     setShowCopyModal(true);
   }
 
   async function handleCopyWeek() {
     if (!copySource || !copyTarget) return notify("Pilih tanggal", "error");
     try {
-      const params = {
+      const payload = {
         source_start_date: copySource,
         target_start_date: copyTarget,
       };
-      if (copyEmpFilter) params.employee_ids = [Number(copyEmpFilter)];
-      const res = await shiftScheduleService.copyWeek(params);
-      notify(`${res.data?.created?.length || 0} jadwal disalin`, "success");
+      if (copyEmpFilter) payload.employee_ids = [Number(copyEmpFilter)];
+      const response = await shiftScheduleService.copyWeek(payload);
+      const created = response.data?.created?.length ?? response.data?.data?.length ?? 0;
+      notify(`${created} jadwal disalin`, "success");
       setShowCopyModal(false);
       fetchSchedules();
-    } catch (e) {
-      notify(e.response?.data?.message || "Gagal menyalin", "error");
+    } catch (error) {
+      notify(error.response?.data?.message || "Gagal menyalin", "error");
     }
   }
 
-  // Rotating
   function openRotating() {
     setRotatingEmpIds(filterEmployee ? [filterEmployee] : []);
     setRotatingPattern([{ shiftId: "" }]);
@@ -261,50 +306,54 @@ export default function ShiftSchedulePage() {
   }
 
   function addRotatingDay() {
-    setRotatingPattern((p) => [...p, { shiftId: "" }]);
+    setRotatingPattern((pattern) => [...pattern, { shiftId: "" }]);
   }
 
   function updateRotatingDay(index, value) {
-    setRotatingPattern((p) =>
-      p.map((d, i) => (i === index ? { shiftId: value } : d)),
+    setRotatingPattern((pattern) =>
+      pattern.map((item, itemIndex) =>
+        itemIndex === index ? { shiftId: value } : item,
+      ),
     );
   }
 
   async function handleRotatingSave() {
     if (!rotatingEmpIds.length) return notify("Pilih karyawan", "error");
-    const pattern = rotatingPattern.map((d) =>
-      d.shiftId === "day-off" ? null : Number(d.shiftId),
+    const pattern = rotatingPattern.map((item) =>
+      item.shiftId === "day-off" ? null : Number(item.shiftId),
     );
-    if (pattern.every((p) => p === null))
+    if (pattern.some((item) => Number.isNaN(item))) {
+      return notify("Lengkapi semua hari dalam pattern", "error");
+    }
+    if (pattern.every((item) => item === null)) {
       return notify("Pattern harus punya minimal 1 shift", "error");
+    }
 
     try {
-      const res = await shiftScheduleService.assignRotating({
+      const response = await shiftScheduleService.assignRotating({
         employee_ids: rotatingEmpIds.map(Number),
         shift_pattern: pattern,
         start_date: rotatingStartDate,
         weeks: rotatingWeeks,
       });
-      notify(
-        `${res.data?.created?.length || 0} jadwal rotating dibuat`,
-        "success",
-      );
+      const created = response.data?.created?.length ?? response.data?.data?.length ?? 0;
+      notify(`${created} jadwal rotating dibuat`, "success");
       setShowRotatingModal(false);
       fetchSchedules();
-    } catch (e) {
-      notify(e.response?.data?.message || "Gagal assign rotating", "error");
+    } catch (error) {
+      notify(error.response?.data?.message || "Gagal assign rotating", "error");
     }
   }
 
-  // Toggle employee multi-select for bulk
   function toggleBulkEmp(id) {
-    setBulkEmpIds((prev) =>
-      prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id],
+    setBulkEmpIds((current) =>
+      current.includes(id) ? current.filter((employeeId) => employeeId !== id) : [...current, id],
     );
   }
+
   function toggleRotatingEmp(id) {
-    setRotatingEmpIds((prev) =>
-      prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id],
+    setRotatingEmpIds((current) =>
+      current.includes(id) ? current.filter((employeeId) => employeeId !== id) : [...current, id],
     );
   }
 
@@ -336,60 +385,53 @@ export default function ShiftSchedulePage() {
         )}
       </div>
 
-      {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-sm font-medium mb-1">Employee</label>
             <select
               value={filterEmployee}
-              onChange={(e) => setFilterEmployee(e.target.value)}
+              onChange={(event) => setFilterEmployee(event.target.value)}
               className="border border-gray-300 rounded-md px-3 py-2 text-sm min-w-[180px]"
             >
               <option value="">All Employees</option>
-              {employees.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.first_name} {e.last_name}
+              {employees.map((employee) => (
+                <option key={employee.id} value={employee.id}>
+                  {getEmployeeName(employee)}
                 </option>
               ))}
             </select>
           </div>
-          {user?.role === "manager" && (
-            <>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Department
-                </label>
-                <select
-                  value={filterDept}
-                  onChange={(e) => setFilterDept(e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-2 text-sm min-w-[150px]"
-                >
-                  <option value="">All Departments</option>
-                  {departments.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Branch</label>
-                <select
-                  value={filterBranch}
-                  onChange={(e) => setFilterBranch(e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-2 text-sm min-w-[150px]"
-                >
-                  <option value="">All Branches</option>
-                  {branches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </>
-          )}
+          <div>
+            <label className="block text-sm font-medium mb-1">Department</label>
+            <select
+              value={filterDept}
+              onChange={(event) => setFilterDept(event.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm min-w-[150px]"
+            >
+              <option value="">All Departments</option>
+              {departments.map((department) => (
+                <option key={department.id} value={department.id}>
+                  {department.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Branch</label>
+            <select
+              value={filterBranch}
+              onChange={(event) => setFilterBranch(event.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm min-w-[150px]"
+            >
+              <option value="">All Branches</option>
+              {branches.map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <div>
             <label className="block text-sm font-medium mb-1">Week</label>
             <div className="flex items-center gap-2">
@@ -411,14 +453,16 @@ export default function ShiftSchedulePage() {
         </div>
       </div>
 
-      {/* Weekly Calendar */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[980px]">
             <thead>
               <tr className="bg-gray-50">
-                {DAYS.map((day, i) => {
-                  const dateKey = weekDates[i];
+                <th className="sticky left-0 z-10 bg-gray-50 px-3 py-3 text-left text-sm font-medium border-r border-gray-200 min-w-[220px]">
+                  Employee
+                </th>
+                {DAYS.map((day, index) => {
+                  const dateKey = weekDates[index];
                   const isToday = dateKey === format(new Date(), "yyyy-MM-dd");
                   return (
                     <th
@@ -436,64 +480,77 @@ export default function ShiftSchedulePage() {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                {weekDates.map((dateKey) => {
-                  const sched = scheduleMap[dateKey];
-                  const isDayOff = sched?.is_day_off;
-                  const shift = sched?.shift;
-                  return (
-                    <td
-                      key={dateKey}
-                      className="px-2 py-4 text-center border-r border-gray-200 align-top min-w-[120px]"
-                    >
-                      <div
-                        className={`rounded-lg p-3 mb-2 cursor-pointer hover:shadow-sm ${isDayOff ? "bg-red-50 border border-red-200" : shift ? "bg-blue-50 border border-blue-200" : "bg-gray-50 border border-gray-200"} `}
-                        onClick={() => openAssign(dateKey, sched)}
+              {employeeRows.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="text-center py-8 text-sm text-gray-500">
+                    Tidak ada karyawan untuk filter ini.
+                  </td>
+                </tr>
+              )}
+              {employeeRows.map((employee) => (
+                <tr key={employee.id} className="border-t border-gray-100">
+                  <td className="sticky left-0 z-10 bg-white px-3 py-3 border-r border-gray-200 align-top">
+                    <div className="font-medium text-sm text-gray-900">
+                      {getEmployeeName(employee)}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {employee.department?.name || "-"}
+                      {employee.branch?.name ? ` · ${employee.branch.name}` : ""}
+                    </div>
+                  </td>
+                  {weekDates.map((dateKey) => {
+                    const schedule = scheduleMap.get(`${employee.id}:${dateKey}`);
+                    const isDayOff = schedule?.is_day_off;
+                    const shift = schedule?.shift;
+                    return (
+                      <td
+                        key={`${employee.id}-${dateKey}`}
+                        className="px-2 py-3 text-center border-r border-gray-200 align-top min-w-[120px]"
                       >
-                        {sched ? (
-                          <div className="text-xs">
-                            {isDayOff ? (
-                              <span className="font-medium text-red-700">
-                                🔴 Day Off
-                              </span>
-                            ) : (
-                              <>
-                                <div className="font-medium text-gray-900">
-                                  {shift?.name}
-                                </div>
-                                <div className="text-gray-600">
-                                  {shift?.start_time?.substring(0, 5)} -{" "}
-                                  {shift?.end_time?.substring(0, 5)}
-                                </div>
-                              </>
-                            )}
-                            {sched.notes && (
-                              <div className="text-gray-500 mt-1 italic">
-                                {sched.notes}
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-xs">
-                            + Assign
-                          </span>
-                        )}
-                      </div>
-                      {sched && isAdminOrHr && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(sched.id);
-                          }}
-                          className="text-xs text-red-500 hover:text-red-700"
+                        <div
+                          className={`rounded-lg p-3 mb-2 cursor-pointer hover:shadow-sm ${isDayOff ? "bg-red-50 border border-red-200" : shift ? "bg-blue-50 border border-blue-200" : "bg-gray-50 border border-gray-200"}`}
+                          onClick={() => openAssign(dateKey, employee.id, schedule)}
                         >
-                          Delete
-                        </button>
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
+                          {schedule ? (
+                            <div className="text-xs">
+                              {isDayOff ? (
+                                <span className="font-medium text-red-700">🔴 Day Off</span>
+                              ) : (
+                                <>
+                                  <div className="font-medium text-gray-900">
+                                    {shift?.name || "Shift"}
+                                  </div>
+                                  <div className="text-gray-600">
+                                    {shift?.start_time?.substring(0, 5)} - {shift?.end_time?.substring(0, 5)}
+                                  </div>
+                                </>
+                              )}
+                              {schedule.notes && (
+                                <div className="text-gray-500 mt-1 italic">
+                                  {schedule.notes}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-xs">+ Assign</span>
+                          )}
+                        </div>
+                        {schedule && isAdminOrHr && (
+                          <button
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleDelete(schedule.id);
+                            }}
+                            className="text-xs text-red-500 hover:text-red-700"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -502,7 +559,6 @@ export default function ShiftSchedulePage() {
         )}
       </div>
 
-      {/* Single Assign Modal */}
       {showAssignModal && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -510,57 +566,49 @@ export default function ShiftSchedulePage() {
         >
           <div
             className="bg-white rounded-lg p-6 w-full max-w-md mx-4"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
           >
             <h3 className="text-lg font-semibold mb-4">
               {assignExistingId ? "Edit" : "Assign"} Shift — {assignDate}
             </h3>
             <div className="space-y-4">
-              {!filterEmployee && (
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Employee
-                  </label>
-                  <select
-                    value={assignEmployee}
-                    onChange={(e) => setAssignEmployee(e.target.value)}
-                    className="w-full border rounded-md px-3 py-2 text-sm"
-                  >
-                    <option value="">Pilih</option>
-                    {employees.map((e) => (
-                      <option key={e.id} value={e.id}>
-                        {e.first_name} {e.last_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <div>
+                <label className="block text-sm font-medium mb-1">Employee</label>
+                <select
+                  value={assignEmployee}
+                  onChange={(event) => setAssignEmployee(event.target.value)}
+                  className="w-full border rounded-md px-3 py-2 text-sm"
+                  disabled={Boolean(assignExistingId)}
+                >
+                  <option value="">Pilih</option>
+                  {employees.map((employee) => (
+                    <option key={employee.id} value={employee.id}>
+                      {getEmployeeName(employee)}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   checked={assignIsDayOff}
-                  onChange={(e) => setAssignIsDayOff(e.target.checked)}
+                  onChange={(event) => setAssignIsDayOff(event.target.checked)}
                   id="dayOffCheck"
                 />
-                <label htmlFor="dayOffCheck" className="text-sm">
-                  Day Off
-                </label>
+                <label htmlFor="dayOffCheck" className="text-sm">Day Off</label>
               </div>
               {!assignIsDayOff && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Shift
-                  </label>
+                  <label className="block text-sm font-medium mb-1">Shift</label>
                   <select
                     value={assignShift}
-                    onChange={(e) => setAssignShift(e.target.value)}
+                    onChange={(event) => setAssignShift(event.target.value)}
                     className="w-full border rounded-md px-3 py-2 text-sm"
                   >
                     <option value="">Pilih Shift</option>
-                    {shifts.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} ({s.start_time?.substring(0, 5)}-
-                        {s.end_time?.substring(0, 5)})
+                    {shifts.map((shift) => (
+                      <option key={shift.id} value={shift.id}>
+                        {shift.name} ({shift.start_time?.substring(0, 5)}-{shift.end_time?.substring(0, 5)})
                       </option>
                     ))}
                   </select>
@@ -571,7 +619,7 @@ export default function ShiftSchedulePage() {
                 <input
                   type="text"
                   value={assignNotes}
-                  onChange={(e) => setAssignNotes(e.target.value)}
+                  onChange={(event) => setAssignNotes(event.target.value)}
                   className="w-full border rounded-md px-3 py-2 text-sm"
                   placeholder="Optional"
                 />
@@ -595,7 +643,6 @@ export default function ShiftSchedulePage() {
         </div>
       )}
 
-      {/* Bulk Assign Modal */}
       {showBulkModal && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -603,7 +650,7 @@ export default function ShiftSchedulePage() {
         >
           <div
             className="bg-white rounded-lg p-6 w-full max-w-lg mx-4"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
           >
             <h3 className="text-lg font-semibold mb-4">Bulk Assign Shift</h3>
             <div className="space-y-4 max-h-[60vh] overflow-y-auto">
@@ -612,17 +659,14 @@ export default function ShiftSchedulePage() {
                   Employees (select multiple)
                 </label>
                 <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-md p-2">
-                  {employees.map((e) => (
-                    <label
-                      key={e.id}
-                      className="flex items-center gap-2 text-sm"
-                    >
+                  {employees.map((employee) => (
+                    <label key={employee.id} className="flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
-                        checked={bulkEmpIds.includes(String(e.id))}
-                        onChange={() => toggleBulkEmp(String(e.id))}
+                        checked={bulkEmpIds.includes(String(employee.id))}
+                        onChange={() => toggleBulkEmp(String(employee.id))}
                       />
-                      {e.first_name} {e.last_name}
+                      {getEmployeeName(employee)}
                     </label>
                   ))}
                 </div>
@@ -631,28 +675,22 @@ export default function ShiftSchedulePage() {
                 <input
                   type="checkbox"
                   checked={bulkIsDayOff}
-                  onChange={(e) => setBulkIsDayOff(e.target.checked)}
+                  onChange={(event) => setBulkIsDayOff(event.target.checked)}
                   id="bulkDayOff"
                 />
-                <label htmlFor="bulkDayOff" className="text-sm">
-                  Day Off
-                </label>
+                <label htmlFor="bulkDayOff" className="text-sm">Day Off</label>
               </div>
               {!bulkIsDayOff && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Shift
-                  </label>
+                  <label className="block text-sm font-medium mb-1">Shift</label>
                   <select
                     value={bulkShiftId}
-                    onChange={(e) => setBulkShiftId(e.target.value)}
+                    onChange={(event) => setBulkShiftId(event.target.value)}
                     className="w-full border rounded-md px-3 py-2 text-sm"
                   >
                     <option value="">Pilih Shift</option>
-                    {shifts.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
+                    {shifts.map((shift) => (
+                      <option key={shift.id} value={shift.id}>{shift.name}</option>
                     ))}
                   </select>
                 </div>
@@ -684,7 +722,6 @@ export default function ShiftSchedulePage() {
         </div>
       )}
 
-      {/* Copy Week Modal */}
       {showCopyModal && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -692,29 +729,25 @@ export default function ShiftSchedulePage() {
         >
           <div
             className="bg-white rounded-lg p-6 w-full max-w-md mx-4"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
           >
             <h3 className="text-lg font-semibold mb-4">Copy Week Schedule</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  Source Week Start
-                </label>
+                <label className="block text-sm font-medium mb-1">Source Week Start</label>
                 <input
                   type="date"
                   value={copySource}
-                  onChange={(e) => setCopySource(e.target.value)}
+                  onChange={(event) => setCopySource(event.target.value)}
                   className="w-full border rounded-md px-3 py-2 text-sm"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  Target Week Start
-                </label>
+                <label className="block text-sm font-medium mb-1">Target Week Start</label>
                 <input
                   type="date"
                   value={copyTarget}
-                  onChange={(e) => setCopyTarget(e.target.value)}
+                  onChange={(event) => setCopyTarget(event.target.value)}
                   className="w-full border rounded-md px-3 py-2 text-sm"
                 />
               </div>
@@ -724,13 +757,13 @@ export default function ShiftSchedulePage() {
                 </label>
                 <select
                   value={copyEmpFilter}
-                  onChange={(e) => setCopyEmpFilter(e.target.value)}
+                  onChange={(event) => setCopyEmpFilter(event.target.value)}
                   className="w-full border rounded-md px-3 py-2 text-sm"
                 >
                   <option value="">All scheduled employees</option>
-                  {employees.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.first_name} {e.last_name}
+                  {employees.map((employee) => (
+                    <option key={employee.id} value={employee.id}>
+                      {getEmployeeName(employee)}
                     </option>
                   ))}
                 </select>
@@ -754,7 +787,6 @@ export default function ShiftSchedulePage() {
         </div>
       )}
 
-      {/* Rotating Shift Modal */}
       {showRotatingModal && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -762,59 +794,46 @@ export default function ShiftSchedulePage() {
         >
           <div
             className="bg-white rounded-lg p-6 w-full max-w-lg mx-4"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
           >
-            <h3 className="text-lg font-semibold mb-4">
-              Rotating Shift Pattern
-            </h3>
+            <h3 className="text-lg font-semibold mb-4">Rotating Shift Pattern</h3>
             <div className="space-y-4 max-h-[60vh] overflow-y-auto">
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  Employees
-                </label>
+                <label className="block text-sm font-medium mb-2">Employees</label>
                 <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border rounded-md p-2">
-                  {employees.map((e) => (
-                    <label
-                      key={e.id}
-                      className="flex items-center gap-2 text-sm"
-                    >
+                  {employees.map((employee) => (
+                    <label key={employee.id} className="flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
-                        checked={rotatingEmpIds.includes(String(e.id))}
-                        onChange={() => toggleRotatingEmp(String(e.id))}
+                        checked={rotatingEmpIds.includes(String(employee.id))}
+                        onChange={() => toggleRotatingEmp(String(employee.id))}
                       />
-                      {e.first_name} {e.last_name}
+                      {getEmployeeName(employee)}
                     </label>
                   ))}
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  Shift Pattern (cycle)
-                </label>
-                {rotatingPattern.map((d, i) => (
-                  <div key={i} className="flex items-center gap-2 mb-2">
-                    <span className="text-xs text-gray-500 w-16">
-                      Day {i + 1}
-                    </span>
+                <label className="block text-sm font-medium mb-1">Shift Pattern (cycle)</label>
+                {rotatingPattern.map((day, index) => (
+                  <div key={index} className="flex items-center gap-2 mb-2">
+                    <span className="text-xs text-gray-500 w-16">Day {index + 1}</span>
                     <select
-                      value={d.shiftId}
-                      onChange={(e) => updateRotatingDay(i, e.target.value)}
+                      value={day.shiftId}
+                      onChange={(event) => updateRotatingDay(index, event.target.value)}
                       className="flex-1 border rounded-md px-3 py-2 text-sm"
                     >
                       <option value="">Pilih</option>
                       <option value="day-off">🔴 Day Off</option>
-                      {shifts.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
+                      {shifts.map((shift) => (
+                        <option key={shift.id} value={shift.id}>{shift.name}</option>
                       ))}
                     </select>
                     {rotatingPattern.length > 1 && (
                       <button
                         onClick={() =>
-                          setRotatingPattern((p) =>
-                            p.filter((_, idx) => idx !== i),
+                          setRotatingPattern((pattern) =>
+                            pattern.filter((_, itemIndex) => itemIndex !== index),
                           )
                         }
                         className="text-red-500 text-sm"
@@ -833,26 +852,22 @@ export default function ShiftSchedulePage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Start Date
-                  </label>
+                  <label className="block text-sm font-medium mb-1">Start Date</label>
                   <input
                     type="date"
                     value={rotatingStartDate}
-                    onChange={(e) => setRotatingStartDate(e.target.value)}
+                    onChange={(event) => setRotatingStartDate(event.target.value)}
                     className="w-full border rounded-md px-3 py-2 text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Weeks
-                  </label>
+                  <label className="block text-sm font-medium mb-1">Weeks</label>
                   <input
                     type="number"
                     min={1}
                     max={52}
                     value={rotatingWeeks}
-                    onChange={(e) => setRotatingWeeks(Number(e.target.value))}
+                    onChange={(event) => setRotatingWeeks(Number(event.target.value))}
                     className="w-full border rounded-md px-3 py-2 text-sm"
                   />
                 </div>
