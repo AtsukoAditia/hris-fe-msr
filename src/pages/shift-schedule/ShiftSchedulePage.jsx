@@ -38,6 +38,7 @@ export default function ShiftSchedulePage() {
   const notify = useNotificationStore((s) => s.showNotification);
 
   const isAdminOrHr = ["admin", "hr"].includes(user?.role);
+  const isManagerOnly = user?.role === "manager";
 
   const [employees, setEmployees] = useState([]);
   const [shifts, setShifts] = useState([]);
@@ -87,16 +88,25 @@ export default function ShiftSchedulePage() {
       if (filterDept) params.department_id = filterDept;
       if (filterBranch) params.branch_id = filterBranch;
 
-      const response = await shiftScheduleService.list(params);
+      const request = isManagerOnly
+        ? shiftScheduleService.getTeamSchedule(params)
+        : shiftScheduleService.list(params);
+      const response = await request;
       setSchedules(extractRows(response));
     } catch (error) {
       notify(error.response?.data?.message || "Gagal memuat jadwal", "error");
     } finally {
       setLoading(false);
     }
-  }, [weekDates, filterEmployee, filterDept, filterBranch, notify]);
+  }, [weekDates, filterEmployee, filterDept, filterBranch, isManagerOnly, notify]);
 
   useEffect(() => {
+    if (!isAdminOrHr) {
+      setEmployees([]);
+      setShifts([]);
+      return;
+    }
+
     (async () => {
       try {
         const [employeeResponse, shiftResponse] = await Promise.all([
@@ -109,7 +119,7 @@ export default function ShiftSchedulePage() {
         notify("Gagal memuat master data jadwal", "warning");
       }
     })();
-  }, [notify]);
+  }, [isAdminOrHr, notify]);
 
   useEffect(() => {
     fetchSchedules();
@@ -178,6 +188,8 @@ export default function ShiftSchedulePage() {
   }
 
   function openAssign(dateKey, employeeId = "", existing = null) {
+    if (!isAdminOrHr) return;
+
     setAssignDate(dateKey);
     if (existing) {
       setAssignExistingId(existing.id);
@@ -360,7 +372,14 @@ export default function ShiftSchedulePage() {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Shift Schedule Calendar</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Shift Schedule Calendar</h1>
+          {isManagerOnly && (
+            <p className="text-sm text-gray-500 mt-1">
+              Team schedule view. Assignment actions are restricted to Admin/HR.
+            </p>
+          )}
+        </div>
         {isAdminOrHr && (
           <div className="flex gap-2">
             <button
@@ -387,51 +406,55 @@ export default function ShiftSchedulePage() {
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
         <div className="flex flex-wrap gap-4 items-end">
-          <div>
-            <label className="block text-sm font-medium mb-1">Employee</label>
-            <select
-              value={filterEmployee}
-              onChange={(event) => setFilterEmployee(event.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm min-w-[180px]"
-            >
-              <option value="">All Employees</option>
-              {employees.map((employee) => (
-                <option key={employee.id} value={employee.id}>
-                  {getEmployeeName(employee)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Department</label>
-            <select
-              value={filterDept}
-              onChange={(event) => setFilterDept(event.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm min-w-[150px]"
-            >
-              <option value="">All Departments</option>
-              {departments.map((department) => (
-                <option key={department.id} value={department.id}>
-                  {department.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Branch</label>
-            <select
-              value={filterBranch}
-              onChange={(event) => setFilterBranch(event.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm min-w-[150px]"
-            >
-              <option value="">All Branches</option>
-              {branches.map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {isAdminOrHr && (
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-1">Employee</label>
+                <select
+                  value={filterEmployee}
+                  onChange={(event) => setFilterEmployee(event.target.value)}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm min-w-[180px]"
+                >
+                  <option value="">All Employees</option>
+                  {employees.map((employee) => (
+                    <option key={employee.id} value={employee.id}>
+                      {getEmployeeName(employee)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Department</label>
+                <select
+                  value={filterDept}
+                  onChange={(event) => setFilterDept(event.target.value)}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm min-w-[150px]"
+                >
+                  <option value="">All Departments</option>
+                  {departments.map((department) => (
+                    <option key={department.id} value={department.id}>
+                      {department.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Branch</label>
+                <select
+                  value={filterBranch}
+                  onChange={(event) => setFilterBranch(event.target.value)}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm min-w-[150px]"
+                >
+                  <option value="">All Branches</option>
+                  {branches.map((branch) => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
           <div>
             <label className="block text-sm font-medium mb-1">Week</label>
             <div className="flex items-center gap-2">
@@ -508,7 +531,7 @@ export default function ShiftSchedulePage() {
                         className="px-2 py-3 text-center border-r border-gray-200 align-top min-w-[120px]"
                       >
                         <div
-                          className={`rounded-lg p-3 mb-2 cursor-pointer hover:shadow-sm ${isDayOff ? "bg-red-50 border border-red-200" : shift ? "bg-blue-50 border border-blue-200" : "bg-gray-50 border border-gray-200"}`}
+                          className={`rounded-lg p-3 mb-2 ${isAdminOrHr ? "cursor-pointer hover:shadow-sm" : "cursor-default"} ${isDayOff ? "bg-red-50 border border-red-200" : shift ? "bg-blue-50 border border-blue-200" : "bg-gray-50 border border-gray-200"}`}
                           onClick={() => openAssign(dateKey, employee.id, schedule)}
                         >
                           {schedule ? (
@@ -532,7 +555,9 @@ export default function ShiftSchedulePage() {
                               )}
                             </div>
                           ) : (
-                            <span className="text-gray-400 text-xs">+ Assign</span>
+                            <span className="text-gray-400 text-xs">
+                              {isAdminOrHr ? "+ Assign" : "Belum dijadwalkan"}
+                            </span>
                           )}
                         </div>
                         {schedule && isAdminOrHr && (
