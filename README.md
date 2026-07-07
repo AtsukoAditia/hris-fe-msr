@@ -2,7 +2,7 @@
 
 React + Vite PWA untuk **Smart Attendance HRIS**, terhubung dengan backend Laravel `hris-be-msr`.
 
-> Status terakhir diverifikasi: 20 Juni 2026  
+> Status terakhir diverifikasi: 7 Juli 2026  
 > Branch utama: `main`
 
 ## Tech Stack
@@ -29,15 +29,17 @@ React + Vite PWA untuk **Smart Attendance HRIS**, terhubung dengan backend Larav
 | Leave and Overtime | ✅ | ✅ | Completed |
 | Reports and Activity Log | ✅ | ✅ | Completed |
 | Basic Payroll Foundation | ✅ | ✅ | Completed |
-| Payslip and Payroll Reporting | ⬜ | ⬜ | Planned Sprint 2 |
+| Payslip and Payroll Reporting | ✅ | ✅ | Completed |
+| Sprint 3 Shift Schedule Self-Service | PR | ✅ | Waiting for backend PR #33 CI |
 
 ## Basic Payroll Foundation
 
-Admin and HR can open `/payroll` to manage the basic payroll workflow.
+Admin and HR can open `/payroll` to manage the payroll workflow.
 
-The workspace contains four tabs:
+The workspace contains five tabs:
 
 - **Payroll:** list, filters, page summary, employee detail, component breakdown, recalculation, review, finalization, mark paid, and cancellation.
+- **Laporan:** payroll summary, period/status/search filters, CSV/PDF export, and admin payslip download.
 - **Periode:** payroll period and cutoff CRUD plus draft generation.
 - **Profil Gaji:** effective-dated basic salary, currency, notes, and employee component assignments.
 - **Komponen:** earning/deduction components with fixed, percentage, and formula-ready calculation types.
@@ -52,7 +54,22 @@ Frontend safeguards and states:
 - Duplicate-submit prevention during lifecycle actions.
 - Status actions aligned with `draft`, `reviewed`, `finalized`, `paid`, and `cancelled`.
 
-The foundation does not yet include employee payslips, payroll report export, automatic PPh 21/BPJS calculation, or post-finalization adjustments.
+The current payroll scope does not yet include automatic tax/social-security calculation or post-finalization adjustments.
+
+## Payslip and Payroll Reporting
+
+Employees can open `/payslips` to view payslip history, see payroll detail, and download authenticated PDF payslips. Admin and HR can use the payroll report tab for summaries, CSV/PDF export, and payslip download for finalized or paid payroll records.
+
+## Sprint 3 Shift Schedule
+
+Frontend Sprint 3 has been merged into `main` and includes:
+
+- `/my-schedule` employee self-service route.
+- Shift schedule calendar workspace.
+- Bulk assign, copy-week, day-off, and rotating shift UI.
+- Service methods aligned with backend endpoints: `/shift-schedules/my-schedule`, `/shift-schedules/team-schedule`, `/shift-schedules/copy-week`, and `/shift-schedules/rotating`.
+
+Backend PR #33 must pass CI before the Sprint 3 backend contract is considered merged.
 
 ## Main Routes
 
@@ -66,6 +83,8 @@ The foundation does not yet include employee payslips, payroll report export, au
 | `/correction` | All roles | Attendance correction by role |
 | `/leave` | All roles | Leave request and history |
 | `/overtime` | All roles | Overtime workspace by role |
+| `/my-schedule` | All roles | Self-service weekly shift schedule |
+| `/payslips` | Employee | Employee payslip history and download |
 | `/approval` | Admin, HR, Manager | Leave approval |
 | `/report` | Admin, HR, Manager | Operational reports |
 | `/master-data` | Admin, HR, Manager | Organization master data |
@@ -73,7 +92,7 @@ The foundation does not yet include employee payslips, payroll report export, au
 | `/shift` | Admin, HR | Shift management |
 | `/shift-schedule` | Admin, HR | Shift assignment |
 | `/leave-master` | Admin, HR | Leave administration |
-| `/payroll` | Admin, HR | Payroll Foundation workspace |
+| `/payroll` | Admin, HR | Payroll workspace and reports |
 | `/audit-log` | Admin, HR | Activity log viewer |
 
 The complete route and role map is available in `docs/ROUTE_MATRIX.md`.
@@ -90,6 +109,7 @@ src/services/leaveService.js
 src/services/leaveAdminService.js
 src/services/overtimeService.js
 src/services/payrollService.js
+src/services/shiftScheduleService.js
 src/services/activityLogService.js
 src/services/profileService.js
 src/services/profileChangeService.js
@@ -153,6 +173,7 @@ docs/PROJECT_STATUS.md
 docs/MODULES.md
 docs/ROADMAP.md
 docs/ROUTE_MATRIX.md
+docs/SERVICE_INVENTORY.md
 ```
 
 ## Definition of Done
@@ -161,4 +182,4 @@ A module is complete after backend and frontend contracts are synchronized, rout
 
 ## Next Focus
 
-**Payslip and Payroll Reporting:** employee payslip ownership, history/detail, authenticated download, period reports, CSV export, and PDF support after the backend contract is stable.
+**Backend Sprint 3 Shift Schedule:** pass BE #33 CI, then merge backend endpoints required by the merged frontend Sprint 3 workflow.
