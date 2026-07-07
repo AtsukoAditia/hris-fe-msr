@@ -1,957 +1,877 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import shiftScheduleService from "../../services/shiftScheduleService";
-import employeeService from "../../services/employeeService";
-import shiftService from "../../services/shiftService";
+import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "../../store/authStore";
+import { useNotificationStore } from "../../store/notificationStore";
+import shiftScheduleService from "../../services/shiftScheduleService";
+import shiftService from "../../services/shiftService";
+import employeeService from "../../services/employeeService";
+import { format, startOfWeek, addDays, parseISO } from "date-fns";
 
-const DAY_NAMES = [
-  "Minggu",
-  "Senin",
-  "Selasa",
-  "Rabu",
-  "Kamis",
-  "Jumat",
-  "Sabtu",
-];
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-function formatDate(d) {
-  return d.toISOString().split("T")[0];
-}
-
-function getWeekDates(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(d.setDate(diff));
-  return Array.from({ length: 7 }, (_, i) => {
-    const dd = new Date(monday);
-    dd.setDate(monday.getDate() + i);
-    return dd;
-  });
-}
-
-function getMonthDates(year, month) {
-  const first = new Date(year, month, 1);
-  const last = new Date(year, month + 1, 0);
-  const dates = [];
-  for (let d = new Date(first); d <= last; d.setDate(d.getDate() + 1)) {
-    dates.push(new Date(d));
-  }
-  return dates;
+function getWeekDates(dateStr) {
+  const d = parseISO(dateStr);
+  const start = startOfWeek(d, { weekStartsOn: 1 });
+  return Array.from({ length: 7 }, (_, i) =>
+    format(addDays(start, i), "yyyy-MM-dd"),
+  );
 }
 
 export default function ShiftSchedulePage() {
-  const user = useAuthStore((s) => s.user);
-  const isManager = user?.role === "manager";
-  const isAdmin = ["admin", "hr"].includes(user?.role);
+  const { user } = useAuthStore();
+  const notify = useNotificationStore((s) => s.showNotification);
 
-  const [viewMode, setViewMode] = useState("week");
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [schedules, setSchedules] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [shifts, setShifts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const isAdminOrHr = ["admin", "hr"].includes(user?.role);
 
   // Filters
+  const [employees, setEmployees] = useState([]);
+  const [shifts, setShifts] = useState([]);
+  const [weekStart, setWeekStart] = useState(() => {
+    const d = new Date();
+    return format(startOfWeek(d, { weekStartsOn: 1 }), "yyyy-MM-dd");
+  });
   const [filterEmployee, setFilterEmployee] = useState("");
-  const [filterDepartment, setFilterDepartment] = useState("");
+  const [filterDept, setFilterDept] = useState("");
   const [filterBranch, setFilterBranch] = useState("");
 
-  // Modals
+  // Schedule data
+  const [schedules, setSchedules] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // Single assign modal
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignDate, setAssignDate] = useState("");
+  const [assignShift, setAssignShift] = useState("");
+  const [assignEmployee, setAssignEmployee] = useState("");
+  const [assignIsDayOff, setAssignIsDayOff] = useState(false);
+  const [assignNotes, setAssignNotes] = useState("");
+  const [assignExistingId, setAssignExistingId] = useState(null);
+
+  // Bulk assign modal
   const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkEmpIds, setBulkEmpIds] = useState([]);
+  const [bulkShiftId, setBulkShiftId] = useState("");
+  const [bulkDates, setBulkDates] = useState([]);
+  const [bulkIsDayOff, setBulkIsDayOff] = useState(false);
+
+  // Copy week modal
   const [showCopyModal, setShowCopyModal] = useState(false);
+  const [copySource, setCopySource] = useState("");
+  const [copyTarget, setCopyTarget] = useState("");
+  const [copyEmpFilter, setCopyEmpFilter] = useState("");
 
-  // Single assign form
-  const [assignForm, setAssignForm] = useState({
-    employee_id: "",
-    shift_id: "",
-    schedule_date: "",
-    notes: "",
+  // Rotating modal
+  const [showRotatingModal, setShowRotatingModal] = useState(false);
+  const [rotatingEmpIds, setRotatingEmpIds] = useState([]);
+  const [rotatingPattern, setRotatingPattern] = useState([{ shiftId: "" }]);
+  const [rotatingStartDate, setRotatingStartDate] = useState("");
+  const [rotatingWeeks, setRotatingWeeks] = useState(4);
+
+  const weekDates = getWeekDates(weekStart);
+  const scheduleMap = {};
+  schedules.forEach((s) => {
+    const dateKey =
+      typeof s.schedule_date === "string"
+        ? s.schedule_date.substring(0, 10)
+        : format(new Date(s.schedule_date), "yyyy-MM-dd");
+    scheduleMap[dateKey] = s;
   });
 
-  // Bulk assign form
-  const [bulkForm, setBulkForm] = useState({
-    employee_ids: [],
-    shift_id: "",
-    dates: [],
-    notes: "",
-  });
-
-  // Copy week form
-  const [copyForm, setCopyForm] = useState({
-    source_week_start: "",
-    target_week_start: "",
-  });
-
-  // Day off
-  const [showDayOffModal, setShowDayOffModal] = useState(false);
-  const [dayOffForm, setDayOffForm] = useState({
-    employee_id: "",
-    schedule_date: "",
-    notes: "Day Off",
-  });
-
-  const normalizeRows = (payload) => {
-    if (Array.isArray(payload)) return payload;
-    if (Array.isArray(payload?.data?.data)) return payload.data.data;
-    if (Array.isArray(payload?.data)) return payload.data;
-    return [];
-  };
-
-  const getEmpName = (emp) =>
-    emp.user?.name || emp.full_name || emp.name || emp.employee_number || "-";
-  const getEmpNumber = (emp) =>
-    emp.employee_number || emp.formatted_employee_number || "";
-
-  const departments = useMemo(() => {
-    const depts = [
-      ...new Set(employees.map((e) => e.department?.name).filter(Boolean)),
-    ];
-    return depts.sort();
-  }, [employees]);
-
-  const branches = useMemo(() => {
-    const brs = [
-      ...new Set(employees.map((e) => e.branch?.name).filter(Boolean)),
-    ];
-    return brs.sort();
-  }, [employees]);
-
-  const loadSchedules = useCallback(async () => {
+  const fetchSchedules = useCallback(async () => {
     setLoading(true);
-    setError("");
     try {
-      let res;
-      const params = {};
-      if (viewMode === "week") {
-        const weekDates = getWeekDates(currentDate);
-        params.start_date = formatDate(weekDates[0]);
-        params.end_date = formatDate(weekDates[6]);
-      } else {
-        params.start_date = formatDate(
-          new Date(currentDate.getFullYear(), currentDate.getMonth(), 1),
-        );
-        params.end_date = formatDate(
-          new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0),
-        );
-      }
+      const params = { start_date: weekDates[0], end_date: weekDates[6] };
       if (filterEmployee) params.employee_id = filterEmployee;
-
-      if (isManager && !isAdmin) {
-        res = await shiftScheduleService.getTeamSchedule(params);
-      } else {
-        res = await shiftScheduleService.getAll(params);
-      }
-      setSchedules(normalizeRows(res));
-    } catch (e) {
-      setError(e.response?.data?.message || "Gagal memuat jadwal");
+      if (filterDept) params.department_id = filterDept;
+      if (filterBranch) params.branch_id = filterBranch;
+      const res = await shiftScheduleService.list(params);
+      setSchedules(res.data?.data || []);
+    } catch {
+      notify("Gagal memuat jadwal", "error");
     } finally {
       setLoading(false);
     }
-  }, [
-    currentDate,
-    viewMode,
-    filterEmployee,
-    filterDepartment,
-    filterBranch,
-    isManager,
-    isAdmin,
-  ]);
+  }, [weekStart, filterEmployee, filterDept, filterBranch]);
 
-  const loadMeta = useCallback(async () => {
-    try {
-      const [empRes, shiftRes] = await Promise.all([
-        employeeService.getAll(),
-        shiftService.getAll(),
-      ]);
-      setEmployees(normalizeRows(empRes?.data));
-      setShifts(normalizeRows(shiftRes?.data));
-    } catch {
-      /* silent */
-    }
+  useEffect(() => {
+    (async () => {
+      try {
+        const [empRes, shiftRes] = await Promise.all([
+          employeeService.list({ per_page: 100 }),
+          shiftService.list(),
+        ]);
+        setEmployees(empRes.data?.data || []);
+        setShifts(shiftRes.data?.data || []);
+      } catch {
+        /* empty */
+      }
+    })();
   }, []);
 
   useEffect(() => {
-    loadMeta();
-  }, [loadMeta]);
+    fetchSchedules();
+  }, [fetchSchedules]);
 
-  useEffect(() => {
-    loadSchedules();
-  }, [loadSchedules]);
+  const departments = [
+    ...new Map(
+      employees
+        .filter((e) => e.department)
+        .map((e) => [e.department?.id, e.department]),
+    ).values(),
+  ];
+  const branches = [
+    ...new Map(
+      employees.filter((e) => e.branch).map((e) => [e.branch?.id, e.branch]),
+    ).values(),
+  ];
 
-  const filteredSchedules = useMemo(() => {
-    let result = schedules;
-    if (filterDepartment) {
-      result = result.filter(
-        (s) => s.employee?.department?.name === filterDepartment,
-      );
-    }
-    if (filterBranch) {
-      result = result.filter((s) => s.employee?.branch?.name === filterBranch);
-    }
-    return result;
-  }, [schedules, filterDepartment, filterBranch]);
+  function changeWeek(offset) {
+    const d = parseISO(weekStart);
+    setWeekStart(format(addDays(d, offset * 7), "yyyy-MM-dd"));
+  }
 
-  const navigateDate = (dir) => {
-    const d = new Date(currentDate);
-    if (viewMode === "week") {
-      d.setDate(d.getDate() + dir * 7);
+  // Single assign
+  function openAssign(dateKey, existing = null) {
+    setAssignDate(dateKey);
+    if (existing) {
+      setAssignExistingId(existing.id);
+      setAssignEmployee(String(existing.employee_id));
+      setAssignShift(existing.shift?.id ? String(existing.shift.id) : "");
+      setAssignIsDayOff(existing.is_day_off);
+      setAssignNotes(existing.notes || "");
     } else {
-      d.setMonth(d.getMonth() + dir);
+      setAssignExistingId(null);
+      setAssignEmployee(filterEmployee || "");
+      setAssignShift("");
+      setAssignIsDayOff(false);
+      setAssignNotes("");
     }
-    setCurrentDate(d);
-  };
-
-  const openAssignModal = (date) => {
-    setAssignForm({
-      employee_id: "",
-      shift_id: "",
-      schedule_date: date ? formatDate(date) : "",
-      notes: "",
-    });
     setShowAssignModal(true);
-  };
+  }
 
-  const handleAssign = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+  async function handleAssignSave() {
+    if (!assignEmployee) return notify("Pilih karyawan", "error");
+    if (!assignIsDayOff && !assignShift)
+      return notify("Pilih shift atau centang day off", "error");
+
     try {
-      await shiftScheduleService.create(assignForm);
+      if (assignExistingId) {
+        await shiftScheduleService.update(assignExistingId, {
+          shift_id: assignIsDayOff ? null : Number(assignShift),
+          is_day_off: assignIsDayOff,
+          notes: assignNotes || null,
+        });
+      } else {
+        await shiftScheduleService.store({
+          employee_id: Number(assignEmployee),
+          shift_id: assignIsDayOff ? null : Number(assignShift),
+          schedule_date: assignDate,
+          is_day_off: assignIsDayOff,
+          notes: assignNotes || null,
+        });
+      }
+      notify("Jadwal tersimpan", "success");
       setShowAssignModal(false);
-      loadSchedules();
-    } catch (err) {
-      setError(err.response?.data?.message || "Gagal assign shift");
-    } finally {
-      setLoading(false);
+      fetchSchedules();
+    } catch (e) {
+      notify(e.response?.data?.message || "Gagal menyimpan", "error");
     }
-  };
+  }
 
-  const handleBulk = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+  async function handleDelete(id) {
+    if (!window.confirm("Hapus jadwal ini?")) return;
     try {
-      await shiftScheduleService.bulkAssign({
-        assignments: bulkForm.employee_ids.flatMap((empId) =>
-          bulkForm.dates.map((date) => ({
-            employee_id: Number(empId),
-            shift_id: bulkForm.shift_id ? Number(bulkForm.shift_id) : null,
-            schedule_date: date,
-            notes: bulkForm.notes,
-            is_day_off: !bulkForm.shift_id,
-          })),
-        ),
+      await shiftScheduleService.destroy(id);
+      notify("Jadwal dihapus", "success");
+      fetchSchedules();
+    } catch (e) {
+      notify(e.response?.data?.message || "Gagal menghapus", "error");
+    }
+  }
+
+  // Bulk assign
+  function openBulk() {
+    setBulkEmpIds(filterEmployee ? [filterEmployee] : []);
+    setBulkShiftId("");
+    setBulkDates(weekDates);
+    setBulkIsDayOff(false);
+    setShowBulkModal(true);
+  }
+
+  async function handleBulkSave() {
+    if (!bulkEmpIds.length) return notify("Pilih karyawan", "error");
+    if (!bulkIsDayOff && !bulkShiftId) return notify("Pilih shift", "error");
+
+    const schedulesPayload = bulkDates.map((d) => ({
+      shift_id: bulkIsDayOff ? null : Number(bulkShiftId),
+      date: d,
+      is_day_off: bulkIsDayOff,
+    }));
+
+    try {
+      const res = await shiftScheduleService.bulkAssign({
+        employee_ids: bulkEmpIds.map(Number),
+        schedules: schedulesPayload,
       });
+      const created = res.data?.created?.length || 0;
+      const errors = res.data?.errors || {};
+      notify(
+        `Bulk: ${created} jadwal dibuat${Object.keys(errors).length ? `, ${Object.keys(errors).length} error` : ""}`,
+        Object.keys(errors).length ? "warning" : "success",
+      );
       setShowBulkModal(false);
-      loadSchedules();
-    } catch (err) {
-      setError(err.response?.data?.message || "Gagal bulk assign");
-    } finally {
-      setLoading(false);
+      fetchSchedules();
+    } catch (e) {
+      notify(e.response?.data?.message || "Gagal bulk assign", "error");
     }
-  };
+  }
 
-  const handleCopyWeek = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+  // Copy week
+  function openCopyWeek() {
+    setCopySource(weekStart);
+    const d = addDays(parseISO(weekStart), 7);
+    setCopyTarget(format(d, "yyyy-MM-dd"));
+    setCopyEmpFilter("");
+    setShowCopyModal(true);
+  }
+
+  async function handleCopyWeek() {
+    if (!copySource || !copyTarget) return notify("Pilih tanggal", "error");
     try {
-      await shiftScheduleService.copyWeek(copyForm);
+      const params = {
+        source_start_date: copySource,
+        target_start_date: copyTarget,
+      };
+      if (copyEmpFilter) params.employee_ids = [Number(copyEmpFilter)];
+      const res = await shiftScheduleService.copyWeek(params);
+      notify(`${res.data?.created?.length || 0} jadwal disalin`, "success");
       setShowCopyModal(false);
-      loadSchedules();
-    } catch (err) {
-      setError(err.response?.data?.message || "Gagal copy jadwal");
-    } finally {
-      setLoading(false);
+      fetchSchedules();
+    } catch (e) {
+      notify(e.response?.data?.message || "Gagal menyalin", "error");
     }
-  };
+  }
 
-  const handleDayOff = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      await shiftScheduleService.create({
-        ...dayOffForm,
-        shift_id: null,
-        is_day_off: true,
-      });
-      setShowDayOffModal(false);
-      loadSchedules();
-    } catch (err) {
-      setError(err.response?.data?.message || "Gagal set day off");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Rotating
+  function openRotating() {
+    setRotatingEmpIds(filterEmployee ? [filterEmployee] : []);
+    setRotatingPattern([{ shiftId: "" }]);
+    setRotatingStartDate(weekStart);
+    setRotatingWeeks(4);
+    setShowRotatingModal(true);
+  }
 
-  const handleDelete = async (id) => {
-    if (!confirm("Hapus jadwal ini?")) return;
-    setLoading(true);
-    try {
-      await shiftScheduleService.remove(id);
-      loadSchedules();
-    } catch (err) {
-      setError(err.response?.data?.message || "Gagal menghapus");
-    } finally {
-      setLoading(false);
-    }
-  };
+  function addRotatingDay() {
+    setRotatingPattern((p) => [...p, { shiftId: "" }]);
+  }
 
-  const getPrevWeekDates = () => {
-    const d = new Date(currentDate);
-    d.setDate(d.getDate() - 7);
-    return getWeekDates(d);
-  };
-
-  const weekDates = getWeekDates(currentDate);
-  const monthDates = getMonthDates(
-    currentDate.getFullYear(),
-    currentDate.getMonth(),
-  );
-
-  const headerTitle =
-    viewMode === "week"
-      ? `${formatDate(weekDates[0])} — ${formatDate(weekDates[6])}`
-      : `${currentDate.toLocaleDateString("id-ID", { month: "long", year: "numeric" })}`;
-
-  const renderScheduleCell = (date) => {
-    const dateStr = formatDate(date);
-    const daySchedules = filteredSchedules.filter(
-      (s) => s.schedule_date === dateStr,
+  function updateRotatingDay(index, value) {
+    setRotatingPattern((p) =>
+      p.map((d, i) => (i === index ? { shiftId: value } : d)),
     );
-    if (daySchedules.length === 0) return null;
-    return daySchedules.map((s) => (
-      <div
-        key={s.id}
-        className={`text-xs px-1 py-0.5 rounded mb-0.5 flex items-center justify-between ${
-          s.is_day_off
-            ? "bg-gray-200 text-gray-600"
-            : "bg-indigo-100 text-indigo-800"
-        }`}
-      >
-        <span className="truncate">
-          {isAdmin
-            ? s.employee?.user?.name ||
-              s.employee?.employee_number ||
-              `#${s.employee_id}`
-            : ""}
-          {s.is_day_off ? " Day Off" : ` ${s.shift?.name || ""}`}
-        </span>
-        {isAdmin && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDelete(s.id);
-            }}
-            className="ml-1 text-red-500 hover:text-red-700"
-          >
-            ×
-          </button>
-        )}
-      </div>
-    ));
-  };
+  }
+
+  async function handleRotatingSave() {
+    if (!rotatingEmpIds.length) return notify("Pilih karyawan", "error");
+    const pattern = rotatingPattern.map((d) =>
+      d.shiftId === "day-off" ? null : Number(d.shiftId),
+    );
+    if (pattern.every((p) => p === null))
+      return notify("Pattern harus punya minimal 1 shift", "error");
+
+    try {
+      const res = await shiftScheduleService.assignRotating({
+        employee_ids: rotatingEmpIds.map(Number),
+        shift_pattern: pattern,
+        start_date: rotatingStartDate,
+        weeks: rotatingWeeks,
+      });
+      notify(
+        `${res.data?.created?.length || 0} jadwal rotating dibuat`,
+        "success",
+      );
+      setShowRotatingModal(false);
+      fetchSchedules();
+    } catch (e) {
+      notify(e.response?.data?.message || "Gagal assign rotating", "error");
+    }
+  }
+
+  // Toggle employee multi-select for bulk
+  function toggleBulkEmp(id) {
+    setBulkEmpIds((prev) =>
+      prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id],
+    );
+  }
+  function toggleRotatingEmp(id) {
+    setRotatingEmpIds((prev) =>
+      prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id],
+    );
+  }
 
   return (
-    <div className="p-6 max-w-full">
-      <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
-        <h1 className="text-2xl font-bold">Jadwal Shift</h1>
-        <div className="flex gap-2">
-          {isAdmin && (
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Shift Schedule Calendar</h1>
+        {isAdminOrHr && (
+          <div className="flex gap-2">
+            <button
+              onClick={openBulk}
+              className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+            >
+              Bulk Assign
+            </button>
+            <button
+              onClick={openCopyWeek}
+              className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"
+            >
+              Copy Week
+            </button>
+            <button
+              onClick={openRotating}
+              className="px-3 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700"
+            >
+              Rotating Shift
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="flex flex-wrap gap-4 items-end">
+          <div>
+            <label className="block text-sm font-medium mb-1">Employee</label>
+            <select
+              value={filterEmployee}
+              onChange={(e) => setFilterEmployee(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm min-w-[180px]"
+            >
+              <option value="">All Employees</option>
+              {employees.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.first_name} {e.last_name}
+                </option>
+              ))}
+            </select>
+          </div>
+          {user?.role === "manager" && (
             <>
-              <button
-                onClick={() => openAssignModal(null)}
-                className="bg-indigo-600 text-white px-3 py-1.5 rounded text-sm hover:bg-indigo-700"
-              >
-                + Assign
-              </button>
-              <button
-                onClick={() => {
-                  setBulkForm({
-                    employee_ids: [],
-                    shift_id: "",
-                    dates: [],
-                    notes: "",
-                  });
-                  setShowBulkModal(true);
-                }}
-                className="bg-green-600 text-white px-3 py-1.5 rounded text-sm hover:bg-green-700"
-              >
-                Bulk Assign
-              </button>
-              <button
-                onClick={() => {
-                  const prev = getPrevWeekDates();
-                  setCopyForm({
-                    source_week_start: formatDate(prev[0]),
-                    target_week_start: formatDate(weekDates[0]),
-                  });
-                  setShowCopyModal(true);
-                }}
-                className="bg-orange-600 text-white px-3 py-1.5 rounded text-sm hover:bg-orange-700"
-              >
-                Copy Minggu Lalu
-              </button>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Department
+                </label>
+                <select
+                  value={filterDept}
+                  onChange={(e) => setFilterDept(e.target.value)}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm min-w-[150px]"
+                >
+                  <option value="">All Departments</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Branch</label>
+                <select
+                  value={filterBranch}
+                  onChange={(e) => setFilterBranch(e.target.value)}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm min-w-[150px]"
+                >
+                  <option value="">All Branches</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </>
           )}
-        </div>
-      </div>
-
-      {error && (
-        <div className="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm">
-          {error}
-        </div>
-      )}
-
-      {/* Filters & View Toggle */}
-      <div className="bg-white rounded-lg shadow p-4 mb-4">
-        <div className="flex flex-wrap gap-3 items-end">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              View
-            </label>
-            <div className="flex border rounded overflow-hidden">
+            <label className="block text-sm font-medium mb-1">Week</label>
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => setViewMode("week")}
-                className={`px-3 py-1.5 text-sm ${viewMode === "week" ? "bg-indigo-600 text-white" : "bg-white text-gray-700"}`}
+                onClick={() => changeWeek(-1)}
+                className="px-2 py-2 bg-gray-100 rounded hover:bg-gray-200"
               >
-                Mingguan
+                ◀
               </button>
+              <span className="text-sm font-medium px-2">{weekStart}</span>
               <button
-                onClick={() => setViewMode("month")}
-                className={`px-3 py-1.5 text-sm ${viewMode === "month" ? "bg-indigo-600 text-white" : "bg-white text-gray-700"}`}
+                onClick={() => changeWeek(1)}
+                className="px-2 py-2 bg-gray-100 rounded hover:bg-gray-200"
               >
-                Bulanan
+                ▶
               </button>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigateDate(-1)}
-              className="px-2 py-1 border rounded text-sm hover:bg-gray-50"
-            >
-              ◀
-            </button>
-            <span className="text-sm font-medium min-w-[200px] text-center">
-              {headerTitle}
-            </span>
-            <button
-              onClick={() => navigateDate(1)}
-              className="px-2 py-1 border rounded text-sm hover:bg-gray-50"
-            >
-              ▶
-            </button>
-            <button
-              onClick={() => setCurrentDate(new Date())}
-              className="px-2 py-1 border rounded text-sm hover:bg-gray-50"
-            >
-              Hari Ini
-            </button>
-          </div>
-
-          {isAdmin && (
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Pegawai
-              </label>
-              <select
-                value={filterEmployee}
-                onChange={(e) => setFilterEmployee(e.target.value)}
-                className="border rounded px-2 py-1.5 text-sm"
-              >
-                <option value="">Semua</option>
-                {employees.map((emp) => (
-                  <option key={emp.id} value={emp.id}>
-                    {getEmpName(emp)} ({getEmpNumber(emp)})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              Departemen
-            </label>
-            <select
-              value={filterDepartment}
-              onChange={(e) => setFilterDepartment(e.target.value)}
-              className="border rounded px-2 py-1.5 text-sm"
-            >
-              <option value="">Semua</option>
-              {departments.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              Cabang
-            </label>
-            <select
-              value={filterBranch}
-              onChange={(e) => setFilterBranch(e.target.value)}
-              className="border rounded px-2 py-1.5 text-sm"
-            >
-              <option value="">Semua</option>
-              {branches.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
       </div>
 
-      {/* Calendar */}
-      {loading && <p className="text-sm text-gray-500 mb-2">Memuat...</p>}
-
-      {viewMode === "week" ? (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="grid grid-cols-7 border-b">
-            {weekDates.map((date, i) => {
-              const isToday = formatDate(date) === formatDate(new Date());
-              return (
-                <div
-                  key={i}
-                  className={`p-2 text-center text-xs font-medium border-r last:border-r-0 ${
-                    isToday
-                      ? "bg-indigo-50 text-indigo-700"
-                      : "bg-gray-50 text-gray-600"
-                  }`}
-                >
-                  <div>{DAY_NAMES[date.getDay()]}</div>
-                  <div className="text-lg font-bold">{date.getDate()}</div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="grid grid-cols-7" style={{ minHeight: 300 }}>
-            {weekDates.map((date, i) => {
-              const isToday = formatDate(date) === formatDate(new Date());
-              return (
-                <div
-                  key={i}
-                  className={`border-r last:border-r-0 p-1 ${
-                    isToday ? "bg-indigo-50/30" : ""
-                  }`}
-                  onClick={() => isAdmin && openAssignModal(date)}
-                  style={{
-                    cursor: isAdmin ? "pointer" : "default",
-                    minHeight: 300,
-                  }}
-                >
-                  {renderScheduleCell(date)}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="grid grid-cols-7 border-b">
-            {["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"].map((d) => (
-              <div
-                key={d}
-                className="p-2 text-center text-xs font-medium bg-gray-50 border-r last:border-r-0"
-              >
-                {d}
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7">
-            {/* Pad first week */}
-            {(() => {
-              const firstDay = monthDates[0]?.getDay() || 0;
-              const pad = firstDay === 0 ? 6 : firstDay - 1;
-              const padded = [...Array(pad).fill(null), ...monthDates];
-              return padded.map((date, i) => {
-                if (!date)
+      {/* Weekly Calendar */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50">
+                {DAYS.map((day, i) => {
+                  const dateKey = weekDates[i];
+                  const isToday = dateKey === format(new Date(), "yyyy-MM-dd");
                   return (
-                    <div
-                      key={`pad-${i}`}
-                      className="border-r border-b p-1 min-h-[80px] bg-gray-50"
-                    />
-                  );
-                const isToday = formatDate(date) === formatDate(new Date());
-                return (
-                  <div
-                    key={i}
-                    className={`border-r border-b p-1 min-h-[80px] ${
-                      isToday ? "bg-indigo-50/30" : ""
-                    }`}
-                    onClick={() => isAdmin && openAssignModal(date)}
-                    style={{ cursor: isAdmin ? "pointer" : "default" }}
-                  >
-                    <div
-                      className={`text-xs font-medium mb-1 ${isToday ? "text-indigo-700" : "text-gray-500"}`}
+                    <th
+                      key={day}
+                      className={`px-2 py-3 text-center text-sm font-medium border-r border-gray-200 ${isToday ? "bg-blue-50" : ""}`}
                     >
-                      {date.getDate()}
-                    </div>
-                    {renderScheduleCell(date)}
-                  </div>
-                );
-              });
-            })()}
-          </div>
+                      {day}
+                      <br />
+                      <span className="text-xs text-gray-500">
+                        {dateKey.substring(5)}
+                      </span>
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                {weekDates.map((dateKey) => {
+                  const sched = scheduleMap[dateKey];
+                  const isDayOff = sched?.is_day_off;
+                  const shift = sched?.shift;
+                  return (
+                    <td
+                      key={dateKey}
+                      className="px-2 py-4 text-center border-r border-gray-200 align-top min-w-[120px]"
+                    >
+                      <div
+                        className={`rounded-lg p-3 mb-2 cursor-pointer hover:shadow-sm ${isDayOff ? "bg-red-50 border border-red-200" : shift ? "bg-blue-50 border border-blue-200" : "bg-gray-50 border border-gray-200"} `}
+                        onClick={() => openAssign(dateKey, sched)}
+                      >
+                        {sched ? (
+                          <div className="text-xs">
+                            {isDayOff ? (
+                              <span className="font-medium text-red-700">
+                                🔴 Day Off
+                              </span>
+                            ) : (
+                              <>
+                                <div className="font-medium text-gray-900">
+                                  {shift?.name}
+                                </div>
+                                <div className="text-gray-600">
+                                  {shift?.start_time?.substring(0, 5)} -{" "}
+                                  {shift?.end_time?.substring(0, 5)}
+                                </div>
+                              </>
+                            )}
+                            {sched.notes && (
+                              <div className="text-gray-500 mt-1 italic">
+                                {sched.notes}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">
+                            + Assign
+                          </span>
+                        )}
+                      </div>
+                      {sched && isAdminOrHr && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(sched.id);
+                          }}
+                          className="text-xs text-red-500 hover:text-red-700"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            </tbody>
+          </table>
         </div>
-      )}
+        {loading && (
+          <div className="text-center py-4 text-gray-500">Loading...</div>
+        )}
+      </div>
 
       {/* Single Assign Modal */}
       {showAssignModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-lg font-semibold mb-4">Assign Shift</h2>
-            <form onSubmit={handleAssign} className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Pegawai *
-                </label>
-                <select
-                  value={assignForm.employee_id}
-                  onChange={(e) =>
-                    setAssignForm({
-                      ...assignForm,
-                      employee_id: e.target.value,
-                    })
-                  }
-                  className="w-full border rounded px-3 py-2"
-                  required
-                >
-                  <option value="">Pilih Pegawai</option>
-                  {employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      {getEmpName(emp)} ({getEmpNumber(emp)})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Shift</label>
-                <select
-                  value={assignForm.shift_id}
-                  onChange={(e) =>
-                    setAssignForm({ ...assignForm, shift_id: e.target.value })
-                  }
-                  className="w-full border rounded px-3 py-2"
-                >
-                  <option value="">Day Off (tanpa shift)</option>
-                  {shifts.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} ({s.start_time}–{s.end_time})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Tanggal *
-                </label>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowAssignModal(false)}
+        >
+          <div
+            className="bg-white rounded-lg p-6 w-full max-w-md mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold mb-4">
+              {assignExistingId ? "Edit" : "Assign"} Shift — {assignDate}
+            </h3>
+            <div className="space-y-4">
+              {!filterEmployee && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Employee
+                  </label>
+                  <select
+                    value={assignEmployee}
+                    onChange={(e) => setAssignEmployee(e.target.value)}
+                    className="w-full border rounded-md px-3 py-2 text-sm"
+                  >
+                    <option value="">Pilih</option>
+                    {employees.map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.first_name} {e.last_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
                 <input
-                  type="date"
-                  value={assignForm.schedule_date}
-                  onChange={(e) =>
-                    setAssignForm({
-                      ...assignForm,
-                      schedule_date: e.target.value,
-                    })
-                  }
-                  className="w-full border rounded px-3 py-2"
-                  required
+                  type="checkbox"
+                  checked={assignIsDayOff}
+                  onChange={(e) => setAssignIsDayOff(e.target.checked)}
+                  id="dayOffCheck"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Catatan
+                <label htmlFor="dayOffCheck" className="text-sm">
+                  Day Off
                 </label>
+              </div>
+              {!assignIsDayOff && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Shift
+                  </label>
+                  <select
+                    value={assignShift}
+                    onChange={(e) => setAssignShift(e.target.value)}
+                    className="w-full border rounded-md px-3 py-2 text-sm"
+                  >
+                    <option value="">Pilih Shift</option>
+                    {shifts.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.start_time?.substring(0, 5)}-
+                        {s.end_time?.substring(0, 5)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium mb-1">Notes</label>
                 <input
                   type="text"
-                  value={assignForm.notes}
-                  onChange={(e) =>
-                    setAssignForm({ ...assignForm, notes: e.target.value })
-                  }
-                  className="w-full border rounded px-3 py-2"
-                  placeholder="Opsional"
+                  value={assignNotes}
+                  onChange={(e) => setAssignNotes(e.target.value)}
+                  className="w-full border rounded-md px-3 py-2 text-sm"
+                  placeholder="Optional"
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex gap-2 justify-end pt-2">
                 <button
-                  type="button"
                   onClick={() => setShowAssignModal(false)}
-                  className="px-4 py-2 border rounded text-sm"
+                  className="px-4 py-2 bg-gray-300 rounded-lg text-sm hover:bg-gray-400"
                 >
                   Batal
                 </button>
                 <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded text-sm disabled:opacity-50"
+                  onClick={handleAssignSave}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
                 >
-                  {loading ? "Menyimpan..." : "Simpan"}
+                  Simpan
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
 
       {/* Bulk Assign Modal */}
       {showBulkModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
-            <h2 className="text-lg font-semibold mb-4">Bulk Assign Shift</h2>
-            <form onSubmit={handleBulk} className="space-y-3">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowBulkModal(false)}
+        >
+          <div
+            className="bg-white rounded-lg p-6 w-full max-w-lg mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold mb-4">Bulk Assign Shift</h3>
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Employees (select multiple)
+                </label>
+                <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-md p-2">
+                  {employees.map((e) => (
+                    <label
+                      key={e.id}
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={bulkEmpIds.includes(String(e.id))}
+                        onChange={() => toggleBulkEmp(String(e.id))}
+                      />
+                      {e.first_name} {e.last_name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={bulkIsDayOff}
+                  onChange={(e) => setBulkIsDayOff(e.target.checked)}
+                  id="bulkDayOff"
+                />
+                <label htmlFor="bulkDayOff" className="text-sm">
+                  Day Off
+                </label>
+              </div>
+              {!bulkIsDayOff && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Shift
+                  </label>
+                  <select
+                    value={bulkShiftId}
+                    onChange={(e) => setBulkShiftId(e.target.value)}
+                    className="w-full border rounded-md px-3 py-2 text-sm"
+                  >
+                    <option value="">Pilih Shift</option>
+                    {shifts.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Pegawai * (pilih banyak)
+                  Dates ({bulkDates.length} hari)
                 </label>
-                <select
-                  multiple
-                  value={bulkForm.employee_ids}
-                  onChange={(e) =>
-                    setBulkForm({
-                      ...bulkForm,
-                      employee_ids: Array.from(
-                        e.target.selectedOptions,
-                        (o) => o.value,
-                      ),
-                    })
-                  }
-                  className="w-full border rounded px-3 py-2 h-32"
-                  required
-                >
-                  {employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      {getEmpName(emp)} ({getEmpNumber(emp)})
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Ctrl/Cmd+Click untuk pilih banyak
+                <p className="text-xs text-gray-500">
+                  {bulkDates[0]} — {bulkDates[bulkDates.length - 1]}
                 </p>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Shift (kosongkan = Day Off)
-                </label>
-                <select
-                  value={bulkForm.shift_id}
-                  onChange={(e) =>
-                    setBulkForm({ ...bulkForm, shift_id: e.target.value })
-                  }
-                  className="w-full border rounded px-3 py-2"
-                >
-                  <option value="">Day Off</option>
-                  {shifts.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} ({s.start_time}–{s.end_time})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Tanggal * (pisahkan koma)
-                </label>
-                <input
-                  type="text"
-                  value={bulkForm.dates.join(", ")}
-                  onChange={(e) =>
-                    setBulkForm({
-                      ...bulkForm,
-                      dates: e.target.value
-                        .split(",")
-                        .map((d) => d.trim())
-                        .filter(Boolean),
-                    })
-                  }
-                  className="w-full border rounded px-3 py-2"
-                  placeholder="2026-06-26, 2026-06-27, 2026-06-28"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Catatan
-                </label>
-                <input
-                  type="text"
-                  value={bulkForm.notes}
-                  onChange={(e) =>
-                    setBulkForm({ ...bulkForm, notes: e.target.value })
-                  }
-                  className="w-full border rounded px-3 py-2"
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex gap-2 justify-end pt-2">
                 <button
-                  type="button"
                   onClick={() => setShowBulkModal(false)}
-                  className="px-4 py-2 border rounded text-sm"
+                  className="px-4 py-2 bg-gray-300 rounded-lg text-sm hover:bg-gray-400"
                 >
                   Batal
                 </button>
                 <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-4 py-2 bg-green-600 text-white rounded text-sm disabled:opacity-50"
+                  onClick={handleBulkSave}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
                 >
-                  {loading ? "Menyimpan..." : "Bulk Assign"}
+                  Assign
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
 
       {/* Copy Week Modal */}
       {showCopyModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-lg font-semibold mb-4">
-              Copy Jadwal Minggu Lalu
-            </h2>
-            <form onSubmit={handleCopyWeek} className="space-y-3">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowCopyModal(false)}
+        >
+          <div
+            className="bg-white rounded-lg p-6 w-full max-w-md mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold mb-4">Copy Week Schedule</h3>
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Minggu Sumber
+                  Source Week Start
                 </label>
                 <input
                   type="date"
-                  value={copyForm.source_week_start}
-                  onChange={(e) =>
-                    setCopyForm({
-                      ...copyForm,
-                      source_week_start: e.target.value,
-                    })
-                  }
-                  className="w-full border rounded px-3 py-2"
-                  required
+                  value={copySource}
+                  onChange={(e) => setCopySource(e.target.value)}
+                  className="w-full border rounded-md px-3 py-2 text-sm"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Minggu Target
+                  Target Week Start
                 </label>
                 <input
                   type="date"
-                  value={copyForm.target_week_start}
-                  onChange={(e) =>
-                    setCopyForm({
-                      ...copyForm,
-                      target_week_start: e.target.value,
-                    })
-                  }
-                  className="w-full border rounded px-3 py-2"
-                  required
+                  value={copyTarget}
+                  onChange={(e) => setCopyTarget(e.target.value)}
+                  className="w-full border rounded-md px-3 py-2 text-sm"
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCopyModal(false)}
-                  className="px-4 py-2 border rounded text-sm"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-4 py-2 bg-orange-600 text-white rounded text-sm disabled:opacity-50"
-                >
-                  {loading ? "Menyalin..." : "Copy Jadwal"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Day Off Modal */}
-      {showDayOffModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-lg font-semibold mb-4">Set Day Off</h2>
-            <form onSubmit={handleDayOff} className="space-y-3">
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Pegawai *
+                  Employee Filter (optional)
                 </label>
                 <select
-                  value={dayOffForm.employee_id}
-                  onChange={(e) =>
-                    setDayOffForm({
-                      ...dayOffForm,
-                      employee_id: e.target.value,
-                    })
-                  }
-                  className="w-full border rounded px-3 py-2"
-                  required
+                  value={copyEmpFilter}
+                  onChange={(e) => setCopyEmpFilter(e.target.value)}
+                  className="w-full border rounded-md px-3 py-2 text-sm"
                 >
-                  <option value="">Pilih Pegawai</option>
-                  {employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      {getEmpName(emp)} ({getEmpNumber(emp)})
+                  <option value="">All scheduled employees</option>
+                  {employees.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.first_name} {e.last_name}
                     </option>
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Tanggal *
-                </label>
-                <input
-                  type="date"
-                  value={dayOffForm.schedule_date}
-                  onChange={(e) =>
-                    setDayOffForm({
-                      ...dayOffForm,
-                      schedule_date: e.target.value,
-                    })
-                  }
-                  className="w-full border rounded px-3 py-2"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Catatan
-                </label>
-                <input
-                  type="text"
-                  value={dayOffForm.notes}
-                  onChange={(e) =>
-                    setDayOffForm({ ...dayOffForm, notes: e.target.value })
-                  }
-                  className="w-full border rounded px-3 py-2"
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex gap-2 justify-end pt-2">
                 <button
-                  type="button"
-                  onClick={() => setShowDayOffModal(false)}
-                  className="px-4 py-2 border rounded text-sm"
+                  onClick={() => setShowCopyModal(false)}
+                  className="px-4 py-2 bg-gray-300 rounded-lg text-sm hover:bg-gray-400"
                 >
                   Batal
                 </button>
                 <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-4 py-2 bg-gray-600 text-white rounded text-sm disabled:opacity-50"
+                  onClick={handleCopyWeek}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"
                 >
-                  Simpan Day Off
+                  Salin
                 </button>
               </div>
-            </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rotating Shift Modal */}
+      {showRotatingModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowRotatingModal(false)}
+        >
+          <div
+            className="bg-white rounded-lg p-6 w-full max-w-lg mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold mb-4">
+              Rotating Shift Pattern
+            </h3>
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Employees
+                </label>
+                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border rounded-md p-2">
+                  {employees.map((e) => (
+                    <label
+                      key={e.id}
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={rotatingEmpIds.includes(String(e.id))}
+                        onChange={() => toggleRotatingEmp(String(e.id))}
+                      />
+                      {e.first_name} {e.last_name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Shift Pattern (cycle)
+                </label>
+                {rotatingPattern.map((d, i) => (
+                  <div key={i} className="flex items-center gap-2 mb-2">
+                    <span className="text-xs text-gray-500 w-16">
+                      Day {i + 1}
+                    </span>
+                    <select
+                      value={d.shiftId}
+                      onChange={(e) => updateRotatingDay(i, e.target.value)}
+                      className="flex-1 border rounded-md px-3 py-2 text-sm"
+                    >
+                      <option value="">Pilih</option>
+                      <option value="day-off">🔴 Day Off</option>
+                      {shifts.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                    {rotatingPattern.length > 1 && (
+                      <button
+                        onClick={() =>
+                          setRotatingPattern((p) =>
+                            p.filter((_, idx) => idx !== i),
+                          )
+                        }
+                        className="text-red-500 text-sm"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  onClick={addRotatingDay}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  + Tambah Hari
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={rotatingStartDate}
+                    onChange={(e) => setRotatingStartDate(e.target.value)}
+                    className="w-full border rounded-md px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Weeks
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={52}
+                    value={rotatingWeeks}
+                    onChange={(e) => setRotatingWeeks(Number(e.target.value))}
+                    className="w-full border rounded-md px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 justify-end pt-2">
+                <button
+                  onClick={() => setShowRotatingModal(false)}
+                  className="px-4 py-2 bg-gray-300 rounded-lg text-sm hover:bg-gray-400"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleRotatingSave}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700"
+                >
+                  Generate
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
