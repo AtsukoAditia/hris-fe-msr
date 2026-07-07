@@ -1,6 +1,7 @@
 import api from '../lib/axios'
 
 const employeeService = {
+  list: (params = {}) => api.get('/employees', { params }),
   getAll: (params = {}) => api.get('/employees', { params }),
   getManagerOptions: (params = {}) => api.get('/employees/manager-options', { params }),
   getById: (id) => api.get(`/employees/${id}`),
