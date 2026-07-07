@@ -2,6 +2,7 @@ import api from '../lib/axios';
 
 const shiftService = {
   // ==================== SHIFT TYPES ====================
+  list: (params = {}) => api.get('/shifts', { params }),
   getAll: (params = {}) => api.get('/shifts', { params }),
   getOne: (id) => api.get(`/shifts/${id}`),
   create: (data) => api.post('/shifts', data),
