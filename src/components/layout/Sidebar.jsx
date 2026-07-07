@@ -61,7 +61,7 @@ const navItems = [
     path: "/shift-schedule",
     label: "Jadwal Shift",
     icon: "📅",
-    allowedRoles: ["admin", "hr"],
+    allowedRoles: ["admin", "hr", "manager"],
   },
   {
     path: "/leave-master",
