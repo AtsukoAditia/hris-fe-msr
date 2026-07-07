@@ -2,7 +2,7 @@
 
 React + Vite PWA untuk **Smart Attendance HRIS**, terhubung dengan backend Laravel `hris-be-msr`.
 
-> Status terakhir diverifikasi: 7 Juli 2026  
+> Status terakhir diverifikasi: 8 Juli 2026  
 > Branch utama: `main`
 
 ## Tech Stack
@@ -30,7 +30,7 @@ React + Vite PWA untuk **Smart Attendance HRIS**, terhubung dengan backend Larav
 | Reports and Activity Log | ✅ | ✅ | Completed |
 | Basic Payroll Foundation | ✅ | ✅ | Completed |
 | Payslip and Payroll Reporting | ✅ | ✅ | Completed |
-| Sprint 3 Shift Schedule Self-Service | PR | ✅ | Waiting for backend PR #33 CI |
+| Sprint 3 Shift Schedule Self-Service | ✅ | ✅ | Completed |
 
 ## Basic Payroll Foundation
 
@@ -62,14 +62,13 @@ Employees can open `/payslips` to view payslip history, see payroll detail, and 
 
 ## Sprint 3 Shift Schedule
 
-Frontend Sprint 3 has been merged into `main` and includes:
+Frontend and backend Sprint 3 have been merged into `main` and include:
 
 - `/my-schedule` employee self-service route.
 - Shift schedule calendar workspace.
 - Bulk assign, copy-week, day-off, and rotating shift UI.
 - Service methods aligned with backend endpoints: `/shift-schedules/my-schedule`, `/shift-schedules/team-schedule`, `/shift-schedules/copy-week`, and `/shift-schedules/rotating`.
-
-Backend PR #33 must pass CI before the Sprint 3 backend contract is considered merged.
+- Backend-compatible response handling for bulk/copy/rotating actions.
 
 ## Main Routes
 
@@ -90,7 +89,7 @@ Backend PR #33 must pass CI before the Sprint 3 backend contract is considered m
 | `/master-data` | Admin, HR, Manager | Organization master data |
 | `/employee` | Admin, HR | Employee management |
 | `/shift` | Admin, HR | Shift management |
-| `/shift-schedule` | Admin, HR | Shift assignment |
+| `/shift-schedule` | Admin, HR | Shift assignment, copy-week, bulk, day-off, rotating shift |
 | `/leave-master` | Admin, HR | Leave administration |
 | `/payroll` | Admin, HR | Payroll workspace and reports |
 | `/audit-log` | Admin, HR | Activity log viewer |
@@ -182,4 +181,4 @@ A module is complete after backend and frontend contracts are synchronized, rout
 
 ## Next Focus
 
-**Backend Sprint 3 Shift Schedule:** pass BE #33 CI, then merge backend endpoints required by the merged frontend Sprint 3 workflow.
+Stabilization: run full frontend/backend smoke testing on merged `main`, then continue toward payroll tax/social-security calculation, post-finalization payroll adjustments, and broader shift schedule reporting.
