@@ -1,74 +1,46 @@
 # Roadmap — Smart Attendance HRIS Frontend
 
-> Updated: 20 June 2026. Keep synchronized with the backend roadmap.
+> Last updated: 8 July 2026  
+> Repository: `AtsukoAditia/hris-fe-msr`  
+> Keep synchronized with backend roadmap in `AtsukoAditia/hris-be-msr`.
 
-## Core HRIS UI ✅
+## Completed Phases
 
-- [x] Authentication, RBAC, dashboard, and PWA foundation
-- [x] Organization and employee management
-- [x] Employee profile, documents, and self-service
-- [x] Shift and basic scheduling
-- [x] Attendance, correction, leave, overtime, and activity log
-- [x] Core reports and CSV export
+| Phase | Status | Frontend Scope |
+|---|---|---|
+| Phase 0 — Core HRIS | ✅ Complete | Auth, dashboard, organization, employee, profile, documents, attendance, correction, leave, overtime, reports, audit log |
+| Sprint 1 — Payroll Foundation | ✅ Complete | Payroll workspace with payroll, report, period, salary profile, and component tabs |
+| Sprint 2 — Payslip and Payroll Reporting | ✅ Complete | Employee payslip page and Admin/HR report tab |
+| Sprint 3 — Shift Schedule | ✅ Complete | My schedule, Admin/HR grid, Manager team view, bulk, copy-week, rotating shift |
 
-## Sprint 1 — Basic Payroll Foundation ✅
+## Next Sprint Roadmap
 
-- [x] Salary components
-- [x] Effective employee salary profiles
-- [x] Payroll periods and cutoff dates
-- [x] Generate and recalculate draft payroll
-- [x] Review, finalize, paid, and cancel actions
-- [x] Responsive Admin/HR workspace
-- [x] Component tests, lint, build, and mobile acceptance
+| Sprint | Priority | Status | Frontend Goal |
+|---|---:|---|---|
+| Sprint 4 — Stabilization and Contract QA | P0 | 🔵 Next | Full smoke testing, route checks, E2E coverage, stale-doc cleanup |
+| Sprint 5 — Payroll Pro UX | P0 | Planned | Adjustment UI, approval timeline, simulation preview, locked-period states |
+| Sprint 6 — Advanced Shift Scheduling UX | P1 | Planned | Conflict warnings, coverage heatmap, publish state, version history, shift swap request and approval |
+| Sprint 7 — Attendance Intelligence UI | P1 | Planned | Risk dashboard, anomaly list, monthly health summary, manager insights |
+| Sprint 8 — Leave and Overtime Policy UX | P1 | Planned | Accrual view, carry-forward, blackout warnings, team capacity warning, overtime comparison |
+| Sprint 9 — Notification Center | P2 | Planned | Inbox, unread badge, read actions, preferences, deep links |
+| Sprint 10 — Employee Lifecycle UI | P2 | Planned | Onboarding, probation, contract reminders, movement history, offboarding, asset handover, timeline |
+| Sprint 11 — Performance and HR Analytics UI | P3 | Planned | KPI/OKR, review forms, feedback, rating history, executive dashboards |
+| Sprint 12 — Production Hardening | P0 ongoing | Planned | Accessibility, PWA/offline review, critical E2E, monitoring-ready UX, final manuals |
 
-## Sprint 2 — Payslip and Payroll Reporting ✅
+## Sprint 4 Acceptance Criteria
 
-- [x] Employee payslip history and detail
-- [x] Authenticated PDF payslip download
-- [x] Payroll report filters and server summaries
-- [x] CSV and PDF report export
-- [x] Admin/HR protected payslip download
-- [x] Loading, error, empty, desktop, and mobile states
-- [x] Regression tests, lint, build, and mobile acceptance
-- [x] Documentation synchronization
+- `npm run lint`, `npm test`, `npm run build`, and critical E2E flows pass.
+- Login, attendance, leave, overtime, payroll, payslip, and shift schedule smoke flows are covered.
+- Manager `/shift-schedule` read-only team view is tested.
+- Admin/HR shift schedule grid does not overwrite multi-employee schedules.
+- Route matrix, service inventory, module inventory, and project status are synchronized.
 
-## Sprint 3 — Shift Schedule Calendar 🔵
+## Top 3 Product Priorities
 
-- [ ] Weekly and monthly views
-- [ ] Employee, department, and branch filters
-- [ ] Bulk assignment and copy previous week
-- [ ] Rotating shifts, day off, and conflict feedback
-- [ ] Manager team and employee personal schedules
+1. Payroll Pro UX.
+2. Advanced Shift Scheduling UX.
+3. Attendance Intelligence and HR Analytics.
 
-## Sprint 4 — Notification Center
+## Global Definition of Done
 
-- [ ] Inbox, unread badge, read actions, deep links, and preferences
-
-## Sprint 5 — Generic Approval Workspace
-
-- [ ] Unified inbox, filters, timeline, multi-level approval, and delegation
-
-## Sprint 6 — Attendance and Leave Enhancements
-
-- [ ] Attendance anomaly, missing checkout, half-day leave, hourly permission, and team calendar
-
-## Sprint 7 — Reporting Enhancement
-
-- [ ] Excel and specialized operational reports
-- [ ] Consistent filters and background-export progress
-
-## Sprint 8 — System Settings
-
-- [ ] Company, timezone, workdays, attendance, leave, overtime, payroll, upload, and notification settings
-
-## Sprint 9 — Optional Expansion
-
-- [ ] Organization chart, recruitment, onboarding, performance, reimbursement, assets, announcements, training, and loans
-
-## Sprint 10 — Production Hardening
-
-- [ ] Production environment, monitoring, PWA/offline review, accessibility, critical E2E, and final manuals
-
-## Definition of Done
-
-A module is complete when its backend contract is stable, role guards and service integration are correct, all UI states are handled, desktop/mobile behavior is accepted, tests and build pass, and documentation is synchronized.
+A frontend module is complete only when backend contract is stable, role guards and navigation are correct, service integration is correct, all UI states are handled, desktop/mobile behavior is accepted, tests and build pass, docs are synchronized, and CLINE guidance remains accurate.
