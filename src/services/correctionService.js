@@ -12,6 +12,7 @@ const correctionService = {
   approve: (id, data = {}) => api.post(`/attendance-corrections/${id}/approve`, data),
   reject: (id, data) => api.post(`/attendance-corrections/${id}/reject`, data),
   manualCorrection: (data) => api.post('/attendance-corrections/manual', data),
+  lookupAttendance: (params) => api.get('/attendance-corrections/attendance', { params }),
 }
 
 export default correctionService
