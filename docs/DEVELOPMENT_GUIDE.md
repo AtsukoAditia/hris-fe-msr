@@ -38,6 +38,28 @@ VITE_API_BASE_URL=http://localhost:8000/api/v1
 - Use consistent naming: `feat/<module>`, `fix/<module>`, `docs/<module>`, `refactor/<module>`.
 - Merge to `main` only after lint, unit tests, E2E tests, and production build pass.
 - Branch per repo, commit per repo — do not mix backend and frontend in one commit.
+- **Never `git add .`** — always `git add` per-file.
+
+### Merge to Main (exact sequence)
+
+```text
+1. Buat branch baru:     git checkout -b feat/module-name
+2. Edit & test file.
+3. git add <file>        # per file, jangan per folder.
+4. git commit -m "feat(module): description"
+5. Ulangi step 2-4 sampai semua file ter-commit.
+6. git checkout main
+7. git pull origin main
+8. git merge feat/module-name --no-ff -m "Merge branch 'feat/module-name' into main"
+9. git push origin main
+10. git checkout feat/module-name   # kembali ke branch aktif
+```
+
+**Peraturan:**
+- Branch per repo, commit per repo.
+- Jangan pernah `git add .` atau `git add -A`.
+- Satu commit = satu file atau satu unit logis.
+- Selalu pull main sebelum merge agar up-to-date.
 
 ## Component Rules
 
