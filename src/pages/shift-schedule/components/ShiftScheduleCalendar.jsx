@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   getWeekStart,
   getWeekEnd,
@@ -17,6 +17,8 @@ export default function ShiftScheduleCalendar({
   view = 'monthly',
   onCellClick,
   onBulkAssign,
+  onPublish,
+  onUnpublish,
 }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedCells, setSelectedCells] = useState([]);
@@ -129,6 +131,7 @@ export default function ShiftScheduleCalendar({
                   const key = `${emp.id}_${dateStr}`;
                   const schedule = scheduleMap[key];
                   const isSelected = selectedCells.includes(key);
+                  const isPublished = schedule?.status === 'published';
 
                   return (
                     <td
@@ -143,9 +146,16 @@ export default function ShiftScheduleCalendar({
                       {schedule?.is_day_off ? (
                         <span className="text-gray-400">OFF</span>
                       ) : schedule?.shift_name ? (
-                        <span className="font-medium text-blue-700">
-                          {schedule.shift_name}
-                        </span>
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="font-medium text-blue-700">
+                            {schedule.shift_name}
+                          </span>
+                          {isPublished && (
+                            <span className="inline-block px-1 py-0.5 rounded text-[9px] bg-green-100 text-green-700 font-medium">
+                              v{schedule.version || 1}
+                            </span>
+                          )}
+                        </div>
                       ) : (
                         <span className="text-gray-300">-</span>
                       )}

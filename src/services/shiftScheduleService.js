@@ -78,6 +78,49 @@ const shiftScheduleService = {
   listDepartments() {
     return api.get('/departments');
   },
+
+  // Conflict validation
+  validateConflicts(data) {
+    return api.post('/shift-schedules/validate-conflicts', data);
+  },
+
+  // Publish / Unpublish
+  publishSchedule(id) {
+    return api.post(`/shift-schedules/${id}/publish`);
+  },
+
+  unpublishSchedule(id) {
+    return api.post(`/shift-schedules/${id}/unpublish`);
+  },
+
+  // Shift swap requests
+  listSwapRequests(params = {}) {
+    return api.get('/shift-swap-requests', { params });
+  },
+
+  mySwapRequests(params = {}) {
+    return api.get('/shift-swap-requests/my', { params });
+  },
+
+  incomingSwapRequests(params = {}) {
+    return api.get('/shift-swap-requests/incoming', { params });
+  },
+
+  createSwapRequest(data) {
+    return api.post('/shift-swap-requests', data);
+  },
+
+  approveSwap(id, data = {}) {
+    return api.post(`/shift-swap-requests/${id}/approve`, data);
+  },
+
+  rejectSwap(id, data = {}) {
+    return api.post(`/shift-swap-requests/${id}/reject`, data);
+  },
+
+  cancelSwap(id) {
+    return api.post(`/shift-swap-requests/${id}/cancel`);
+  },
 };
 
 export default shiftScheduleService;
