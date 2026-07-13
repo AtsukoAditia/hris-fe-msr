@@ -31,6 +31,7 @@ const PeriodsTab = ({ onGenerated }) => {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [processingId, setProcessingId] = useState(null)
+  const [lockProcessing, setLockProcessing] = useState(null)
   const [editing, setEditing] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState(payrollPeriodInitial)
@@ -141,6 +142,27 @@ const PeriodsTab = ({ onGenerated }) => {
     }
   }
 
+  const handleLockToggle = async (item) => {
+    const isLocked = Boolean(item.locked_at)
+    const action = isLocked ? 'unlock' : 'lock'
+    const label = isLocked ? 'buka kunci' : 'kunci'
+    if (!window.confirm(`${label.charAt(0).toUpperCase() + label.slice(1)} periode "${item.name}"?`)) return
+    setLockProcessing(item.id)
+    try {
+      if (isLocked) {
+        await payrollService.unlockPayrollPeriod(item.id)
+      } else {
+        await payrollService.lockPayrollPeriod(item.id)
+      }
+      setAlert({ type: 'success', message: `Periode berhasil di-${label}.` })
+      await load()
+    } catch (error) {
+      setAlert({ type: 'error', message: getErrorMessage(error, `Gagal ${label} periode.`) })
+    } finally {
+      setLockProcessing(null)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <Alert alert={alert} onClose={() => setAlert({ message: '' })} />
@@ -179,6 +201,7 @@ const PeriodsTab = ({ onGenerated }) => {
                   <th className="px-4 py-3">Cutoff</th>
                   <th className="px-4 py-3">Payroll</th>
                   <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Kunci</th>
                   <th className="px-4 py-3 text-right">Aksi</th>
                 </tr>
               </thead>
@@ -190,8 +213,16 @@ const PeriodsTab = ({ onGenerated }) => {
                     <td className="px-4 py-3">{formatDate(item.cutoff_start_date)} – {formatDate(item.cutoff_end_date)}</td>
                     <td className="px-4 py-3">{item.payrolls_count ?? 0}</td>
                     <td className="px-4 py-3"><span className={`rounded-full px-2 py-1 text-xs font-medium ${statusClass(item.status)}`}>{item.status}</span></td>
+                    <td className="px-4 py-3">
+                      {item.locked_at ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-1 text-xs font-medium text-orange-700">🔒 Terkunci</span>
+                      ) : (
+                        <span className="text-xs text-gray-400">Tidak terkunci</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       {item.status === 'open' && <button type="button" disabled={processingId === item.id} onClick={() => handleGenerate(item)} className="mr-3 font-medium text-green-700 hover:text-green-900 disabled:opacity-50">{processingId === item.id ? 'Memproses...' : 'Generate'}</button>}
+                      <button type="button" disabled={lockProcessing === item.id} onClick={() => handleLockToggle(item)} className="mr-3 font-medium text-orange-600 hover:text-orange-800 disabled:opacity-50">{lockProcessing === item.id ? 'Memproses...' : item.locked_at ? 'Buka Kunci' : 'Kunci'}</button>
                       <button type="button" onClick={() => openEdit(item)} className="mr-3 font-medium text-indigo-600 hover:text-indigo-800">Edit</button>
                       <button type="button" onClick={() => handleDelete(item)} className="font-medium text-red-600 hover:text-red-800">Hapus</button>
                     </td>
@@ -211,10 +242,12 @@ const PeriodsTab = ({ onGenerated }) => {
                     <p className="text-xs text-gray-500">Cutoff: {formatDate(item.cutoff_start_date)} – {formatDate(item.cutoff_end_date)}</p>
                   </div>
                   <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusClass(item.status)}`}>{item.status}</span>
+                  {item.locked_at && <span className="rounded-full bg-orange-100 px-2 py-1 text-xs font-medium text-orange-700">🔒 Terkunci</span>}
                 </div>
                 <p className="mt-3 text-sm text-gray-600">{item.payrolls_count ?? 0} payroll</p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {item.status === 'open' && <button type="button" disabled={processingId === item.id} onClick={() => handleGenerate(item)} className={primaryButton}>{processingId === item.id ? 'Memproses...' : 'Generate'}</button>}
+                  <button type="button" disabled={lockProcessing === item.id} onClick={() => handleLockToggle(item)} className={secondaryButton}>{lockProcessing === item.id ? 'Memproses...' : item.locked_at ? 'Buka Kunci' : 'Kunci'}</button>
                   <button type="button" onClick={() => openEdit(item)} className={secondaryButton}>Edit</button>
                   <button type="button" onClick={() => handleDelete(item)} className={dangerButton}>Hapus</button>
                 </div>

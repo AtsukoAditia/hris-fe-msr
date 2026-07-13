@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import payrollService from '../../services/payrollService'
 import { formatCurrency, formatDate, getErrorMessage, nextPayrollActions, normalizePagination, normalizeRows, statusClass } from './payroll.helpers'
 import { Alert, EmptyState, Field, LoadingState, Modal, Pagination, dangerButton, inputClass, primaryButton, secondaryButton, selectClass } from './ui'
+import ApprovalTimeline from './ApprovalTimeline'
+import AdjustmentPanel from './AdjustmentPanel'
 
 const PayrollListTab = ({ refreshKey = 0 }) => {
   const [rows, setRows] = useState([])
@@ -16,6 +18,8 @@ const PayrollListTab = ({ refreshKey = 0 }) => {
   const [cancelTarget, setCancelTarget] = useState(null)
   const [cancelReason, setCancelReason] = useState('')
   const [alert, setAlert] = useState({ type: 'success', message: '' })
+  const [simulation, setSimulation] = useState(null)
+  const [simLoading, setSimLoading] = useState(false)
 
   const loadPeriods = useCallback(async () => {
     try {
@@ -73,7 +77,9 @@ const PayrollListTab = ({ refreshKey = 0 }) => {
   const runAction = async (item, action) => {
     const labels = {
       recalculate: 'hitung ulang',
+      submit: 'ajukan',
       review: 'review',
+      approve: 'setujui',
       finalize: 'finalisasi',
       paid: 'tandai sudah dibayar',
     }
@@ -83,7 +89,9 @@ const PayrollListTab = ({ refreshKey = 0 }) => {
     try {
       const request = {
         recalculate: payrollService.recalculatePayroll,
+        submit: payrollService.submitPayroll,
         review: payrollService.reviewPayroll,
+        approve: payrollService.approvePayroll,
         finalize: payrollService.finalizePayroll,
         paid: payrollService.markPayrollPaid,
       }[action]
@@ -117,13 +125,30 @@ const PayrollListTab = ({ refreshKey = 0 }) => {
     }
   }
 
+  const handleSimulate = async (item) => {
+    setSimLoading(true)
+    try {
+      const res = await payrollService.simulatePayroll({
+        employee_id: item.employee_id,
+        payroll_period_id: item.payroll_period_id,
+      })
+      setSimulation(res?.data?.data || res?.data)
+    } catch (error) {
+      setAlert({ type: 'error', message: getErrorMessage(error, 'Simulasi gagal.') })
+    } finally {
+      setSimLoading(false)
+    }
+  }
+
   const renderActions = (item) => {
     const actions = nextPayrollActions(item.status)
     return (
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => openDetail(item)} className={secondaryButton}>Detail</button>
         {actions.canRecalculate && <button type="button" disabled={Boolean(processing)} onClick={() => runAction(item, 'recalculate')} className={secondaryButton}>Hitung Ulang</button>}
+        {actions.canSubmit && <button type="button" disabled={Boolean(processing)} onClick={() => runAction(item, 'submit')} className={primaryButton}>Submit</button>}
         {actions.canReview && <button type="button" disabled={Boolean(processing)} onClick={() => runAction(item, 'review')} className={primaryButton}>Review</button>}
+        {actions.canApprove && <button type="button" disabled={Boolean(processing)} onClick={() => runAction(item, 'approve')} className={primaryButton}>Approve</button>}
         {actions.canFinalize && <button type="button" disabled={Boolean(processing)} onClick={() => runAction(item, 'finalize')} className={primaryButton}>Finalisasi</button>}
         {actions.canMarkPaid && <button type="button" disabled={Boolean(processing)} onClick={() => runAction(item, 'paid')} className={primaryButton}>Sudah Dibayar</button>}
         {actions.canCancel && <button type="button" disabled={Boolean(processing)} onClick={() => { setCancelTarget(item); setCancelReason('') }} className={dangerButton}>Batalkan</button>}
@@ -145,7 +170,7 @@ const PayrollListTab = ({ refreshKey = 0 }) => {
       <div className="grid gap-3 rounded-xl border bg-white p-4 md:grid-cols-3">
         <Field label="Cari Karyawan"><input className={inputClass} value={filters.search} onChange={(event) => { setPage(1); setFilters((current) => ({ ...current, search: event.target.value })) }} placeholder="Nama atau nomor karyawan" /></Field>
         <Field label="Periode"><select className={selectClass} value={filters.payroll_period_id} onChange={(event) => { setPage(1); setFilters((current) => ({ ...current, payroll_period_id: event.target.value })) }}><option value="">Semua periode</option>{periods.map((period) => <option key={period.id} value={period.id}>{period.name}</option>)}</select></Field>
-        <Field label="Status"><select className={selectClass} value={filters.status} onChange={(event) => { setPage(1); setFilters((current) => ({ ...current, status: event.target.value })) }}><option value="">Semua status</option>{['draft', 'reviewed', 'finalized', 'paid', 'cancelled'].map((status) => <option key={status} value={status}>{status}</option>)}</select></Field>
+        <Field label="Status"><select className={selectClass} value={filters.status} onChange={(event) => { setPage(1); setFilters((current) => ({ ...current, status: event.target.value })) }}><option value="">Semua status</option>{['draft', 'submitted', 'reviewed', 'approved', 'finalized', 'paid', 'cancelled'].map((status) => <option key={status} value={status}>{status}</option>)}</select></Field>
       </div>
 
       {loading ? <LoadingState /> : rows.length === 0 ? <EmptyState title="Belum ada payroll" description="Generate draft dari tab Periode Payroll." /> : (
@@ -167,7 +192,11 @@ const PayrollListTab = ({ refreshKey = 0 }) => {
       )}
 
       <Modal open={Boolean(detail)} onClose={() => setDetail(null)} title="Detail Payroll" size="max-w-5xl">
-        {detailLoading ? <LoadingState /> : detail && <PayrollDetail payroll={detail} actions={renderActions(detail)} />}
+        {detailLoading ? <LoadingState /> : detail && <PayrollDetail payroll={detail} actions={renderActions(detail)} onSimulate={() => handleSimulate(detail)} simLoading={simLoading} />}
+      </Modal>
+
+      <Modal open={Boolean(simulation)} onClose={() => setSimulation(null)} title="Simulasi Payroll" size="max-w-4xl">
+        {simulation && <SimulationPreview result={simulation} />}
       </Modal>
 
       <Modal open={Boolean(cancelTarget)} onClose={() => setCancelTarget(null)} title="Batalkan Payroll">
@@ -180,12 +209,47 @@ const PayrollListTab = ({ refreshKey = 0 }) => {
 const SummaryCard = ({ label, value }) => <div className="rounded-xl border bg-white p-4"><p className="text-xs uppercase text-gray-500">{label}</p><p className="mt-1 text-xl font-bold text-gray-900">{value}</p></div>
 const Metric = ({ label, value, strong }) => <div><p className="text-xs text-gray-500">{label}</p><p className={strong ? 'font-semibold' : ''}>{value}</p></div>
 
-const PayrollDetail = ({ payroll, actions }) => (
+const SimulationPreview = ({ result }) => (
+  <div className="space-y-4">
+    <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3 text-sm text-yellow-800">
+      Ini adalah simulasi preview. Tidak ada data yang disimpan ke database.
+    </div>
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <SummaryCard label="Gaji Pokok" value={formatCurrency(result.basic_salary)} />
+      <SummaryCard label="Total Pendapatan" value={formatCurrency(result.total_earnings)} />
+      <SummaryCard label="Total Potongan" value={formatCurrency(result.total_deductions)} />
+      <SummaryCard label="Gaji Bersih" value={formatCurrency(result.net_salary)} />
+    </div>
+    {result.items?.length > 0 && (
+      <div className="overflow-x-auto rounded-xl border">
+        <table className="min-w-full divide-y text-sm">
+          <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
+            <tr><th className="px-4 py-3">Kode</th><th className="px-4 py-3">Nama</th><th className="px-4 py-3">Tipe</th><th className="px-4 py-3 text-right">Nominal</th></tr>
+          </thead>
+          <tbody className="divide-y">
+            {result.items.map((item, idx) => (
+              <tr key={idx}>
+                <td className="px-4 py-3 font-mono">{item.code}</td>
+                <td className="px-4 py-3">{item.name}</td>
+                <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-xs font-medium ${item.type === 'earning' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{item.type}</span></td>
+                <td className="px-4 py-3 text-right font-medium">{formatCurrency(item.amount)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+)
+
+const PayrollDetail = ({ payroll, actions, onSimulate, simLoading }) => (
   <div className="space-y-5">
+    <ApprovalTimeline payroll={payroll} />
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><SummaryCard label="Gaji Pokok" value={formatCurrency(payroll.basic_salary, payroll.currency)} /><SummaryCard label="Pendapatan" value={formatCurrency(payroll.total_earnings, payroll.currency)} /><SummaryCard label="Potongan" value={formatCurrency(payroll.total_deductions, payroll.currency)} /><SummaryCard label="Gaji Bersih" value={formatCurrency(payroll.net_salary, payroll.currency)} /></div>
     <div className="rounded-xl bg-gray-50 p-4 text-sm"><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5"><Metric label="Hari Hadir" value={payroll.attendance_days ?? 0} /><Metric label="Hari Absen" value={payroll.absent_days ?? 0} /><Metric label="Menit Terlambat" value={payroll.late_minutes ?? 0} /><Metric label="Cuti Tidak Dibayar" value={payroll.unpaid_leave_days ?? 0} /><Metric label="Menit Lembur" value={payroll.overtime_minutes ?? 0} /></div></div>
+    <AdjustmentPanel payrollId={payroll.id} payrollStatus={payroll.status} canEdit={['draft', 'submitted'].includes(payroll.status)} />
     <div><h3 className="mb-3 font-semibold">Rincian Komponen</h3>{payroll.items?.length ? <div className="overflow-x-auto rounded-xl border"><table className="min-w-full divide-y text-sm"><thead className="bg-gray-50 text-left text-xs uppercase text-gray-500"><tr><th className="px-4 py-3">Kode</th><th className="px-4 py-3">Nama</th><th className="px-4 py-3">Sumber</th><th className="px-4 py-3">Tipe</th><th className="px-4 py-3 text-right">Nominal</th></tr></thead><tbody className="divide-y">{payroll.items.map((item) => <tr key={item.id}><td className="px-4 py-3 font-mono">{item.code}</td><td className="px-4 py-3">{item.name}</td><td className="px-4 py-3">{item.source}</td><td className="px-4 py-3">{item.type}</td><td className="px-4 py-3 text-right font-medium">{formatCurrency(item.amount, payroll.currency)}</td></tr>)}</tbody></table></div> : <EmptyState title="Tidak ada rincian komponen" />}</div>
-    <div className="flex flex-wrap items-center justify-between gap-3"><div><span className={`rounded-full px-3 py-1 text-sm font-medium ${statusClass(payroll.status)}`}>{payroll.status}</span><p className="mt-2 text-xs text-gray-500">Periode: {payroll.period?.name || '-'} · Dibuat: {formatDate(payroll.generated_at || payroll.created_at)}</p></div>{actions}</div>
+    <div className="flex flex-wrap items-center justify-between gap-3"><div><span className={`rounded-full px-3 py-1 text-sm font-medium ${statusClass(payroll.status)}`}>{payroll.status}</span><p className="mt-2 text-xs text-gray-500">Periode: {payroll.period?.name || '-'} · Dibuat: {formatDate(payroll.generated_at || payroll.created_at)}</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={onSimulate} disabled={simLoading} className={secondaryButton}>{simLoading ? 'Menghitung...' : 'Simulasi'}</button>{actions}</div></div>
   </div>
 )
 
