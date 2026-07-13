@@ -1,56 +1,83 @@
-import api from "../lib/axios";
-
-const listShiftSchedules = (params = {}) =>
-  api.get("/shift-schedules", { params });
-
-const getShiftSchedule = (id) => api.get(`/shift-schedules/${id}`);
-
-const createShiftSchedule = (data) => api.post("/shift-schedules", data);
-
-const bulkAssignShiftSchedules = (data) =>
-  api.post("/shift-schedules/bulk", data);
-
-const copyWeekShiftSchedules = (data) =>
-  api.post("/shift-schedules/copy-week", data);
-
-const assignRotatingShiftSchedules = (data) =>
-  api.post("/shift-schedules/rotating", data);
-
-const updateShiftSchedule = (id, data) =>
-  api.put(`/shift-schedules/${id}`, data);
-
-const deleteShiftSchedule = (id) => api.delete(`/shift-schedules/${id}`);
-
-const getMySchedule = (params = {}) =>
-  api.get("/shift-schedules/my-schedule", { params });
-
-const getTeamSchedule = (params = {}) =>
-  api.get("/shift-schedules/team-schedule", { params });
-
-const unwrapData = async (request) => {
-  const response = await request;
-  return response.data;
-};
+import api from '../lib/axios';
 
 const shiftScheduleService = {
-  // Preferred names used by the current shift schedule pages.
-  list: listShiftSchedules,
-  getById: getShiftSchedule,
-  store: createShiftSchedule,
-  create: createShiftSchedule,
-  bulkAssign: bulkAssignShiftSchedules,
-  copyWeek: copyWeekShiftSchedules,
-  assignRotating: assignRotatingShiftSchedules,
-  update: updateShiftSchedule,
-  destroy: deleteShiftSchedule,
-  remove: deleteShiftSchedule,
-  getMySchedule,
-  getTeamSchedule,
+  // List schedules with filters
+  list(params = {}) {
+    return api.get('/shift-schedules', { params });
+  },
 
-  // Backward-compatible helpers for older callers that expect unwrapped data.
-  getAll: (params = {}) => unwrapData(listShiftSchedules(params)),
-  bulkCreate: (schedules) =>
-    unwrapData(bulkAssignShiftSchedules({ schedules })),
+  // Calendar view - optimized for calendar components
+  calendar(params) {
+    return api.get('/shift-schedules', {
+      params: {
+        ...params,
+        start_date: params.start_date,
+        end_date: params.end_date,
+      },
+    });
+  },
+
+  // My schedule (employee self-service)
+  mySchedule(params = {}) {
+    return api.get('/shift-schedules/my-schedule', { params });
+  },
+
+  // Team schedule (manager view)
+  teamSchedule(params = {}) {
+    return api.get('/shift-schedules/team-schedule', { params });
+  },
+
+  // Single schedule CRUD
+  show(id) {
+    return api.get(`/shift-schedules/${id}`);
+  },
+
+  store(data) {
+    return api.post('/shift-schedules', data);
+  },
+
+  update(id, data) {
+    return api.put(`/shift-schedules/${id}`, data);
+  },
+
+  destroy(id) {
+    return api.delete(`/shift-schedules/${id}`);
+  },
+
+  // Bulk assign
+  bulkAssign(data) {
+    return api.post('/shift-schedules/bulk', data);
+  },
+
+  // Copy week
+  copyWeek(data) {
+    return api.post('/shift-schedules/copy-week', data);
+  },
+
+  // Rotating shifts
+  rotating(data) {
+    return api.post('/shift-schedules/rotating', data);
+  },
+
+  // Get by employee
+  getByEmployee(employeeId) {
+    return api.get(`/shift-schedules/employee/${employeeId}`);
+  },
+
+  // Get by date
+  getByDate(date) {
+    return api.get(`/shift-schedules/date/${date}`);
+  },
+
+  // Helper: List shifts
+  listShifts() {
+    return api.get('/shifts');
+  },
+
+  // Helper: List departments
+  listDepartments() {
+    return api.get('/departments');
+  },
 };
 
 export default shiftScheduleService;
