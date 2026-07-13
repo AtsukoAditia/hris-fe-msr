@@ -6,6 +6,9 @@ import ShiftScheduleCalendar from './components/ShiftScheduleCalendar';
 import ShiftScheduleFilters from './components/ShiftScheduleFilters';
 import ShiftScheduleModal from './components/ShiftScheduleModal';
 import BulkAssignModal from './components/BulkAssignModal';
+import ConflictWarnings from './components/ConflictWarnings';
+import ShiftSwapModal from './components/ShiftSwapModal';
+import ShiftSwapList from './components/ShiftSwapList';
 
 export default function ShiftSchedulePage() {
   const { user } = useAuth();
@@ -24,6 +27,10 @@ export default function ShiftSchedulePage() {
   const [showModal, setShowModal] = useState(false);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [bulkAssignCells, setBulkAssignCells] = useState([]);
+  const [conflicts, setConflicts] = useState([]);
+  const [showConflicts, setShowConflicts] = useState(false);
+  const [activeTab, setActiveTab] = useState('calendar');
+  const [showSwapModal, setShowSwapModal] = useState(false);
 
   useEffect(() => {
     loadEmployees();
@@ -104,12 +111,77 @@ export default function ShiftSchedulePage() {
     loadSchedules();
   };
 
+  const handleValidateConflicts = async () => {
+    setLoading(true);
+    try {
+      const response = await shiftScheduleService.validateConflicts({
+        start_date: filters.start_date,
+        end_date: filters.end_date,
+        employee_id: filters.employee_id || undefined,
+      });
+      setConflicts(response.data.conflicts || []);
+      setShowConflicts(true);
+    } catch (error) {
+      console.error('Failed to validate conflicts:', error);
+      alert('Failed to validate conflicts');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePublish = async (scheduleId) => {
+    try {
+      await shiftScheduleService.publishSchedule(scheduleId);
+      loadSchedules();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to publish schedule');
+    }
+  };
+
+  const handleUnpublish = async (scheduleId) => {
+    try {
+      await shiftScheduleService.unpublishSchedule(scheduleId);
+      loadSchedules();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to unpublish schedule');
+    }
+  };
+
+  const isAdminOrHR = user.role === 'admin' || user.role === 'hr';
+
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Shift Schedule Calendar</h1>
         <p className="text-gray-600 mt-1">Manage and view shift schedules</p>
       </div>
+
+      {isAdminOrHR && (
+        <div className="mb-4 flex gap-3 flex-wrap">
+          <button
+            onClick={handleValidateConflicts}
+            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm"
+          >
+            Validate Conflicts
+          </button>
+          <button
+            onClick={() => setShowSwapModal(true)}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
+          >
+            Swap Requests
+          </button>
+        </div>
+      )}
+
+      {showConflicts && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-medium">Conflict Check Results ({conflicts.length})</h3>
+            <button onClick={() => setShowConflicts(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+          </div>
+          <ConflictWarnings conflicts={conflicts} />
+        </div>
+      )}
 
       <ShiftScheduleFilters
         filters={filters}
@@ -118,18 +190,52 @@ export default function ShiftSchedulePage() {
         onViewChange={setView}
       />
 
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      {isAdminOrHR && (
+        <div className="mb-4 border-b border-gray-200">
+          <nav className="flex gap-4">
+            <button
+              onClick={() => setActiveTab('calendar')}
+              className={`pb-2 text-sm font-medium ${activeTab === 'calendar' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
+            >
+              Calendar
+            </button>
+            <button
+              onClick={() => setActiveTab('swaps')}
+              className={`pb-2 text-sm font-medium ${activeTab === 'swaps' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
+            >
+              Swap Requests
+            </button>
+          </nav>
         </div>
-      ) : (
-        <ShiftScheduleCalendar
-          schedules={schedules}
+      )}
+
+      {activeTab === 'calendar' && (
+        <>
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : (
+            <ShiftScheduleCalendar
+              schedules={schedules}
+              employees={employees}
+              shifts={shifts}
+              view={view}
+              onCellClick={handleCellClick}
+              onBulkAssign={handleBulkAssign}
+              onPublish={handlePublish}
+              onUnpublish={handleUnpublish}
+            />
+          )}
+        </>
+      )}
+
+      {activeTab === 'swaps' && isAdminOrHR && (
+        <ShiftSwapList
           employees={employees}
-          shifts={shifts}
-          view={view}
-          onCellClick={handleCellClick}
-          onBulkAssign={handleBulkAssign}
+          schedules={schedules}
+          currentUser={user}
+          onRefresh={loadSchedules}
         />
       )}
 
@@ -146,6 +252,17 @@ export default function ShiftSchedulePage() {
           cells={bulkAssignCells}
           shifts={shifts}
           onClose={handleBulkModalClose}
+        />
+      )}
+      {showSwapModal && (
+        <ShiftSwapModal
+          employees={employees}
+          schedules={schedules}
+          onClose={() => setShowSwapModal(false)}
+          onSuccess={() => {
+            setShowSwapModal(false);
+            setActiveTab('swaps');
+          }}
         />
       )}
     </div>
