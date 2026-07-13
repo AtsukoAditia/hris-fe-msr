@@ -128,6 +128,7 @@ function LeaveTypesTab() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleting, setDeleting] = useState(false)
   const [saving, setSaving] = useState(false)
   const [alert, setAlert] = useState({ type: 'success', message: '' })
   const [errors, setErrors] = useState({})
@@ -147,27 +148,49 @@ function LeaveTypesTab() {
 
   useEffect(() => { load() }, [])
 
+  useEffect(() => {
+    if (alert.type === 'success' && alert.message) {
+      const timer = setTimeout(() => setAlert({ message: '' }), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [alert])
+
   const openCreate = () => { setEditing(null); setForm({ name: '', code: '', requires_balance: true, max_days: '', is_active: true }); setErrors({}); setModalOpen(true) }
   const openEdit = (item) => { setEditing(item); setForm({ name: item.name, code: item.code, requires_balance: item.requires_balance, max_days: item.max_days ?? '', is_active: item.is_active }); setErrors({}); setModalOpen(true) }
 
+  const validateForm = (formData) => {
+    const newErrors = {}
+    if (!formData.name?.trim()) newErrors.name = 'Name is required'
+    if (!formData.code?.trim()) newErrors.code = 'Code is required'
+    else if (!/^[A-Z0-9_-]+$/.test(formData.code)) newErrors.code = 'Code must be uppercase letters, numbers, dash, or underscore'
+    if (formData.max_days !== '' && Number(formData.max_days) <= 0) newErrors.max_days = 'Max days must be positive'
+    return newErrors
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+    const validationErrors = validateForm(form)
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors)
+      return
+    }
     setSaving(true)
     setErrors({})
     try {
       const payload = { ...form, max_days: form.max_days !== '' ? Number(form.max_days) : null }
       if (editing) {
         await leaveAdminService.updateLeaveType(editing.id, payload)
-        setAlert({ type: 'success', message: 'Leave type updated' })
+        setAlert({ type: 'success', message: 'Leave type updated successfully' })
       } else {
         await leaveAdminService.createLeaveType(payload)
-        setAlert({ type: 'success', message: 'Leave type created' })
+        setAlert({ type: 'success', message: 'Leave type created successfully' })
       }
       setModalOpen(false)
       load()
     } catch (err) {
       if (err.response?.status === 422) setErrors(err.response.data.errors || {})
-      else setAlert({ type: 'error', message: err.response?.data?.message || 'Operation failed' })
+      else if (err.response?.status === 409) setAlert({ type: 'error', message: err.response.data.message || 'Conflict: resource already exists' })
+      else setAlert({ type: 'error', message: err.response?.data?.message || 'Operation failed. Please try again.' })
     } finally {
       setSaving(false)
     }
@@ -175,14 +198,17 @@ function LeaveTypesTab() {
 
   const handleDelete = async () => {
     if (!deleteTarget) return
+    setDeleting(true)
     try {
       await leaveAdminService.deleteLeaveType(deleteTarget.id)
-      setAlert({ type: 'success', message: 'Leave type deleted' })
+      setAlert({ type: 'success', message: 'Leave type deleted successfully' })
       setDeleteTarget(null)
       load()
     } catch (err) {
-      setAlert({ type: 'error', message: err.response?.data?.message || 'Delete failed' })
+      setAlert({ type: 'error', message: err.response?.data?.message || 'Failed to delete leave type. It may have active references.' })
       setDeleteTarget(null)
+    } finally {
+      setDeleting(false)
     }
   }
 
