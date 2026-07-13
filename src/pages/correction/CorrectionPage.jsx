@@ -22,8 +22,7 @@ const normalizeRows = (payload) => {
 }
 
 const initialForm = {
-  attendance_id: '',
-  correction_date: '',
+  attendance_date: '',
   correction_type: 'check_in',
   requested_check_in: '',
   requested_check_out: '',
@@ -42,7 +41,7 @@ const CorrectionPage = () => {
   const [formData, setFormData] = useState(initialForm)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [toast, setToast] = useState(null)
-  const [filters, setFilters] = useState({ status: '', date_from: '', date_to: '' })
+  const [filters, setFilters] = useState({ status: '', correction_type: '', date_from: '', date_to: '' })
   const [pagination, setPagination] = useState({ current_page: 1, last_page: 1 })
 
   const showToast = (message, type = 'success') => {
@@ -55,6 +54,7 @@ const CorrectionPage = () => {
     try {
       const params = { page, per_page: 15 }
       if (filters.status) params.status = filters.status
+      if (filters.correction_type) params.correction_type = filters.correction_type
       if (filters.date_from) params.date_from = filters.date_from
       if (filters.date_to) params.date_to = filters.date_to
       const res = await correctionService.listMine(params)
@@ -74,6 +74,7 @@ const CorrectionPage = () => {
     try {
       const params = { page, per_page: 15 }
       if (filters.status) params.status = filters.status
+      if (filters.correction_type) params.correction_type = filters.correction_type
       if (filters.date_from) params.date_from = filters.date_from
       if (filters.date_to) params.date_to = filters.date_to
       const res = await correctionService.listReviews(params)
@@ -106,7 +107,7 @@ const CorrectionPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!formData.attendance_id || !formData.correction_date || !formData.reason) {
+    if (!formData.attendance_date || !formData.reason) {
       showToast('Mohon lengkapi field yang wajib.', 'error')
       return
     }
@@ -231,6 +232,15 @@ const CorrectionPage = () => {
           </select>
         </div>
         <div>
+          <label className="block text-xs text-gray-500 mb-1">Tipe Koreksi</label>
+          <select value={filters.correction_type} onChange={(e) => setFilters(f => ({ ...f, correction_type: e.target.value }))} className="border rounded-lg px-3 py-2 text-sm">
+            <option value="">Semua</option>
+            <option value="check_in">Check In</option>
+            <option value="check_out">Check Out</option>
+            <option value="both">Both</option>
+          </select>
+        </div>
+        <div>
           <label className="block text-xs text-gray-500 mb-1">Dari Tanggal</label>
           <input type="date" value={filters.date_from} onChange={(e) => setFilters(f => ({ ...f, date_from: e.target.value }))} className="border rounded-lg px-3 py-2 text-sm" />
         </div>
@@ -350,13 +360,8 @@ const CorrectionPage = () => {
             <h2 className="text-lg font-bold text-gray-900">Ajukan Koreksi Absensi</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ID Attendance <span className="text-red-500">*</span></label>
-                <input type="text" value={formData.attendance_id} onChange={(e) => setFormData(f => ({ ...f, attendance_id: e.target.value }))}
-                  className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="ID record attendance" required />
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Koreksi <span className="text-red-500">*</span></label>
-                <input type="date" value={formData.correction_date} onChange={(e) => setFormData(f => ({ ...f, correction_date: e.target.value }))}
+                <input type="date" value={formData.attendance_date} onChange={(e) => setFormData(f => ({ ...f, attendance_date: e.target.value }))}
                   className="w-full border rounded-lg px-3 py-2 text-sm" required />
               </div>
               <div>
@@ -414,7 +419,7 @@ const CorrectionPage = () => {
               <DetailRow label="Jam Pulang Diminta" value={selectedCorrection.requested_check_out || '-'} />
               <DetailRow label="Alasan" value={selectedCorrection.reason || '-'} />
               <DetailRow label="Status" value={selectedCorrection.status} />
-              <DetailRow label="Reviewer Note" value={selectedCorrection.reviewer_note || '-'} />
+              <DetailRow label="Reviewer Note" value={selectedCorrection.review_note || '-'} />
               {selectedCorrection.attachment_path && (
                 <div className="pt-2">
                   <button onClick={() => handleDownload(selectedCorrection.id)} className="text-indigo-600 hover:underline text-sm">
