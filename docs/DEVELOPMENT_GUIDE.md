@@ -204,3 +204,32 @@ A frontend module is complete when:
 - Tests, lint, and production build pass.
 - Critical flow acceptance passes.
 - Documentation is synchronized.
+
+## Database Changes (Backend Coordination)
+
+**SETIAP** fitur baru yang butuh kolom/tabel baru, frontend harus koordinasi dengan backend untuk memastikan:
+
+1. **Migration**: Backend buat migration
+2. **Seeder**: Backend update seeder dengan data dummy
+3. **Factory**: Backend update factory untuk testing
+4. **API Contract**: Update `docs/API_MATRIX.md` dengan endpoint baru
+5. **Test Data**: Pastikan data dummy tersedia untuk testing frontend
+
+### Frontend Checklist:
+- [ ] Confirm backend has migration + seeder
+- [ ] API contract updated in docs
+- [ ] Test data available (ask backend team)
+- [ ] Frontend service layer updated
+- [ ] Frontend tests use seeded data
+
+### Important:
+**JANGAN LUPA SEED!** Data dummy penting untuk development dan testing frontend. Kalau backend lupa seed, minta mereka update seeder.
+
+**Example Flow:**
+1. Backend: buat migration + model + seeder + factory
+2. Backend: run `php artisan migrate:fresh --seed`
+3. Backend: update API docs
+4. Frontend: consume API dengan data dummy yang sudah di-seed
+5. Frontend: test dengan data dummy
+
+**JANGAN LUPA SEED!** (Important enough to repeat)
