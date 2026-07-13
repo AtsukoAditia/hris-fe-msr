@@ -20,14 +20,24 @@ VITE_API_BASE_URL=http://localhost:8000/api/v1
 
 1. Read the active milestone in `docs/ROADMAP.md`.
 2. Confirm the backend endpoint and authorization contract.
-3. Add or update a domain service in `src/services`.
-4. Build reusable components before overloading a page component.
-5. Add route and navigation access where required.
-6. Implement validation and all UI states.
-7. Test desktop and mobile layouts.
-8. Add component and critical-flow tests.
-9. Run lint, tests, and production build.
-10. Update documentation in both repositories.
+3. **Create a new branch** for every update — branch name must describe the change (e.g., `feat/shift-calendar-ui`, `fix/leave-form-validation`).
+4. Add or update a domain service in `src/services`.
+5. Build reusable components before overloading a page component.
+6. Add route and navigation access where required.
+7. Implement validation and all UI states.
+8. Test desktop and mobile layouts.
+9. Add component, critical-flow, and E2E tests.
+10. Run lint, tests, E2E, and production build.
+11. **Merge branch to `main`** only after all tests pass.
+12. Update documentation in both repositories.
+
+### Branch Rules
+
+- **Never commit directly to `main`.**
+- Create one branch per feature/fix in **both** `hris-be-msr` and `hris-fe-msr`.
+- Use consistent naming: `feat/<module>`, `fix/<module>`, `docs/<module>`, `refactor/<module>`.
+- Merge to `main` only after lint, unit tests, E2E tests, and production build pass.
+- Branch per repo, commit per repo — do not mix backend and frontend in one commit.
 
 ## Component Rules
 
@@ -98,9 +108,14 @@ Minimum checks:
 Run locally:
 
 ```bash
+# Unit tests
 npm test
 npm run lint
+
+# Production build
 npm run build
+
+# E2E tests (Playwright)
 npm run test:e2e
 ```
 
@@ -113,6 +128,26 @@ Minimum component-test coverage:
 - Role-based action visibility.
 - Form submission payload.
 - Sensitive action confirmation.
+
+### E2E Testing with Playwright
+
+Every sprint that touches UI must include Playwright E2E tests for:
+
+- **Critical happy-path flows** — login, create, submit, approve.
+- **Role-based access** — Admin vs Employee sees correct UI and sidebar.
+- **Form validation** — required fields, error messages, backend validation display.
+- **Navigation & routing** — direct URL access, role-guarded routes, 403/404 pages.
+- **Mobile responsive flows** — test in mobile viewport for attendance, camera, QR.
+
+Run E2E tests before merging to `main`:
+
+```bash
+npx playwright install        # install browsers (once)
+npm run test:e2e              # run all E2E tests
+npx playwright show-report    # view HTML report
+```
+
+E2E tests run against real browsers (Chromium, Firefox, WebKit). If environment blocks E2E (e.g., no display, no camera), document the limitation explicitly.
 
 Critical Playwright paths should include login, attendance, leave, correction, overtime, and payroll after implementation.
 
