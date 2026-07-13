@@ -17,6 +17,8 @@ const payrollService = {
   createPayrollPeriod: (data) => api.post('/admin/payroll-periods', data),
   updatePayrollPeriod: (id, data) => api.put(`/admin/payroll-periods/${id}`, data),
   deletePayrollPeriod: (id) => api.delete(`/admin/payroll-periods/${id}`),
+  lockPayrollPeriod: (id) => api.post(`/admin/payroll-periods/${id}/lock`),
+  unlockPayrollPeriod: (id) => api.post(`/admin/payroll-periods/${id}/unlock`),
   generatePayroll: (periodId, employeeIds = []) => api.post(
     `/admin/payroll-periods/${periodId}/generate`,
     employeeIds.length ? { employee_ids: employeeIds } : {},
@@ -29,6 +31,13 @@ const payrollService = {
   finalizePayroll: (id) => api.post(`/admin/payrolls/${id}/finalize`),
   markPayrollPaid: (id) => api.post(`/admin/payrolls/${id}/paid`),
   cancelPayroll: (id, reason) => api.post(`/admin/payrolls/${id}/cancel`, { reason }),
+  submitPayroll: (id) => api.post(`/admin/payrolls/${id}/submit`),
+  approvePayroll: (id) => api.post(`/admin/payrolls/${id}/approve`),
+  simulatePayroll: (data) => api.post('/admin/payrolls/simulate', data),
+
+  listAdjustments: (payrollId) => api.get(`/admin/payrolls/${payrollId}/adjustments`),
+  addAdjustment: (payrollId, data) => api.post(`/admin/payrolls/${payrollId}/adjustments`, data),
+  deleteAdjustment: (id) => api.delete(`/admin/adjustments/${id}`),
 
   listMyPayslips: (params = {}) => api.get('/payslips', { params }),
   getMyPayslip: (id) => api.get(`/payslips/${id}`),

@@ -41,13 +41,35 @@ export const formatDate = (value) => {
 
 export const statusClass = (status) => ({
   draft: 'bg-gray-100 text-gray-700',
+  submitted: 'bg-yellow-100 text-yellow-700',
   reviewed: 'bg-blue-100 text-blue-700',
+  approved: 'bg-teal-100 text-teal-700',
   finalized: 'bg-purple-100 text-purple-700',
   paid: 'bg-green-100 text-green-700',
   cancelled: 'bg-red-100 text-red-700',
   open: 'bg-green-100 text-green-700',
   closed: 'bg-gray-100 text-gray-700',
+  locked: 'bg-orange-100 text-orange-700',
 }[status] || 'bg-gray-100 text-gray-700')
+
+export const PAYROLL_STATUS_LABELS = {
+  draft: 'Draft',
+  submitted: 'Submitted',
+  reviewed: 'Reviewed',
+  approved: 'Approved',
+  finalized: 'Finalized',
+  paid: 'Paid',
+  cancelled: 'Cancelled',
+}
+
+export const APPROVAL_STEPS = [
+  { key: 'draft', label: 'Draft', icon: '📄' },
+  { key: 'submitted', label: 'Submitted', icon: '📤' },
+  { key: 'reviewed', label: 'Reviewed', icon: '👁' },
+  { key: 'approved', label: 'Approved', icon: '✅' },
+  { key: 'finalized', label: 'Finalized', icon: '🔒' },
+  { key: 'paid', label: 'Paid', icon: '💰' },
+]
 
 export const salaryComponentInitial = {
   code: '',
@@ -109,8 +131,10 @@ export const mapSalaryProfilePayload = (form) => ({
 
 export const nextPayrollActions = (status) => ({
   canRecalculate: status === 'draft',
-  canReview: status === 'draft',
-  canFinalize: status === 'reviewed',
+  canSubmit: status === 'draft',
+  canReview: status === 'submitted',
+  canApprove: status === 'reviewed',
+  canFinalize: status === 'approved',
   canMarkPaid: status === 'finalized',
-  canCancel: ['draft', 'reviewed', 'finalized'].includes(status),
+  canCancel: ['draft', 'submitted', 'reviewed', 'approved', 'finalized'].includes(status),
 })
