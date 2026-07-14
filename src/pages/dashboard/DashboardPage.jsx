@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import dashboardService from '../../services/dashboardService'
+import { WhoIsInWidget, AnomaliesWidget, TrendWidget } from './IntelligenceWidgets'
 
 const DashboardPage = () => {
   const { user } = useAuthStore()
@@ -124,6 +125,14 @@ const DashboardPage = () => {
           ))}
         </div>
       </div>
+
+      {['admin', 'hr', 'manager'].includes(role) && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <WhoIsInWidget />
+          <AnomaliesWidget />
+          <TrendWidget />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <section className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
