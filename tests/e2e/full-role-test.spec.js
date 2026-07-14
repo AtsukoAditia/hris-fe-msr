@@ -130,6 +130,48 @@ test.describe('Admin Flow', () => {
     await page.waitForLoadState('networkidle');
     await shot(page, 'admin-profile');
   });
+
+  test('audit log page', async ({ page }) => {
+    await page.goto('/audit-log');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'admin-audit-log');
+  });
+
+  test('approval page', async ({ page }) => {
+    await page.goto('/approval');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'admin-approval');
+  });
+
+  test('overtime page', async ({ page }) => {
+    await page.goto('/overtime');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'admin-overtime');
+  });
+
+  test('correction page', async ({ page }) => {
+    await page.goto('/correction');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'admin-correction');
+  });
+
+  test('training page', async ({ page }) => {
+    await page.goto('/training');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'admin-training');
+  });
+
+  test('analytics page', async ({ page }) => {
+    await page.goto('/analytics');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'admin-analytics');
+  });
+
+  test('profile change reviews page', async ({ page }) => {
+    await page.goto('/profile-change-reviews');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'admin-profile-change-reviews');
+  });
 });
 
 // ═══════════════════════════════════════════════════
@@ -174,6 +216,42 @@ test.describe('HR Flow', () => {
     await page.waitForLoadState('networkidle');
     await shot(page, 'hr-payroll');
   });
+
+  test('approval', async ({ page }) => {
+    await page.goto('/approval');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'hr-approval');
+  });
+
+  test('training', async ({ page }) => {
+    await page.goto('/training');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'hr-training');
+  });
+
+  test('analytics', async ({ page }) => {
+    await page.goto('/analytics');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'hr-analytics');
+  });
+
+  test('audit log', async ({ page }) => {
+    await page.goto('/audit-log');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'hr-audit-log');
+  });
+
+  test('overtime', async ({ page }) => {
+    await page.goto('/overtime');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'hr-overtime');
+  });
+
+  test('profile change reviews', async ({ page }) => {
+    await page.goto('/profile-change-reviews');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'hr-profile-change-reviews');
+  });
 });
 
 // ═══════════════════════════════════════════════════
@@ -211,6 +289,30 @@ test.describe('Manager Flow', () => {
     await page.goto('/documents');
     await page.waitForLoadState('networkidle');
     await shot(page, 'manager-documents');
+  });
+
+  test('approval', async ({ page }) => {
+    await page.goto('/approval');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'manager-approval');
+  });
+
+  test('overtime', async ({ page }) => {
+    await page.goto('/overtime');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'manager-overtime');
+  });
+
+  test('correction', async ({ page }) => {
+    await page.goto('/correction');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'manager-correction');
+  });
+
+  test('report', async ({ page }) => {
+    await page.goto('/report');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'manager-report');
   });
 });
 
@@ -252,9 +354,39 @@ test.describe('Employee Flow', () => {
   });
 
   test('my payslip', async ({ page }) => {
-    await page.goto('/payroll');
+    await page.goto('/payslips');
     await page.waitForLoadState('networkidle');
-    await shot(page, 'employee-payroll');
+    await shot(page, 'employee-payslips');
+  });
+
+  test('overtime', async ({ page }) => {
+    await page.goto('/overtime');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'employee-overtime');
+  });
+
+  test('correction', async ({ page }) => {
+    await page.goto('/correction');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'employee-correction');
+  });
+
+  test('my schedule', async ({ page }) => {
+    await page.goto('/my-schedule');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'employee-my-schedule');
+  });
+
+  test('training', async ({ page }) => {
+    await page.goto('/training');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'employee-training');
+  });
+
+  test('security', async ({ page }) => {
+    await page.goto('/security');
+    await page.waitForLoadState('networkidle');
+    await shot(page, 'employee-security');
   });
 });
 
