@@ -76,5 +76,11 @@ export default defineConfig({
       '.ngrok.app',
       '.ngrok.io',
     ],
+    proxy: {
+      '/api/v1': {
+        target: 'http://hris-backend:8000',
+        changeOrigin: true,
+      },
+    },
   },
 })

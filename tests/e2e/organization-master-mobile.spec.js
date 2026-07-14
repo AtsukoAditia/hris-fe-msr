@@ -14,7 +14,7 @@ test('Organization Master tabs and forms remain usable on mobile', async ({ page
   await expectNoDocumentOverflow(page)
   await expectScrollableTable(page)
 
-  await page.getByRole('button', { name: 'Buka menu navigasi' }).click()
+  await page.getByRole('button', { name: /menu/ }).click()
   await expect(page.getByRole('link', { name: /Karyawan/ })).toBeVisible()
   await expect(page.getByRole('link', { name: /Departemen/ })).toBeVisible()
   await page.getByRole('link', { name: /Departemen/ }).click()

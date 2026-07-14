@@ -9,7 +9,7 @@ test.describe('Dashboard', () => {
   });
 
   test('dashboard page loads', async ({ page }) => {
-    await expect(page.locator('h1:has-text("Dashboard"), h2:has-text("Dashboard"), [data-testid="dashboard-page"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/Selamat (Pagi|Siang|Sore|Malam),/)).toBeVisible({ timeout: 10000 });
   });
 
   test('dashboard has content', async ({ page }) => {

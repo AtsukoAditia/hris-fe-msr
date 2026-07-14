@@ -86,7 +86,7 @@ export const installProfileApiMocks = async (page) => {
     }))
   }, adminUser)
 
-  await page.route('**/api/v1/**', async (route) => {
+  await page.route('**/*/api/v1/**', async (route) => {
     const request = route.request()
     const url = new URL(request.url())
     const path = url.pathname.split('/api/v1')[1] || '/'

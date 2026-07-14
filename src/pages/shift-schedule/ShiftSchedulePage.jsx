@@ -84,7 +84,7 @@ export default function ShiftSchedulePage() {
   };
 
   const handleCellClick = (employee, date, schedule) => {
-    if (user.role === 'admin' || user.role === 'hr') {
+    if (user?.role === 'admin' || user?.role === 'hr') {
       setSelectedSchedule({
         employee,
         date,
@@ -147,7 +147,7 @@ export default function ShiftSchedulePage() {
     }
   };
 
-  const isAdminOrHR = user.role === 'admin' || user.role === 'hr';
+  const isAdminOrHR = user?.role === 'admin' || user?.role === 'hr';
 
   return (
     <div className="container mx-auto px-4 py-6">
