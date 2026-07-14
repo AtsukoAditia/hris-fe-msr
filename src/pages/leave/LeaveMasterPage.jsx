@@ -128,7 +128,7 @@ function LeaveTypesTab() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
-  const [deleting, setDeleting] = useState(false)
+  const [_deleting, setDeleting] = useState(false)
   const [saving, setSaving] = useState(false)
   const [alert, setAlert] = useState({ type: 'success', message: '' })
   const [errors, setErrors] = useState({})

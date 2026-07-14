@@ -3,24 +3,22 @@ import { login } from './utils/auth';
 
 test.describe('Leave', () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
+    await login(page, 'admin@hris.test', 'password123');
     await page.goto('/leave');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
   });
 
   test('leave page loads', async ({ page }) => {
-    await expect(page.locator('h1:has-text("Cuti"), h2:has-text("Leave"), [data-testid="leave-page"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h1:has-text("Cuti")').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('leave request form visible', async ({ page }) => {
-    const hasForm = await page.locator('form, [data-testid="leave-form"], button:has-text("Ajukan"), button:has-text("Request")').isVisible().catch(() => false);
-    const hasButton = await page.locator('button:has-text("Cuti"), button:has-text("Leave")').isVisible().catch(() => false);
-    expect(hasForm || hasButton).toBeTruthy();
+    // "Ajukan Cuti" button
+    await expect(page.locator(':text("Ajukan Cuti")').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('leave balance displayed', async ({ page }) => {
-    const hasBalance = await page.locator('[data-testid="leave-balance"], :text("balance"), :text("sisa"), :text("kuota")').isVisible().catch(() => false);
-    const hasContent = await page.locator('main, .container').isVisible().catch(() => false);
-    expect(hasBalance || hasContent).toBeTruthy();
+    // BalanceCard with "Sisa Cuti"
+    await expect(page.locator(':text("Sisa Cuti")').first()).toBeVisible({ timeout: 10000 });
   });
 });

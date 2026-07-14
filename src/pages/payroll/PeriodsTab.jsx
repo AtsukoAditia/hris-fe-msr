@@ -144,7 +144,6 @@ const PeriodsTab = ({ onGenerated }) => {
 
   const handleLockToggle = async (item) => {
     const isLocked = Boolean(item.locked_at)
-    const action = isLocked ? 'unlock' : 'lock'
     const label = isLocked ? 'buka kunci' : 'kunci'
     if (!window.confirm(`${label.charAt(0).toUpperCase() + label.slice(1)} periode "${item.name}"?`)) return
     setLockProcessing(item.id)

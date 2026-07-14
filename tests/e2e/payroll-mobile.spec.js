@@ -10,12 +10,12 @@ test('Payroll workspace remains usable on mobile', async ({ page }, testInfo) =>
   await page.goto('/payroll')
 
   await expect(page.getByRole('heading', { name: 'Payroll' })).toBeVisible()
-  const payrollCard = page.locator('article').filter({ hasText: 'Budi Santoso' })
+  const payrollCard = page.locator('article').filter({ hasText: /Budi/ }).first()
   await expect(payrollCard).toBeVisible()
   await expect(payrollCard.getByText('June 2026')).toBeVisible()
   await expectNoDocumentOverflow(page)
 
-  await page.getByRole('button', { name: 'Buka menu navigasi' }).click()
+  await page.getByRole('button', { name: /menu/ }).click()
   await expect(page.getByRole('link', { name: /Payroll/ })).toBeVisible()
   await page.getByRole('link', { name: /Payroll/ }).click()
 

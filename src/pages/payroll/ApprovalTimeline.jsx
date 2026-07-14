@@ -1,14 +1,5 @@
 import { APPROVAL_STEPS } from './payroll.helpers'
 
-const STEP_STATES = {
-  draft: 'draft',
-  submitted: 'submitted',
-  reviewed: 'reviewed',
-  approved: 'approved',
-  finalized: 'finalized',
-  paid: 'paid',
-}
-
 const stepIndex = (status) => {
   const idx = APPROVAL_STEPS.findIndex((s) => s.key === status)
   return idx >= 0 ? idx : 0
@@ -25,6 +16,7 @@ const ApprovalTimeline = ({ payroll }) => {
           const isComplete = idx < currentIdx
           const isCurrent = idx === currentIdx
           const isPending = idx > currentIdx
+          void isPending // used for future styling
 
           return (
             <div key={step.key} className="flex flex-1 items-center">

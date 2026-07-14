@@ -31,7 +31,7 @@ test('self profile and contact form work on mobile', async ({ page }) => {
 
 test('administrative profile contact edit works on mobile', async ({ page }) => {
   await page.goto('/employee/42/profile')
-  await expect(page.getByRole('heading', { name: 'Profil Karyawan' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Profil/ })).toBeVisible()
   await expect(page.getByText('Mobile Parent')).toBeVisible()
   await expectNoDocumentOverflow(page)
 

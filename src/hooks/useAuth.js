@@ -10,7 +10,7 @@ import { authService } from '../services/authService'
  */
 export const useAuth = () => {
   const navigate = useNavigate()
-  const { token, setAuth, clearAuth, isAuthenticated, user, isLoading, setLoading } = useAuthStore()
+  const { token, login: storeLogin, clearAuth, isAuthenticated, user, isLoading, setLoading } = useAuthStore()
 
   useEffect(() => {
     const initAuth = async () => {
@@ -18,7 +18,9 @@ export const useAuth = () => {
         try {
           setLoading(true)
           const res = await authService.me()
-          setAuth(res.data.data, token)
+          const user = res.data?.user || res.data?.data?.user || null
+          if (user) storeLogin(user, token)
+          else clearAuth()
         } catch {
           clearAuth()
           navigate('/login')
@@ -32,7 +34,9 @@ export const useAuth = () => {
 
   const login = async (credentials) => {
     const res = await authService.login(credentials)
-    setAuth(res.data.data.user, res.data.data.token)
+    const user = res.data?.user || res.data?.data?.user
+    const authToken = res.data?.token || res.data?.data?.token
+    if (user && authToken) storeLogin(user, authToken)
     navigate('/')
     return res
   }

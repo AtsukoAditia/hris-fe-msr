@@ -18,6 +18,10 @@ import ApprovalPage from "../pages/approval/ApprovalPage";
 import PayrollPage from "../pages/payroll/PayrollPage";
 import PayslipsPage from "../pages/payslips/PayslipsPage";
 import ShiftSchedulePage from "../pages/shift-schedule/ShiftSchedulePage";
+import MySchedulePage from "../pages/shift-schedule/MySchedulePage";
+import ShiftPage from "../pages/shift/ShiftPage";
+import AccountSecurityPage from "../pages/security/AccountSecurityPage";
+import ReportPage from "../pages/report/ReportPage";
 
 export default function AppRoutes() {
   return (
@@ -26,6 +30,7 @@ export default function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
           <Route index element={<DashboardPage />} />
+          <Route path="dashboard" element={<DashboardPage />} />
           <Route path="attendance" element={<AttendancePage />} />
           <Route path="leave" element={<LeavePage />} />
           <Route path="leave/master" element={<LeaveMasterPage />} />
@@ -41,6 +46,11 @@ export default function AppRoutes() {
           <Route path="payroll" element={<PayrollPage />} />
           <Route path="payslips" element={<PayslipsPage />} />
           <Route path="shift-schedule" element={<ShiftSchedulePage />} />
+          <Route path="my-schedule" element={<MySchedulePage />} />
+          <Route path="shift" element={<ShiftPage />} />
+          <Route path="security" element={<AccountSecurityPage />} />
+          <Route path="report" element={<ReportPage />} />
+          <Route path="profile-change-reviews" element={<ProfileChangeRequestsPage />} />
         </Route>
       </Route>
     </Routes>

@@ -10,7 +10,7 @@ const navItems = [
     icon: "👤",
     children: [
       { path: "/profile", label: "Data Profil", icon: "👤" },
-      { path: "/profile/changes", label: "Perubahan Profil", icon: "📝" },
+      { path: "/profile/change-requests", label: "Perubahan Profil", icon: "📝" },
       { path: "/security", label: "Keamanan Akun", icon: "🔐" },
       { path: "/documents", label: "Dokumen Saya", icon: "📄" },
     ],
@@ -19,7 +19,7 @@ const navItems = [
   { path: "/correction", label: "Koreksi Absensi", icon: "✏️" },
   { path: "/leave", label: "Cuti", icon: "🌴" },
   { path: "/overtime", label: "Lembur", icon: "⏱️" },
-  { path: "/my-schedule", label: "Jadwal Saya", icon: "📅" },
+  { path: "/my-schedule", label: "Jadwal Saya", icon: "📅", allowedRoles: ["employee", "manager"] },
   {
     path: "/payslips",
     label: "Slip Gaji",
@@ -51,7 +51,7 @@ const navItems = [
     allowedRoles: ["admin", "hr", "manager"],
   },
   {
-    path: "/employee",
+    path: "/employees",
     label: "Karyawan",
     icon: "👥",
     allowedRoles: ["admin", "hr"],
@@ -64,7 +64,7 @@ const navItems = [
     allowedRoles: ["admin", "hr", "manager"],
   },
   {
-    path: "/leave-master",
+    path: "/leave/master",
     label: "Master Cuti",
     icon: "🌿",
     allowedRoles: ["admin", "hr"],

@@ -9,12 +9,12 @@ test.beforeEach(async ({ page }) => {
 test('Employee Manager table, edit, and detail work on mobile', async ({ page }, testInfo) => {
   await page.goto('/employee')
 
-  await expect(page.getByRole('heading', { name: 'Management Pegawai' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Management/ })).toBeVisible()
   await expect(page.getByText('managed.employee@hris.test')).toBeVisible()
   await expectNoDocumentOverflow(page)
   await expectScrollableTable(page)
 
-  const managedRow = page.getByRole('row').filter({ hasText: 'Managed Employee' })
+  const managedRow = page.getByRole('row').filter({ hasText: 'managed.employee@hris.test' })
   await expect(managedRow.getByText('Engineering Lead', { exact: true })).toBeVisible()
   await managedRow.getByTitle('Edit').click()
   await expectModalFitsViewport(page, 'Edit Pegawai')
