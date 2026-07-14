@@ -22,6 +22,8 @@ import MySchedulePage from "../pages/shift-schedule/MySchedulePage";
 import ShiftPage from "../pages/shift/ShiftPage";
 import AccountSecurityPage from "../pages/security/AccountSecurityPage";
 import ReportPage from "../pages/report/ReportPage";
+import TrainingListPage from "../pages/training/TrainingListPage";
+import AnalyticsPage from "../pages/analytics/AnalyticsPage";
 
 export default function AppRoutes() {
   return (
@@ -50,6 +52,8 @@ export default function AppRoutes() {
           <Route path="shift" element={<ShiftPage />} />
           <Route path="security" element={<AccountSecurityPage />} />
           <Route path="report" element={<ReportPage />} />
+          <Route path="training" element={<TrainingListPage />} />
+          <Route path="analytics" element={<AnalyticsPage />} />
           <Route path="profile-change-reviews" element={<ProfileChangeRequestsPage />} />
         </Route>
       </Route>

@@ -123,16 +123,69 @@ const PayslipsPage = () => {
 const PayslipDetail = ({ payroll, onDownload, downloading }) => {
   const earnings = (payroll.items || []).filter((item) => item.type === 'earning')
   const deductions = (payroll.items || []).filter((item) => item.type === 'deduction')
+  const hasBpjs = payroll.bpjs_jkk != null || payroll.bpjs_jkm != null || payroll.bpjs_jht_er != null || payroll.bpjs_jht_ee != null
 
   return (
     <div className="space-y-5">
       <div className="grid gap-3 rounded-xl bg-gray-50 p-4 text-sm sm:grid-cols-2"><div><p className="text-xs text-gray-500">Periode</p><p className="font-medium">{payroll.period?.name || '-'}</p></div><div><p className="text-xs text-gray-500">Status</p><span className={`inline-block rounded-full px-2 py-1 text-xs ${statusClass(payroll.status)}`}>{payroll.status}</span></div></div>
       <Breakdown title="Pendapatan" rows={earnings} currency={payroll.currency} empty="Tidak ada komponen pendapatan." />
       <Breakdown title="Potongan" rows={deductions} currency={payroll.currency} empty="Tidak ada komponen potongan." />
+      {hasBpjs && <BpjsPph21Breakdown payroll={payroll} />}
       <div className="grid gap-3 sm:grid-cols-3"><Summary label="Total Pendapatan" value={formatCurrency(payroll.total_earnings, payroll.currency)} /><Summary label="Total Potongan" value={formatCurrency(payroll.total_deductions, payroll.currency)} /><Summary label="Gaji Bersih" value={formatCurrency(payroll.net_salary, payroll.currency)} highlight /></div>
       <div className="grid grid-cols-2 gap-3 rounded-xl border border-gray-200 p-4 text-sm sm:grid-cols-5"><Metric label="Hari Hadir" value={payroll.attendance_days} /><Metric label="Hari Absen" value={payroll.absent_days} /><Metric label="Menit Terlambat" value={payroll.late_minutes} /><Metric label="Cuti Unpaid" value={payroll.unpaid_leave_days} /><Metric label="Menit Lembur" value={payroll.overtime_minutes} /></div>
       <div className="flex justify-end"><button type="button" className={primaryButton} onClick={onDownload} disabled={downloading}>{downloading ? 'Mengunduh...' : 'Unduh Slip PDF'}</button></div>
     </div>
+  )
+}
+
+const BpjsPph21Breakdown = ({ payroll }) => {
+  const bpjsRows = [
+    { label: 'JKK (Jaminan Kecelakaan Kerja)', value: payroll.bpjs_jkk, who: 'Perusahaan' },
+    { label: 'JKM (Jaminan Kematian)', value: payroll.bpjs_jkm, who: 'Perusahaan' },
+    { label: 'JHT Perusahaan', value: payroll.bpjs_jht_er, who: 'Perusahaan' },
+    { label: 'JP Perusahaan', value: payroll.bpjs_jp_er, who: 'Perusahaan' },
+    { label: 'JHT Karyawan', value: payroll.bpjs_jht_ee, who: 'Karyawan' },
+    { label: 'JP Karyawan', value: payroll.bpjs_jp_ee, who: 'Karyawan' },
+    { label: 'BPJS Kesehatan Karyawan', value: payroll.bpjs_kes_ee, who: 'Karyawan' },
+  ].filter((r) => r.value != null && r.value > 0)
+  if (bpjsRows.length === 0 && !payroll.pph21) return null
+
+  return (
+    <section className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+      <h3 className="mb-3 font-semibold text-gray-900">Rincian BPJS & PPh21</h3>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {bpjsRows.length > 0 && (
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">BPJS</p>
+            <div className="mt-2 divide-y divide-gray-200">
+              {bpjsRows.map((r) => (
+                <div key={r.label} className="flex items-center justify-between py-2 text-sm">
+                  <div>
+                    <p className="text-gray-800">{r.label}</p>
+                    <p className="text-xs text-gray-500">{r.who}</p>
+                  </div>
+                  <span className="font-medium text-gray-800">{formatCurrency(r.value, payroll.currency)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {payroll.pph21 != null && payroll.pph21 > 0 && (
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">PPh21</p>
+            <div className="mt-2 rounded-lg border border-gray-200 bg-white p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-800">Pajak Penghasilan Pasal 21</p>
+                  <p className="text-xs text-gray-500">{payroll.ptkp_code || 'TK/0'} · Gol. {payroll.pph21_bracket ? `>${((payroll.pph21_bracket - 1) * 50_000_000 / 100).toLocaleString('id-ID')}` : '-'}</p>
+                </div>
+                <span className="text-sm font-semibold text-red-600">-{formatCurrency(payroll.pph21, payroll.currency)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
   )
 }
 
