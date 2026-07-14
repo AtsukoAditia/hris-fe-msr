@@ -45,6 +45,18 @@ const navItems = [
     allowedRoles: ["admin", "hr", "manager"],
   },
   {
+    path: "/training",
+    label: "Pelatihan",
+    icon: "🎓",
+    allowedRoles: ["employee", "admin", "hr"],
+  },
+  {
+    path: "/analytics",
+    label: "Analitik",
+    icon: "📊",
+    allowedRoles: ["admin", "hr"],
+  },
+  {
     path: "/master-data",
     label: "Departemen",
     icon: "🏢",
