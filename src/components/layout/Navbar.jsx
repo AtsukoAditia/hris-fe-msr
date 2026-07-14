@@ -1,4 +1,5 @@
 import { useAuthStore } from '../../store/authStore'
+import NotificationBell from '../common/NotificationBell'
 
 const Navbar = ({ onMenuToggle }) => {
   const { user } = useAuthStore()
@@ -20,6 +21,7 @@ const Navbar = ({ onMenuToggle }) => {
       </div>
 
       <div className="flex items-center gap-3">
+        <NotificationBell />
         <div className="hidden text-right sm:block">
           <p className="text-sm font-medium text-gray-800">{user?.name || 'User'}</p>
           <p className="text-xs text-gray-500">{user?.role || 'Employee'}</p>
