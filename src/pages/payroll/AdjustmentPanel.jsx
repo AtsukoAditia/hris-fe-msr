@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import payrollService from '../../services/payrollService'
 import { formatCurrency, getErrorMessage, normalizeRows } from './payroll.helpers'
-import { Alert, EmptyState, Field, LoadingState, inputClass, primaryButton, secondaryButton, selectClass } from './ui'
+import { Alert, Field, LoadingState, inputClass, primaryButton, secondaryButton, selectClass } from './ui'
 
-const AdjustmentPanel = ({ payrollId, payrollStatus, canEdit }) => {
+const AdjustmentPanel = ({ payrollId, canEdit }) => {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
