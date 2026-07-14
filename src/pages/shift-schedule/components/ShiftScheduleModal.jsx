@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import shiftScheduleService from '../../services/shiftScheduleService';
+import shiftScheduleService from '../../../services/shiftScheduleService';
 
 export default function ShiftScheduleModal({ schedule, shifts, onClose }) {
   const [loading, setLoading] = useState(false);

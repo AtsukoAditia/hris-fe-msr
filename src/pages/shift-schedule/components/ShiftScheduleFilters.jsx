@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import shiftScheduleService from '../../services/shiftScheduleService';
+import shiftScheduleService from '../../../services/shiftScheduleService';
 
 export default function ShiftScheduleFilters({
   filters,

@@ -8,20 +8,17 @@ import {
   format,
   isToday,
   parseISO,
-} from '../../utils/dateUtils';
+} from '../../../utils/dateUtils';
 
 export default function ShiftScheduleCalendar({
   schedules = [],
   employees = [],
-  shifts = [],
   view = 'monthly',
   onCellClick,
   onBulkAssign,
-  onPublish,
-  onUnpublish,
 }) {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedCells, setSelectedCells] = useState([]);
+  const [selectedCells, _setSelectedCells] = useState([]);
 
   const startOfRange =
     view === 'weekly'
@@ -64,14 +61,7 @@ export default function ShiftScheduleCalendar({
 
   const goToToday = () => setCurrentDate(new Date());
 
-  const toggleCell = (empId, dateStr) => {
-    const cellKey = `${empId}_${dateStr}`;
-    setSelectedCells((prev) =>
-      prev.includes(cellKey)
-        ? prev.filter((c) => c !== cellKey)
-        : [...prev, cellKey],
-    );
-  };
+  // toggleCell - ponytail: unused now, wire up when multi-select toggle needed
 
   return (
     <div className="shift-calendar">

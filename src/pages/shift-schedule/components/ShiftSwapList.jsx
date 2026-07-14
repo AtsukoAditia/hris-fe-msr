@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import shiftScheduleService from '../../../services/shiftScheduleService';
 
-export default function ShiftSwapList({ employees, schedules, currentUser, onRefresh }) {
+export default function ShiftSwapList({ onRefresh }) {
   const [swaps, setSwaps] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
     loadSwaps();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
   const loadSwaps = async () => {

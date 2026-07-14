@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import shiftScheduleService from '../../../services/shiftScheduleService';
 
 export default function ShiftSwapModal({ employees, schedules, onClose, onSuccess }) {
