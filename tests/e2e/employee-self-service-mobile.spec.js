@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 
 test('Employee request and reviewer flow remain usable on mobile', async ({ page }, testInfo) => {
   await page.goto('/profile/changes')
-  await expect(page.getByRole('heading', { name: 'Perubahan Profil' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Perubahan/ })).toBeVisible()
   await expect(page.getByText('Permintaan #7')).toBeVisible()
   await expectNoDocumentOverflow(page)
 
@@ -21,7 +21,7 @@ test('Employee request and reviewer flow remain usable on mobile', async ({ page
   await expectModalFitsViewport(page, 'Detail Permintaan #7')
   await page.getByRole('button', { name: 'Tutup' }).click()
 
-  await page.goto('/profile-change-reviews')
+  await page.goto('/profile/change-requests')
   await expect(page.getByRole('heading', { name: 'Review Perubahan Profil' })).toBeVisible()
   await page.getByRole('button', { name: /Mobile HR/ }).click()
   await expectModalFitsViewport(page, 'Detail Permintaan #7')

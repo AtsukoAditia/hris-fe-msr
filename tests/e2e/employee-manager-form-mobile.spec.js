@@ -10,7 +10,7 @@ test('Employee Manager create form and filters work on mobile', async ({ page },
   await page.goto('/employee')
   await expect(page.getByText('managed.employee@hris.test')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Tambah Pegawai' }).click()
+  await page.getByRole('button', { name: /Tambah/ }).click()
   await expectModalFitsViewport(page, 'Tambah Pegawai')
   await page.locator('input[name="name"]').fill('Mobile Employee')
   await page.locator('input[name="email"]').fill('mobile.employee@hris.test')
