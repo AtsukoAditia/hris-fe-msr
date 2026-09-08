@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('Employee request and reviewer flow remain usable on mobile', async ({ page }, testInfo) => {
-  await page.goto('/profile/changes')
+  await page.goto('/profile/change-requests')
   await expect(page.getByRole('heading', { name: /Perubahan/ })).toBeVisible()
   await expect(page.getByText('Permintaan #7')).toBeVisible()
   await expectNoDocumentOverflow(page)

@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('Employee Manager table, edit, and detail work on mobile', async ({ page }, testInfo) => {
-  await page.goto('/employee')
+  await page.goto('/employees')
 
   await expect(page.getByRole('heading', { name: /Management/ })).toBeVisible()
   await expect(page.getByText('managed.employee@hris.test')).toBeVisible()

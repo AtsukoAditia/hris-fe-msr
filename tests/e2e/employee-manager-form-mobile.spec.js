@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('Employee Manager create form and filters work on mobile', async ({ page }, testInfo) => {
-  await page.goto('/employee')
+  await page.goto('/employees')
   await expect(page.getByText('managed.employee@hris.test')).toBeVisible()
 
   await page.getByRole('button', { name: /Tambah/ }).click()
