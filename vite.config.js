@@ -75,6 +75,7 @@ export default defineConfig({
       '.ngrok-free.app',
       '.ngrok.app',
       '.ngrok.io',
+      'hris.atsukoaditia.my.id',
     ],
     proxy: {
       '/api/v1': {
